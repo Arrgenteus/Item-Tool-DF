@@ -1,0 +1,14 @@
+# Visit https://discord.com/developers/applications for your bot token
+BOT_TOKEN: 'your bot token'
+
+# Database info
+DB_HOST: 'localhost'
+DB_PORT: '27017'
+DB_NAME: 'DFPedia'
+DB_COLLECTION: 'weapons_and_accessories'
+DB_AUTH_MECHANISM: 'DEFAULT'
+DB_USER: 'username'
+DB_PASS: 'password'
+
+# The ID to be pinged in case an error occurs
+DEV_ID: ''
