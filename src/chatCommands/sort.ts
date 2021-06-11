@@ -2,10 +2,13 @@ import { Message, TextChannel } from 'discord.js';
 import { ChatCommandData } from '../commonTypes/commandStructures';
 import { ItemType, ItemTypes } from '../commonTypes/items';
 import { config } from '../config';
-import { SortableItemType } from '../interactionLogic/sort/types';
+import { ValidationError } from '../errors';
+import getSortedItemList from '../interactionLogic/sort/getSortedItems';
+import parseSortExpression from '../interactionLogic/sort/sortExpressionParser';
+import { SortableItemType, SortExpressionData } from '../interactionLogic/sort/types';
 import { embed } from '../utils/misc';
 
-const CC = config.COMMAND_CHAR;
+const CC: string = config.COMMAND_CHAR;
 
 export const command: ChatCommandData = {
     names: ['sort', 'sortasc'],
@@ -34,31 +37,25 @@ export const command: ChatCommandData = {
         }
 
         if (maxLevelInput && maxLevelInput.match(/[^\-0-9]/)) {
-            await channel.send(embed(`"${maxLevelInput}" is not a valid number.`));
-            return;
+            throw new ValidationError(
+                `The max level should be an integer between 0 and 90 inclusive.`
+            );
         }
-        if (inputSortExp.length > 100) {
-            await channel.send(embed('Your sort expression cannot be longer than 100 characters.'));
-            return;
+        const maxLevel: number | undefined = Number(maxLevelInput) || undefined;
+        if (maxLevel && (!Number.isInteger(maxLevel) || maxLevel < 0 || maxLevel > 90)) {
+            throw new ValidationError(
+                `The max level should be an integer between 0 and 90 inclusive. ${maxLevel} is not valid.`
+            );
         }
 
-        const maxLevel: number = Number(maxLevelInput);
-        if (!Number.isInteger(maxLevel) || maxLevel < 0 || maxLevel > 90) {
-            await channel.send(
-                embed(
-                    `The max level should be an integer between 0 and 90 inclusive. ${maxLevel} is not valid.`
-                )
-            );
-            return;
-        }
         let sections: string[] = inputItemType.split(' ');
         [inputItemType] = sections.slice(-1);
         if (inputItemType.slice(-1) === 's') inputItemType = inputItemType.slice(0, -1); // strip trailing s
-        const itemElement: string = sections.slice(0, -1).join(' ').trim();
-        if (itemElement.length > 10) {
-            await channel.send(embed('That element name is too long.'));
-            return;
-        }
+        const weaponElement: string = sections.slice(0, -1).join(' ').trim();
+        if (weaponElement.length > 10)
+            throw new ValidationError(
+                'That element name is too long. It should be 10 characters or less'
+            );
 
         let itemType: SortableItemType;
         if (inputItemType === 'wep' || inputItemType === 'weapon') itemType = 'weapon';
@@ -67,22 +64,27 @@ export const command: ChatCommandData = {
         else if (inputItemType === 'wing') itemType = 'cape';
         else if (inputItemType === 'accessorie' || inputItemType === 'acc') {
             // TODO: Replace this with buttons
-            await channel.send(
-                embed(`\`${CC}sort acc\` has been removed. Sort by individual item types instead.`)
+            throw new ValidationError(
+                `\`${CC}sort acc\` has been removed. Sort by individual item types instead.`
             );
-            return;
         } else {
-            await channel.send(
-                embed(
-                    `"${inputItemType}" is not a valid item type. Valid types are: _${[
-                        Object.keys(ItemTypes),
-                    ].join(', ')}_. ` +
-                        '"acc" and "wep" are valid abbreviations for accessories and weapons.'
-                )
+            throw new ValidationError(
+                `"${inputItemType}" is not a valid item type. Valid types are: _${[
+                    Object.keys(ItemTypes),
+                ].join(', ')}_. ` +
+                    '"acc" and "wep" are valid abbreviations for accessories and weapons.'
             );
-            return;
         }
 
-        // TODO: return sort result
+        const sortExpression: SortExpressionData = parseSortExpression(inputSortExp);
+
+        const [sortedItems] = await getSortedItemList(1, {
+            itemType,
+            sortExpression,
+            weaponElement,
+            maxLevel,
+        });
+
+        await channel.send({ embed: sortedItems });
     },
 };

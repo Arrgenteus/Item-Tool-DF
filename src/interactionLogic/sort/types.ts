@@ -37,6 +37,7 @@ export interface ItemTypeMongoFilter {
 }
 
 export interface SortFilterParams {
+    itemType: SortableItemType;
     sortExpression: SortExpressionData;
     weaponElement?: string;
     minLevel?: number;

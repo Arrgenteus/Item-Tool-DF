@@ -8,20 +8,26 @@ import { getSortQueryPipeline } from './queryBuilder';
 import { SortableItemType, SortFilterParams, SortSubCommand } from './types';
 
 const ITEM_LIST_DELIMITER = ', `';
+const itemCollection: Promise<MongoCollection> = dbConnection.then((db: Db) =>
+    db.collection(config.DB_COLLECTION)
+);
 
 function prettifyType(itemType: SortableItemType): string {
     if (itemType === SortSubCommand.CAPE) return 'Capes/Wings';
     return capitalize(itemType) + 's';
 }
 
-function getFiltersUsedText(
-    { weaponElement, minLevel, maxLevel, sortExpression }: Partial<SortFilterParams>,
-    itemType?: SortableItemType
-): string {
+function getFiltersUsedText({
+    itemType,
+    weaponElement,
+    minLevel,
+    maxLevel,
+    sortExpression,
+}: Partial<SortFilterParams>): string {
     const filterText: string[] = [];
     if (itemType) filterText.push(`Item type: ${prettifyType(itemType)}`);
     if (weaponElement) filterText.push(`Element: ${capitalize(weaponElement)}`);
-    if (minLevel) filterText.push(`Min level: ${minLevel}`);
+    if (minLevel && minLevel !== 0) filterText.push(`Min level: ${minLevel}`);
     if (maxLevel && maxLevel !== 90) filterText.push(`Max level: ${maxLevel}`);
 
     let result = filterText.length ? `Filters used:\n${filterText.join(', ')}` : '';
@@ -30,15 +36,15 @@ function getFiltersUsedText(
     return result;
 }
 
-async function sortResultsToEmbed(
-    sortResults: AggregationCursor,
+export default async function getSortedItemList(
     embedCount: number,
-    isShortResult: boolean,
-    itemType: SortableItemType,
     sortFilterParams: SortFilterParams
 ): Promise<SimpleEmbed[]> {
     if (!Number.isInteger(embedCount) || embedCount < 1 || embedCount > 10)
         throw new RangeError('embedCount must be an integer between 1 and 10');
+
+    const pipeline = getSortQueryPipeline(embedCount > 1, sortFilterParams);
+    const sortResults: AggregationCursor = (await itemCollection).aggregate(pipeline);
 
     let itemGroup: {
         customSortValue: number;
@@ -46,6 +52,7 @@ async function sortResultsToEmbed(
     } | null;
     let sortedList: string = '';
     let lastResult: string = '';
+
     while ((itemGroup = await sortResults.next()) !== null) {
         let items: {
             title: string;
@@ -67,7 +74,7 @@ async function sortResultsToEmbed(
 
         sortedList += lastResult;
     }
-    if (!sortedList && isShortResult && lastResult) {
+    if (!sortedList && embedCount === 1 && lastResult) {
         const ellipses = ' **...**';
         const lastItemIndexBeforeLimit: number = lastResult
             .slice(0, 2048 - ellipses.length)
@@ -81,76 +88,21 @@ async function sortResultsToEmbed(
     splitEmbed.addText(sortedList);
 
     const prettifiedType: string = sortFilterParams.weaponElement
-        ? `${capitalize(sortFilterParams.weaponElement)} ${prettifyType(itemType)}`
-        : prettifyType(itemType);
+        ? `${capitalize(sortFilterParams.weaponElement)} ${prettifyType(sortFilterParams.itemType)}`
+        : prettifyType(sortFilterParams.itemType);
     const title: string = `Sort ${prettifiedType} by ${sortFilterParams.sortExpression.pretty}`;
     splitEmbed.setTitle(title);
 
     let footer =
-        isShortResult || sortedList.length <= 2048
+        sortedList.length <= 2048
             ? getFiltersUsedText({
                   minLevel: sortFilterParams.minLevel,
                   maxLevel: sortFilterParams.maxLevel,
               })
-            : getFiltersUsedText(sortFilterParams, itemType);
-    if (isShortResult && itemGroup !== null)
-        footer += `\n\nUse "/sort ${itemType}" for more results`;
+            : getFiltersUsedText(sortFilterParams);
+    if (embedCount <= 5 && itemGroup !== null)
+        footer += `\n\nUse "/sort ${sortFilterParams.itemType}" for more results`;
     splitEmbed.setFooter(footer);
 
     return splitEmbed.embeds;
-}
-
-export default async function getSortedItemList(
-    subCommand: SortSubCommand,
-    sortFilterParams: SortFilterParams
-): Promise<SimpleEmbed[]> {
-    const itemCollection: MongoCollection = await dbConnection.then((db: Db) =>
-        db.collection(config.DB_COLLECTION)
-    );
-
-    const itemTypesToFetch: SortableItemType[] =
-        subCommand === SortSubCommand.ALL
-            ? [
-                  SortSubCommand.BRACER,
-                  SortSubCommand.TRINKET,
-                  SortSubCommand.BELT,
-                  SortSubCommand.RING,
-                  SortSubCommand.NECKLACE,
-                  SortSubCommand.CAPE,
-                  SortSubCommand.HELM,
-                  SortSubCommand.WEAPON,
-              ]
-            : [subCommand];
-
-    const results: SimpleEmbed[][] = await Promise.all(
-        itemTypesToFetch.map(async (itemTypeToFetch: SortableItemType) => {
-            const pipeline = getSortQueryPipeline(
-                itemTypeToFetch,
-                sortFilterParams,
-                subCommand !== SortSubCommand.ALL
-            );
-            const sortResults: AggregationCursor = itemCollection.aggregate(pipeline);
-
-            if (subCommand !== SortSubCommand.ALL)
-                return await sortResultsToEmbed(
-                    sortResults,
-                    10,
-                    false,
-                    itemTypeToFetch,
-                    sortFilterParams
-                );
-            // Allow capes and helms to have two embeds; the rest can only use 1
-            return await sortResultsToEmbed(
-                sortResults,
-                itemTypeToFetch === SortSubCommand.CAPE || itemTypeToFetch === SortSubCommand.HELM
-                    ? 2
-                    : 1,
-                true,
-                itemTypeToFetch,
-                sortFilterParams
-            );
-        })
-    );
-
-    return results.flat();
 }
