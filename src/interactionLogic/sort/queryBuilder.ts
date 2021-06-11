@@ -11,9 +11,8 @@ function getItemTypeFilter(itemType: SortableItemType): ItemTypeMongoFilter {
 }
 
 export function getSortQueryPipeline(
-    itemType: SortableItemType,
-    { sortExpression, weaponElement, minLevel, maxLevel }: SortFilterParams,
-    moreResults: boolean
+    moreResults: boolean,
+    { itemType, sortExpression, weaponElement, minLevel, maxLevel }: SortFilterParams
 ): Object[] {
     const sortOrder: 1 | -1 = -1;
     const filter: { [filterName: string]: any } = {

@@ -1,6 +1,9 @@
 # Visit https://discord.com/developers/applications for your bot token
 BOT_TOKEN: 'your bot token'
 
+# The character prefix for chat commands
+COMMAND_CHAR: '!'
+
 # Database info
 DB_HOST: 'localhost'
 DB_PORT: '27017'

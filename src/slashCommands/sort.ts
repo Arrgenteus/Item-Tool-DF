@@ -1,9 +1,13 @@
 import { ApplicationCommandOption, Collection, CommandInteractionOption } from 'discord.js';
-import { ValidationError } from '../../errors';
-import { ApplicationCommandOptions, SlashCommandData } from '../../types/commandStructures';
-import getSortedItemList from './itemList';
-import parseSortExpression from './sortExpressionParser';
-import { SortCommandParams, SortExpressionData, SortSubCommand } from './types';
+import { ValidationError } from '../errors';
+import { ApplicationCommandOptions, SlashCommandData } from '../commonTypes/commandStructures';
+import getSortedItemList from '../interactionLogic/sort/getSortedItems';
+import { parseSortExpression } from '../interactionLogic/sort/sortExpressionParser';
+import {
+    SortCommandParams,
+    SortExpressionData,
+    SortSubCommand,
+} from '../interactionLogic/sort/types';
 
 export const command: SlashCommandData = {
     preferEphemeralErrorMessage: true,
@@ -42,7 +46,6 @@ export const command: SlashCommandData = {
                 ],
             },
             ...[
-                SortSubCommand.ALL,
                 SortSubCommand.CAPE,
                 SortSubCommand.HELM,
                 SortSubCommand.BELT,
@@ -101,15 +104,22 @@ export const command: SlashCommandData = {
             throw new ValidationError(
                 `Element name \`${weaponElement}\` is too long. It should be a maximum of 100 characters.`
             );
+
+        let minLevel = options.get(SortCommandParams.MIN_LEVEL)?.value as number;
+        let maxLevel = options.get(SortCommandParams.MIN_LEVEL)?.value as number;
+        minLevel = Math.min(Math.max(minLevel, 0), 90);
+        maxLevel = Math.min(Math.max(maxLevel, 0), 90);
+
         console.log(
             `${interaction.user.tag} used /sort ${command.name} ${sortExpression.baseExpression}`
         );
         await interaction.defer({ ephemeral: true });
-        const sortedItems = await getSortedItemList(command.name, {
+        const sortedItems = await getSortedItemList(10, {
+            itemType: command.name,
             sortExpression,
             weaponElement,
-            minLevel: options.get(SortCommandParams.MIN_LEVEL)?.value as number,
-            maxLevel: options.get(SortCommandParams.MIN_LEVEL)?.value as number,
+            minLevel,
+            maxLevel,
         });
         await interaction.editReply({ embeds: sortedItems });
     },
