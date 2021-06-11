@@ -1,4 +1,4 @@
-import { ApplicationCommand, ApplicationCommandOptionType, Interaction } from 'discord.js';
+import { ApplicationCommand, ApplicationCommandOptionType, Interaction, Message } from 'discord.js';
 
 // export enum ApplicationCommandPermissionType {
 // 	ROLE = 1,
@@ -72,5 +72,10 @@ export type ApplicationCommandCreationStructure = Pick<
 export interface SlashCommandData {
     preferEphemeralErrorMessage: boolean;
     structure: ApplicationCommandCreationStructure;
-    run(interaction: Interaction): any;
+    run(interaction: Interaction): Promise<void>;
+}
+
+export interface ChatCommandData {
+    names: string[];
+    run(message: Partial<Message>, args: string, commandName: string): Promise<void>;
 }

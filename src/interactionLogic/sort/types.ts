@@ -19,7 +19,7 @@ export enum SortCommandParams {
     WEAPON_ELEMENT = 'weapon-element',
 }
 
-export type SortableItemType = Exclude<SortSubCommand, SortSubCommand.ALL>;
+export type SortableItemType = Exclude<ItemType, 'accessory' | 'wings'>;
 
 export interface MongoSortExpression {
     [operator: string]: (number | string | boolean | MongoSortExpression)[];
