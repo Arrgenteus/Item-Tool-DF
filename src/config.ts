@@ -13,12 +13,13 @@ export interface Config {
     DB_USER: string;
     DB_PASS: string;
     DEV_ID?: Snowflake;
+    COMMAND_CHAR: string;
 }
 
 const CONFIG_DIR = path.resolve(__dirname, '../config.yml');
 export const config: Config = yaml.load(fs.readFileSync(CONFIG_DIR, 'utf8')) as Config;
 
-const requiredConfigValues = [
+const requiredConfigValues: (keyof Config)[] = [
     'BOT_TOKEN',
     'DB_HOST',
     'DB_PORT',
@@ -27,6 +28,7 @@ const requiredConfigValues = [
     'DB_AUTH_MECHANISM',
     'DB_USER',
     'DB_PASS',
+    'COMMAND_CHAR',
 ];
 for (const value of requiredConfigValues) {
     if (!(value in config)) throw new Error(`${value} must be defined in config.yml`);
