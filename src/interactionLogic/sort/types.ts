@@ -1,7 +1,6 @@
-import { ItemType } from '../../types/items';
+import { ItemType } from '../../commonTypes/items';
 
 export enum SortSubCommand {
-    ALL = 'all-items',
     WEAPON = 'weapon',
     CAPE = 'cape',
     HELM = 'helm',
@@ -19,7 +18,7 @@ export enum SortCommandParams {
     WEAPON_ELEMENT = 'weapon-element',
 }
 
-export type SortableItemType = Exclude<SortSubCommand, SortSubCommand.ALL>;
+export type SortableItemType = Exclude<ItemType, 'accessory' | 'wings'>;
 
 export interface MongoSortExpression {
     [operator: string]: (number | string | boolean | MongoSortExpression)[];
@@ -37,6 +36,7 @@ export interface ItemTypeMongoFilter {
 }
 
 export interface SortFilterParams {
+    itemType: SortableItemType;
     sortExpression: SortExpressionData;
     weaponElement?: string;
     minLevel?: number;

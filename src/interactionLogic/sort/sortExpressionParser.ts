@@ -27,6 +27,7 @@ const ALIASES: { [alias: string]: string } = {
     'pierce defence': 'pierce def',
     'pierce defense': 'pierce def',
     dark: 'darkness',
+    void: '???',
 };
 
 function pop(stack: any[]): any {
@@ -34,7 +35,7 @@ function pop(stack: any[]): any {
     return stack.pop();
 }
 
-function unaliasOperand(operand: string): string {
+export function unaliasBonusName(operand: string): string {
     let trimmedOperand = operand;
     if (operand.slice(-4) === ' res') trimmedOperand = operand.slice(0, -4);
     else if (operand.slice(-7) === ' resist') trimmedOperand = operand.slice(0, -7);
@@ -70,7 +71,7 @@ function tokenizeExpression(expression: string): string[] {
                 i += 1;
             }
             i -= 1;
-            operand = unaliasOperand(operand.trim());
+            operand = unaliasBonusName(operand.trim());
             if (usedOperands.has(operand))
                 throw new InvalidExpressionError(
                     `You cannot use an operand more than once. You reused \`${operand}\`.`
@@ -231,7 +232,7 @@ function mongoExpression(postfixExpression: string[]): MongoSortExpression {
     return pop(mongoExpression);
 }
 
-export default function parseSortExpression(baseExpression: string): SortExpressionData {
+export function parseSortExpression(baseExpression: string): SortExpressionData {
     try {
         if (baseExpression.length > 100)
             throw new InvalidExpressionError(

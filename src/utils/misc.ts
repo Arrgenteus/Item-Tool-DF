@@ -1,3 +1,5 @@
+import { SimpleEmbed } from '../commonTypes/message';
+
 const bonuses: Set<string> = new Set([
     'block',
     'dodge',
@@ -59,4 +61,18 @@ export function capitalize(text: string): string {
 export function isResist(value: string): boolean {
     if (bonuses.has(value) || value === 'damage') return false;
     return true;
+}
+
+export function embed(
+    description: string,
+    title?: string,
+    footerText?: string
+): { embed: SimpleEmbed } {
+    return {
+        embed: {
+            description,
+            title,
+            ...(footerText ? { footer: { text: footerText } } : {}),
+        },
+    };
 }
