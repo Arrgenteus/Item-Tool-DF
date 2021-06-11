@@ -1,10 +1,10 @@
 import { Message, TextChannel } from 'discord.js';
 import { ChatCommandData } from '../commonTypes/commandStructures';
-import { ItemType, ItemTypes } from '../commonTypes/items';
+import { ItemTypes } from '../commonTypes/items';
 import { config } from '../config';
 import { ValidationError } from '../errors';
 import getSortedItemList from '../interactionLogic/sort/getSortedItems';
-import parseSortExpression from '../interactionLogic/sort/sortExpressionParser';
+import { parseSortExpression } from '../interactionLogic/sort/sortExpressionParser';
 import { SortableItemType, SortExpressionData } from '../interactionLogic/sort/types';
 import { embed } from '../utils/misc';
 
@@ -50,6 +50,7 @@ export const command: ChatCommandData = {
 
         let sections: string[] = inputItemType.split(' ');
         [inputItemType] = sections.slice(-1);
+        const unmodifiedItemTypeInput = inputItemType;
         if (inputItemType.slice(-1) === 's') inputItemType = inputItemType.slice(0, -1); // strip trailing s
         const weaponElement: string = sections.slice(0, -1).join(' ').trim();
         if (weaponElement.length > 10)
@@ -67,11 +68,13 @@ export const command: ChatCommandData = {
             throw new ValidationError(
                 `\`${CC}sort acc\` has been removed. Sort by individual item types instead.`
             );
-        } else {
+        } else itemType = inputItemType as SortableItemType;
+
+        if (!(itemType in ItemTypes)) {
             throw new ValidationError(
-                `"${inputItemType}" is not a valid item type. Valid types are: _${[
-                    Object.keys(ItemTypes),
-                ].join(', ')}_. ` +
+                `"${unmodifiedItemTypeInput}" is not a valid item type. Valid types are: _${Object.keys(
+                    ItemTypes
+                ).join(', ')}_. ` +
                     '"acc" and "wep" are valid abbreviations for accessories and weapons.'
             );
         }

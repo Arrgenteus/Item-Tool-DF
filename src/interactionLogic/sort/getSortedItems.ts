@@ -6,6 +6,7 @@ import { capitalize } from '../../utils/misc';
 import SplitEmbed from '../../utils/splitEmbed';
 import { getSortQueryPipeline } from './queryBuilder';
 import { SortableItemType, SortFilterParams, SortSubCommand } from './types';
+import { unaliasBonusName } from './sortExpressionParser';
 
 const ITEM_LIST_DELIMITER = ', `';
 const itemCollection: Promise<MongoCollection> = dbConnection.then((db: Db) =>
@@ -42,6 +43,9 @@ export default async function getSortedItemList(
 ): Promise<SimpleEmbed[]> {
     if (!Number.isInteger(embedCount) || embedCount < 1 || embedCount > 10)
         throw new RangeError('embedCount must be an integer between 1 and 10');
+
+    if (sortFilterParams.weaponElement)
+        sortFilterParams.weaponElement = unaliasBonusName(sortFilterParams.weaponElement);
 
     const pipeline = getSortQueryPipeline(embedCount > 1, sortFilterParams);
     const sortResults: AggregationCursor = (await itemCollection).aggregate(pipeline);

@@ -2,7 +2,7 @@ import { ApplicationCommandOption, Collection, CommandInteractionOption } from '
 import { ValidationError } from '../errors';
 import { ApplicationCommandOptions, SlashCommandData } from '../commonTypes/commandStructures';
 import getSortedItemList from '../interactionLogic/sort/getSortedItems';
-import parseSortExpression from '../interactionLogic/sort/sortExpressionParser';
+import { parseSortExpression } from '../interactionLogic/sort/sortExpressionParser';
 import {
     SortCommandParams,
     SortExpressionData,
