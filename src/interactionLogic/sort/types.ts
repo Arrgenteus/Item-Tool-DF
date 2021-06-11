@@ -1,7 +1,6 @@
 import { ItemType } from '../../commonTypes/items';
 
 export enum SortSubCommand {
-    ALL = 'all-items',
     WEAPON = 'weapon',
     CAPE = 'cape',
     HELM = 'helm',

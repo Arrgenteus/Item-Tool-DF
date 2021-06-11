@@ -46,7 +46,6 @@ export const command: SlashCommandData = {
                 ],
             },
             ...[
-                SortSubCommand.ALL,
                 SortSubCommand.CAPE,
                 SortSubCommand.HELM,
                 SortSubCommand.BELT,
