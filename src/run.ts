@@ -6,8 +6,10 @@ import { ValidationError } from './errors';
 const client = new DiscordClient({ intents: ['GUILD_MESSAGES'] });
 
 const slashCommands: Collection<string, any> = new Collection();
-for (const folder of require('fs').readdirSync(path.resolve(__dirname, './slashCommands'))) {
-    const { command } = require(path.resolve(__dirname, `./slashCommands/${folder}/command.js`));
+for (const fileName of require('fs').readdirSync(path.resolve(__dirname, './slashCommands'))) {
+    if (fileName.slice(-3) !== '.js') continue;
+
+    const { command } = require(path.resolve(__dirname, `./slashCommands/${fileName}`));
     slashCommands.set(command.structure.name, command);
 }
 

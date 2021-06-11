@@ -1,9 +1,13 @@
 import { ApplicationCommandOption, Collection, CommandInteractionOption } from 'discord.js';
-import { ValidationError } from '../../errors';
-import { ApplicationCommandOptions, SlashCommandData } from '../../types/commandStructures';
-import getSortedItemList from './itemList';
-import parseSortExpression from './sortExpressionParser';
-import { SortCommandParams, SortExpressionData, SortSubCommand } from './types';
+import { ValidationError } from '../errors';
+import { ApplicationCommandOptions, SlashCommandData } from '../commonTypes/commandStructures';
+import getSortedItemList from '../interactionLogic/sort/getSortedItems';
+import parseSortExpression from '../interactionLogic/sort/sortExpressionParser';
+import {
+    SortCommandParams,
+    SortExpressionData,
+    SortSubCommand,
+} from '../interactionLogic/sort/types';
 
 export const command: SlashCommandData = {
     preferEphemeralErrorMessage: true,

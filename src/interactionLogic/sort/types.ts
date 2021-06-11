@@ -1,4 +1,4 @@
-import { ItemType } from '../../types/items';
+import { ItemType } from '../../commonTypes/items';
 
 export enum SortSubCommand {
     ALL = 'all-items',

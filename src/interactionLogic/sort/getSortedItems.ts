@@ -1,7 +1,7 @@
 import { AggregationCursor, Collection as MongoCollection, Db } from 'mongodb';
 import { config } from '../../config';
 import { dbConnection } from '../../dbConnection';
-import { SimpleEmbed } from '../../types/message';
+import { SimpleEmbed } from '../../commonTypes/message';
 import { capitalize } from '../../utils/misc';
 import SplitEmbed from '../../utils/splitEmbed';
 import { getSortQueryPipeline } from './queryBuilder';
