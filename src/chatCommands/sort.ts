@@ -66,7 +66,7 @@ export const command: ChatCommandData = {
         else if (inputItemType === 'accessorie' || inputItemType === 'acc') {
             // TODO: Replace this with buttons
             throw new ValidationError(
-                `\`${CC}sort acc\` has been removed. Sort by individual item types instead.`
+                `\`${CC}sort acc\` has been removed temporarily. Sort by individual item types instead.`
             );
         } else itemType = inputItemType as SortableItemType;
 
