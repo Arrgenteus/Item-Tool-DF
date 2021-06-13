@@ -41,8 +41,8 @@ export function getFiltersUsedText({
     const filterText: string[] = [];
     if (itemType) filterText.push(`Item type: ${prettifyType(itemType)}`);
     if (weaponElement) filterText.push(`Element: ${capitalize(weaponElement)}`);
-    if (minLevel && minLevel !== 0) filterText.push(`Min level: ${minLevel}`);
-    if (maxLevel && maxLevel !== 90) filterText.push(`Max level: ${maxLevel}`);
+    if (minLevel !== undefined && minLevel !== 0) filterText.push(`Min level: ${minLevel}`);
+    if (maxLevel !== undefined && maxLevel !== 90) filterText.push(`Max level: ${maxLevel}`);
 
     let result: string = filterText.length ? `Filters used:\n${filterText.join(', ')}` : '';
     if (sortExpression) result += `\nSort exp: ${sortExpression.pretty}`;

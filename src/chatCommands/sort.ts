@@ -32,26 +32,33 @@ const command: ChatCommandData = {
                         )}_. ` +
                         "Abbreviations such as 'acc' and 'wep' also work.\n" +
                         'If you are searching for a weapon, you may prefix the `item type` with an element ' +
-                        'to only get results for weapons of that element\n' +
+                        'to only get results for weapons of that element (Eg. `!sort fire wep`)\n' +
                         '`sort expression` can either be a single value or multiple values joined together by ' +
                         '+ and/or - signs and/or brackets (). These "values" can be any stat bonus or resistance ' +
                         '_(eg. STR, Melee Def, Bonus, All, Ice, Health, etc.)_, or in the case of weapons, _Damage_. ' +
                         'Examples: _All + Health_, _-Health_, _INT - (DEX + STR)_, etc.\n' +
-                        `\`${CC}sort\` sorts in descending order. Use \`${CC}sortasc\` to sort in ascending order instead.`
+                        `\`${CC}sort\` sorts in descending order. Use \`${CC}sortasc\` to sort in ascending order instead.\n\n` +
+                        `It is **recommended** to use the slash command **\`/sort\`** instead of ${CC}sort from now on, unless you want to ` +
+                        'show sort results to someone else in the chat. `/sort` is (arguably) easier to use and will also ' +
+                        'be more usable when more sort filters are added in the future.'
                 )
             );
             return;
         }
 
-        if (maxLevelInput && maxLevelInput.match(/[^\-0-9]/)) {
+        if (maxLevelInput && maxLevelInput.match(/[^0-9]/)) {
             throw new ValidationError(
                 `The max level should be an integer between 0 and 90 inclusive.`
             );
         }
-        const maxLevel: number | undefined = Number(maxLevelInput) || undefined;
-        if (maxLevel && (!Number.isInteger(maxLevel) || maxLevel < 0 || maxLevel > 90)) {
+        let maxLevel: number | undefined = Number(maxLevelInput);
+        if (isNaN(maxLevel)) maxLevel = undefined;
+        if (
+            maxLevel !== undefined &&
+            (!Number.isInteger(maxLevel) || maxLevel < 0 || maxLevel > 90)
+        ) {
             throw new ValidationError(
-                `The max level should be an integer between 0 and 90 inclusive. ${maxLevel} is not valid.`
+                `The max level should be an integer between 0 and 90 inclusive.`
             );
         }
 

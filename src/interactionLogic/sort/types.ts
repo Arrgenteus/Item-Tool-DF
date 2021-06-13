@@ -16,6 +16,7 @@ export enum SortCommandParams {
     MIN_LEVEL = 'min-level',
     MAX_LEVEL = 'max-level',
     WEAPON_ELEMENT = 'weapon-element',
+    ASCENDING = 'ascending-order',
 }
 
 export type SortableItemType = Exclude<ItemType, 'accessory' | 'wings'>;

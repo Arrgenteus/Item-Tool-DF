@@ -1,10 +1,8 @@
 import { Client as DiscordClient, Guild, Intents, Interaction, Message } from 'discord.js';
-import { ChatCommandData, SlashCommandData } from './commonTypes/commandStructures';
+import { SlashCommandData } from './commonTypes/commandStructures';
 import config from './config';
-import { ValidationError } from './errors';
 import interactionEventHandler from './events/interaction';
 import messageEventHandler from './events/message';
-import chatCommands from './storage/chatCommands';
 import slashCommands from './storage/slashCommands';
 
 const client = new DiscordClient({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES] });

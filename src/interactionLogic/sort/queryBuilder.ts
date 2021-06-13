@@ -26,10 +26,10 @@ export function getSortQueryPipeline(
         ],
         ...(weaponElement ? { elements: weaponElement } : {}),
     };
-    if (minLevel || maxLevel) {
+    if (minLevel !== undefined || maxLevel !== undefined) {
         filter.level = {
-            ...(minLevel ? { $gte: minLevel } : {}),
-            ...(maxLevel ? { $lte: maxLevel } : {}),
+            ...(minLevel !== undefined ? { $gte: minLevel } : {}),
+            ...(maxLevel !== undefined ? { $lte: maxLevel } : {}),
         };
     }
 
@@ -75,7 +75,7 @@ export function getSortQueryPipeline(
         },
         { $addFields: { customSortValue: '$_id.customSortValue' } },
         { $sort: { customSortValue: sortOrder } },
-        { $limit: moreResults ? 20 : 8 },
+        { $limit: moreResults ? 20 : 10 },
     ];
 
     return pipeline;

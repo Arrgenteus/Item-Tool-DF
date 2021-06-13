@@ -47,7 +47,13 @@ const command: SlashCommandData = {
                     {
                         type: ApplicationCommandOptions.INTEGER,
                         name: SortCommandParams.MIN_LEVEL,
-                        description: 'Minumum level of items to be shown in results',
+                        description: 'Minumum level of weapons to be shown in results',
+                    },
+                    {
+                        type: ApplicationCommandOptions.BOOLEAN,
+                        name: SortCommandParams.ASCENDING,
+                        description:
+                            'Whether weapons should be displayed in ascending order. Order is descending by default.',
                     },
                 ],
             },
@@ -60,7 +66,7 @@ const command: SlashCommandData = {
                 SortSubCommand.TRINKET,
                 SortSubCommand.BRACER,
             ].map((name: SortSubCommand): ApplicationCommandOption => {
-                let formattedName;
+                let formattedName: string;
                 if (name === SortSubCommand.CAPE) formattedName = 'capes/wings';
                 else formattedName = name.replace('-', ' ');
                 if (formattedName.slice(-1) !== 's') formattedName += 's';
@@ -80,12 +86,17 @@ const command: SlashCommandData = {
                         {
                             type: ApplicationCommandOptions.INTEGER,
                             name: SortCommandParams.MAX_LEVEL,
-                            description: 'Maximum level of weapons to be shown in results',
+                            description: `Maximum level of ${formattedName} to be shown in results`,
                         },
                         {
                             type: ApplicationCommandOptions.INTEGER,
                             name: SortCommandParams.MIN_LEVEL,
-                            description: 'Minimum level of items to be shown in results',
+                            description: `Minimum level of ${formattedName} to be shown in results`,
+                        },
+                        {
+                            type: ApplicationCommandOptions.BOOLEAN,
+                            name: SortCommandParams.ASCENDING,
+                            description: `Whether ${formattedName} should be displayed in ascending order. Order is descending by default.`,
                         },
                     ],
                 };
@@ -110,10 +121,10 @@ const command: SlashCommandData = {
                 `Element name \`${weaponElement}\` is too long. It should be a maximum of 20 characters.`
             );
 
-        let minLevel = options.get(SortCommandParams.MIN_LEVEL)?.value as number;
-        let maxLevel = options.get(SortCommandParams.MIN_LEVEL)?.value as number;
-        minLevel = Math.min(Math.max(minLevel, 0), 90);
-        maxLevel = Math.min(Math.max(maxLevel, 0), 90);
+        let minLevel = options.get(SortCommandParams.MIN_LEVEL)?.value as number | undefined;
+        let maxLevel = options.get(SortCommandParams.MAX_LEVEL)?.value as number | undefined;
+        if (minLevel !== undefined) minLevel = Math.min(Math.max(minLevel, 0), 90);
+        if (maxLevel !== undefined) maxLevel = Math.min(Math.max(maxLevel, 0), 90);
 
         console.log(
             `${interaction.user.tag} used /sort ${command.name} ${sortExpression.baseExpression}`
@@ -125,6 +136,7 @@ const command: SlashCommandData = {
             weaponElement,
             minLevel,
             maxLevel,
+            ascending: options.get(SortCommandParams.ASCENDING)?.value as boolean,
         });
         await interaction.editReply(sortedItems);
     },

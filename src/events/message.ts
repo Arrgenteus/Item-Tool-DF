@@ -1,4 +1,4 @@
-import { Message } from 'discord.js';
+import { Message, MessageOptions } from 'discord.js';
 import { ChatCommandData } from '../commonTypes/commandStructures';
 import { ClientEventHandler } from '../commonTypes/eventHandler';
 import config from '../config';
@@ -24,12 +24,9 @@ const messageEventHandler: ClientEventHandler = {
         try {
             await command.run(message, args, commandName);
         } catch (err) {
-            let errMessage: {
-                content?: string;
-                embed?: { description: string };
-            };
+            let errMessage: Pick<MessageOptions, 'content' | 'embeds'>;
             if (err instanceof ValidationError) {
-                errMessage = { embed: { description: err.message } };
+                errMessage = { embeds: [{ description: err.message }] };
             } else {
                 errMessage = {
                     content: 'An error occurred. Please try again later.',
