@@ -1,16 +1,22 @@
 import { Message, TextChannel } from 'discord.js';
 import { ChatCommandData } from '../commonTypes/commandStructures';
 import { ItemTypes } from '../commonTypes/items';
-import { config } from '../config';
+import config from '../config';
 import { ValidationError } from '../errors';
-import getSortedItemList from '../interactionLogic/sort/getSortedItems';
+import getSortedItemList, {
+    multiItemDisplayMessage,
+} from '../interactionLogic/sort/getSortedItems';
 import { parseSortExpression } from '../interactionLogic/sort/sortExpressionParser';
-import { SortableItemType, SortExpressionData } from '../interactionLogic/sort/types';
+import {
+    SortableItemType,
+    SortExpressionData,
+    SortFilterParams,
+} from '../interactionLogic/sort/types';
 import { embed } from '../utils/misc';
 
 const CC: string = config.COMMAND_CHAR;
 
-export const command: ChatCommandData = {
+const command: ChatCommandData = {
     names: ['sort', 'sortasc'],
     run: async (message: Message, args: string, commandName: string): Promise<void> => {
         const channel: TextChannel = message.channel as TextChannel;
@@ -34,6 +40,7 @@ export const command: ChatCommandData = {
                         `\`${CC}sort\` sorts in descending order. Use \`${CC}sortasc\` to sort in ascending order instead.`
                 )
             );
+            return;
         }
 
         if (maxLevelInput && maxLevelInput.match(/[^\-0-9]/)) {
@@ -64,10 +71,19 @@ export const command: ChatCommandData = {
         else if (inputItemType === 'helmet') itemType = 'helm';
         else if (inputItemType === 'wing') itemType = 'cape';
         else if (inputItemType === 'accessorie' || inputItemType === 'acc') {
-            // TODO: Replace this with buttons
-            throw new ValidationError(
-                `\`${CC}sort acc\` has been removed temporarily. Sort by individual item types instead.`
+            const sortExpression: SortExpressionData = parseSortExpression(inputSortExp);
+            await channel.send(
+                multiItemDisplayMessage(
+                    ['helm', 'cape', 'belt', 'necklace', 'ring', 'trinket', 'bracer'],
+                    {
+                        ascending: commandName === 'sortasc',
+                        sortExpression,
+                        weaponElement,
+                        maxLevel,
+                    }
+                )
             );
+            return;
         } else itemType = inputItemType as SortableItemType;
 
         if (!(itemType in ItemTypes)) {
@@ -81,13 +97,17 @@ export const command: ChatCommandData = {
 
         const sortExpression: SortExpressionData = parseSortExpression(inputSortExp);
 
-        const [sortedItems] = await getSortedItemList(1, {
+        const sortFilters: SortFilterParams = {
+            ascending: commandName === 'sortasc',
             itemType,
             sortExpression,
             weaponElement,
             maxLevel,
-        });
+        };
+        const sortedItems = await getSortedItemList(1, sortFilters);
 
-        await channel.send({ embed: sortedItems });
+        await channel.send({ embeds: sortedItems.embeds, components: sortedItems.components });
     },
 };
+
+export default command;

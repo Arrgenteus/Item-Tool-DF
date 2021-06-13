@@ -1,5 +1,7 @@
 export class ValidationError extends Error {}
 
+export class ValueError extends Error {}
+
 export class InvalidExpressionError extends ValidationError {
     constructor(message: string) {
         super(message);

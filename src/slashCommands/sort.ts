@@ -1,15 +1,21 @@
-import { ApplicationCommandOption, Collection, CommandInteractionOption } from 'discord.js';
+import {
+    ApplicationCommandOption,
+    Collection,
+    CommandInteraction,
+    CommandInteractionOption,
+} from 'discord.js';
 import { ValidationError } from '../errors';
 import { ApplicationCommandOptions, SlashCommandData } from '../commonTypes/commandStructures';
 import getSortedItemList from '../interactionLogic/sort/getSortedItems';
 import { parseSortExpression } from '../interactionLogic/sort/sortExpressionParser';
 import {
+    SortableItemType,
     SortCommandParams,
     SortExpressionData,
     SortSubCommand,
 } from '../interactionLogic/sort/types';
 
-export const command: SlashCommandData = {
+const command: SlashCommandData = {
     preferEphemeralErrorMessage: true,
     structure: {
         name: 'sort',
@@ -89,10 +95,9 @@ export const command: SlashCommandData = {
         ),
     },
 
-    // TODO: Fix types here
-    run: async (interaction: any) => {
-        const command = interaction.options.first();
-        const options: Collection<string, CommandInteractionOption> = command.options;
+    run: async (interaction: CommandInteraction) => {
+        const command: CommandInteractionOption = interaction.options.first()!;
+        const options: Collection<string, CommandInteractionOption> = command.options!;
 
         const sortExpression: SortExpressionData = parseSortExpression(
             options.get(SortCommandParams.SORT_EXPRESSION)!.value as string
@@ -100,9 +105,9 @@ export const command: SlashCommandData = {
         const weaponElement = options.get(SortCommandParams.WEAPON_ELEMENT)?.value as
             | string
             | undefined;
-        if (weaponElement && weaponElement.length > 100)
+        if (weaponElement && weaponElement.length > 20)
             throw new ValidationError(
-                `Element name \`${weaponElement}\` is too long. It should be a maximum of 100 characters.`
+                `Element name \`${weaponElement}\` is too long. It should be a maximum of 20 characters.`
             );
 
         let minLevel = options.get(SortCommandParams.MIN_LEVEL)?.value as number;
@@ -115,12 +120,14 @@ export const command: SlashCommandData = {
         );
         await interaction.defer({ ephemeral: true });
         const sortedItems = await getSortedItemList(10, {
-            itemType: command.name,
+            itemType: command.name as SortableItemType,
             sortExpression,
             weaponElement,
             minLevel,
             maxLevel,
         });
-        await interaction.editReply({ embeds: sortedItems });
+        await interaction.editReply(sortedItems);
     },
 };
+
+export default command;

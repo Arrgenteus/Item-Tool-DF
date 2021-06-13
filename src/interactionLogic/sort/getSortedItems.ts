@@ -1,12 +1,24 @@
 import { AggregationCursor, Collection as MongoCollection, Db } from 'mongodb';
-import { config } from '../../config';
+import config from '../../config';
 import { dbConnection } from '../../dbConnection';
-import { SimpleEmbed } from '../../commonTypes/message';
-import { capitalize } from '../../utils/misc';
+import { capitalize, embed } from '../../utils/misc';
 import SplitEmbed from '../../utils/splitEmbed';
 import { getSortQueryPipeline } from './queryBuilder';
 import { SortableItemType, SortFilterParams, SortSubCommand } from './types';
 import { unaliasBonusName } from './sortExpressionParser';
+import {
+    MessageActionRowComponentResolvable,
+    MessageComponentOptions,
+    MessageEmbedOptions,
+} from 'discord.js';
+import {
+    MessageComponentTypes,
+    MessageButtonStyles,
+    MAX_EMBED_DESC_LENGTH,
+    MAX_SPLIT_EMBED_DESC_LENGTH,
+    MAX_EMBED_FOOTER_LENGTH,
+} from '../../commonTypes/commandStructures';
+import { compressSortFilters } from './sortFilterCompression';
 
 const ITEM_LIST_DELIMITER = ', `';
 const itemCollection: Promise<MongoCollection> = dbConnection.then((db: Db) =>
@@ -18,7 +30,8 @@ function prettifyType(itemType: SortableItemType): string {
     return capitalize(itemType) + 's';
 }
 
-function getFiltersUsedText({
+export function getFiltersUsedText({
+    ascending,
     itemType,
     weaponElement,
     minLevel,
@@ -31,16 +44,65 @@ function getFiltersUsedText({
     if (minLevel && minLevel !== 0) filterText.push(`Min level: ${minLevel}`);
     if (maxLevel && maxLevel !== 90) filterText.push(`Max level: ${maxLevel}`);
 
-    let result = filterText.length ? `Filters used:\n${filterText.join(', ')}` : '';
+    let result: string = filterText.length ? `Filters used:\n${filterText.join(', ')}` : '';
     if (sortExpression) result += `\nSort exp: ${sortExpression.pretty}`;
-
+    if (ascending) result = 'Results are in ascending order\n\n' + result;
     return result;
+}
+
+function getButtonsForMoreResults(sortFilterParams: SortFilterParams): MessageComponentOptions[] {
+    return [
+        {
+            type: MessageComponentTypes.ACTION_ROW,
+            components: [
+                {
+                    type: MessageComponentTypes.BUTTON,
+                    label: 'More Results',
+                    customID: compressSortFilters(sortFilterParams),
+                    style: MessageButtonStyles.PRIMARY,
+                },
+            ],
+        },
+    ];
+}
+
+export function multiItemDisplayMessage(
+    itemTypes: SortableItemType[],
+    sortFilterParams: Omit<SortFilterParams, 'itemType'>
+): { components: MessageComponentOptions[] | undefined; embeds: MessageEmbedOptions[] } {
+    return {
+        embeds: embed(
+            'Click on one of the buttons below',
+            `Sort items by ${sortFilterParams.sortExpression.pretty}`,
+            getFiltersUsedText({
+                ascending: sortFilterParams.ascending,
+                maxLevel: sortFilterParams.maxLevel,
+                minLevel: sortFilterParams.minLevel,
+            })
+        ).embeds,
+        components: [itemTypes.slice(0, 5), itemTypes.slice(5)].map(
+            (itemTypeSubset: SortableItemType[]) => ({
+                type: MessageComponentTypes.ACTION_ROW,
+                components: itemTypeSubset.map(
+                    (itemType: SortableItemType): MessageActionRowComponentResolvable => ({
+                        type: MessageComponentTypes.BUTTON,
+                        label: capitalize(itemType),
+                        customID: compressSortFilters(
+                            Object.assign(sortFilterParams, { itemType }),
+                            true
+                        ),
+                        style: MessageButtonStyles.PRIMARY,
+                    })
+                ),
+            })
+        ),
+    };
 }
 
 export default async function getSortedItemList(
     embedCount: number,
     sortFilterParams: SortFilterParams
-): Promise<SimpleEmbed[]> {
+): Promise<{ components: MessageComponentOptions[] | undefined; embeds: MessageEmbedOptions[] }> {
     if (!Number.isInteger(embedCount) || embedCount < 1 || embedCount > 10)
         throw new RangeError('embedCount must be an integer between 1 and 10');
 
@@ -73,19 +135,28 @@ export default async function getSortedItemList(
         });
 
         const sign: string = itemGroup.customSortValue < 0 ? '' : '+';
-        lastResult = `**${sign}${itemGroup.customSortValue}** ${itemDisplayList.join(', ')}\n\n`;
-        if (lastResult.length + sortedList.length > 2048 * embedCount) break;
+        lastResult = [
+            `**${sign}${itemGroup.customSortValue}**`,
+            `${itemDisplayList.join(', ')}\n\n`,
+        ].join(embedCount === 1 ? ' ' : '\n');
+        if (lastResult.length + sortedList.length > MAX_SPLIT_EMBED_DESC_LENGTH * embedCount) break;
 
         sortedList += lastResult;
     }
     if (!sortedList && embedCount === 1 && lastResult) {
         const ellipses = ' **...**';
         const lastItemIndexBeforeLimit: number = lastResult
-            .slice(0, 2048 - ellipses.length)
+            .slice(0, MAX_EMBED_DESC_LENGTH - ellipses.length)
             .lastIndexOf(ITEM_LIST_DELIMITER);
         if (lastItemIndexBeforeLimit !== -1)
             sortedList = lastResult.slice(0, lastItemIndexBeforeLimit) + ellipses;
     }
+
+    const messageButtons: MessageComponentOptions[] | undefined =
+        embedCount <= 5 && sortedList.length && itemGroup !== null
+            ? getButtonsForMoreResults(sortFilterParams)
+            : undefined;
+
     sortedList = sortedList || 'No results were found';
 
     const splitEmbed = new SplitEmbed(ITEM_LIST_DELIMITER, embedCount);
@@ -98,15 +169,14 @@ export default async function getSortedItemList(
     splitEmbed.setTitle(title);
 
     let footer =
-        sortedList.length <= 2048
+        sortedList.length <= MAX_EMBED_FOOTER_LENGTH
             ? getFiltersUsedText({
+                  ascending: sortFilterParams.ascending,
                   minLevel: sortFilterParams.minLevel,
                   maxLevel: sortFilterParams.maxLevel,
               })
             : getFiltersUsedText(sortFilterParams);
-    if (embedCount <= 5 && itemGroup !== null)
-        footer += `\n\nUse "/sort ${sortFilterParams.itemType}" for more results`;
     splitEmbed.setFooter(footer);
 
-    return splitEmbed.embeds;
+    return { embeds: splitEmbed.embeds, components: messageButtons };
 }

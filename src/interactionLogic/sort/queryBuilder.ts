@@ -12,9 +12,9 @@ function getItemTypeFilter(itemType: SortableItemType): ItemTypeMongoFilter {
 
 export function getSortQueryPipeline(
     moreResults: boolean,
-    { itemType, sortExpression, weaponElement, minLevel, maxLevel }: SortFilterParams
+    { itemType, ascending, sortExpression, weaponElement, minLevel, maxLevel }: SortFilterParams
 ): Object[] {
-    const sortOrder: 1 | -1 = -1;
+    const sortOrder: 1 | -1 = ascending ? 1 : -1;
     const filter: { [filterName: string]: any } = {
         customSortValue: { $exists: true, $ne: 0 },
         ...getItemTypeFilter(itemType),

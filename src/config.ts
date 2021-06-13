@@ -17,7 +17,7 @@ export interface Config {
 }
 
 const CONFIG_DIR = path.resolve(__dirname, '../config.yml');
-export const config: Config = yaml.load(fs.readFileSync(CONFIG_DIR, 'utf8')) as Config;
+const config: Config = yaml.load(fs.readFileSync(CONFIG_DIR, 'utf8')) as Config;
 
 const requiredConfigValues: (keyof Config)[] = [
     'BOT_TOKEN',
@@ -33,3 +33,5 @@ const requiredConfigValues: (keyof Config)[] = [
 for (const value of requiredConfigValues) {
     if (!(value in config)) throw new Error(`${value} must be defined in config.yml`);
 }
+
+export default config;

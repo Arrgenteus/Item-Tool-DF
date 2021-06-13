@@ -25,8 +25,9 @@ export interface MongoSortExpression {
 }
 
 export interface SortExpressionData {
-    baseExpression: string;
+    baseExpression?: string;
     pretty: string;
+    compressed: string;
     mongo: MongoSortExpression;
 }
 
@@ -37,6 +38,7 @@ export interface ItemTypeMongoFilter {
 
 export interface SortFilterParams {
     itemType: SortableItemType;
+    ascending?: boolean;
     sortExpression: SortExpressionData;
     weaponElement?: string;
     minLevel?: number;
