@@ -3,7 +3,8 @@ import { InvalidExpressionError, ValueError } from '../../errors';
 import { capitalize, isResist } from '../../utils/misc';
 import { MongoSortExpression, SortExpressionData } from './types';
 
-const MAX_OPERATORS: number = 5;
+const MAX_OPERATORS: number = 6;
+const MAX_OPERAND_LENGTH: number = 20;
 const OPERATORS: {
     [operator: string]: {
         precedence: number;
@@ -109,7 +110,7 @@ function tokenizeExpression(expression: string, isCompressed?: boolean): string[
 
         if (token in OPERATORS) {
             operatorCount += 1;
-            if (operatorCount > MAX_OPERATORS)
+            if (operatorCount >= MAX_OPERATORS)
                 throw new InvalidExpressionError(
                     `You cannot have more than ${MAX_OPERATORS} operators in your sort expression.`
                 );
@@ -121,6 +122,10 @@ function tokenizeExpression(expression: string, isCompressed?: boolean): string[
             let operand: string = '';
             while (i < expression.length && expression[i].toLowerCase().match(/[ a-z?]/)) {
                 operand += expression[i].toLowerCase();
+                if (operand.length > MAX_OPERAND_LENGTH)
+                    throw new InvalidExpressionError(
+                        `Each operand can only be ${MAX_OPERAND_LENGTH} characters long.`
+                    );
                 i += 1;
             }
             i -= 1;

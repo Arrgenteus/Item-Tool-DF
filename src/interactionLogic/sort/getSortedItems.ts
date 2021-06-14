@@ -51,6 +51,9 @@ export function getFiltersUsedText({
 }
 
 function getButtonsForMoreResults(sortFilterParams: SortFilterParams): MessageComponentOptions[] {
+    const compressedFilters: string | undefined = compressSortFilters(sortFilterParams);
+    if (!compressedFilters) return [];
+
     return [
         {
             type: MessageComponentTypes.ACTION_ROW,
@@ -58,7 +61,7 @@ function getButtonsForMoreResults(sortFilterParams: SortFilterParams): MessageCo
                 {
                     type: MessageComponentTypes.BUTTON,
                     label: 'More Results',
-                    customID: compressSortFilters(sortFilterParams),
+                    customID: compressedFilters,
                     style: MessageButtonStyles.PRIMARY,
                 },
             ],

@@ -29,7 +29,7 @@ const command: ChatCommandData = {
                     `Usage: ${CC}${commandName} \`item type\`, \`sort expression\`, \`max level (optional)\`\n` +
                         `\`item type\` - Valid types are: _${Object.keys(ItemTypes).join(
                             ', '
-                        )}_. ` +
+                        )}_, and _item_. ` +
                         "Abbreviations such as 'acc' and 'wep' also work.\n" +
                         'If you are searching for a weapon, you may prefix the `item type` with an element ' +
                         'to only get results for weapons of that element (Eg. `!sort fire wep`)\n' +
@@ -66,8 +66,11 @@ const command: ChatCommandData = {
         [inputItemType] = sections.slice(-1);
         const unmodifiedItemTypeInput = inputItemType;
         if (inputItemType.slice(-1) === 's') inputItemType = inputItemType.slice(0, -1); // strip trailing s
-        const weaponElement: string = sections.slice(0, -1).join(' ').trim();
-        if (weaponElement.length > 10)
+
+        let weaponElement: string | undefined;
+        if (['wep', 'weapon'].includes(inputItemType))
+            weaponElement = sections.slice(0, -1).join(' ').trim() || undefined;
+        if (weaponElement && weaponElement.length > 10)
             throw new ValidationError(
                 'That element name is too long. It should be 10 characters or less'
             );
@@ -77,11 +80,28 @@ const command: ChatCommandData = {
         // "accessorie" because the trailing s would have been removed
         else if (inputItemType === 'helmet') itemType = 'helm';
         else if (inputItemType === 'wing') itemType = 'cape';
-        else if (inputItemType === 'accessorie' || inputItemType === 'acc') {
+        else if (
+            inputItemType === 'accessorie' ||
+            inputItemType === 'acc' ||
+            inputItemType === 'item' ||
+            inputItemType === 'all' ||
+            inputItemType === 'all items'
+        ) {
             const sortExpression: SortExpressionData = parseSortExpression(inputSortExp);
             await channel.send(
                 multiItemDisplayMessage(
-                    ['helm', 'cape', 'belt', 'necklace', 'ring', 'trinket', 'bracer'],
+                    inputItemType === 'acc' || inputItemType === 'accessorie'
+                        ? ['helm', 'cape', 'belt', 'necklace', 'ring', 'trinket', 'bracer']
+                        : [
+                              'weapon',
+                              'helm',
+                              'cape',
+                              'belt',
+                              'necklace',
+                              'ring',
+                              'trinket',
+                              'bracer',
+                          ],
                     {
                         ascending: commandName === 'sortasc',
                         sortExpression,

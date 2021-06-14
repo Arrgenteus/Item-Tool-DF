@@ -63,7 +63,7 @@ export function compressSortFilters(
     { itemType, ascending, sortExpression, weaponElement, maxLevel, minLevel }: SortFilterParams,
     small?: boolean
 ): string | undefined {
-    let compressed = [
+    const compressed = [
         small ? 'ss' : 's',
         uncompressedItemTypeMapping[itemType],
         ascending ? 'a' : '',
@@ -71,6 +71,8 @@ export function compressSortFilters(
         weaponElement || '',
         maxLevel !== 90 && maxLevel !== undefined ? maxLevel.toString() : '',
         minLevel !== 0 && minLevel !== undefined ? minLevel.toString() : '',
-    ];
-    return compressed.join('`').replace(/\`+$/, '`');
+    ]
+        .join('`')
+        .replace(/\`+$/, '`');
+    return compressed.length <= 100 ? compressed : undefined;
 }

@@ -1,4 +1,5 @@
 import {
+    MAX_EMBED_DESC_LENGTH,
     MAX_EMBED_FOOTER_LENGTH,
     MAX_SPLIT_EMBED_DESC_LENGTH,
 } from '../commonTypes/commandStructures';
@@ -20,7 +21,8 @@ export default class SplitEmbed {
         if (!Number.isInteger(maxEmbeds) || maxEmbeds < 1 || maxEmbeds > 10)
             throw new RangeError('maxEmbeds must be an integer between 0 and 10');
 
-        this.maxLength = MAX_SPLIT_EMBED_DESC_LENGTH * maxEmbeds;
+        this.maxLength =
+            maxEmbeds === 1 ? MAX_EMBED_DESC_LENGTH : MAX_SPLIT_EMBED_DESC_LENGTH * maxEmbeds;
         this.length = 0;
     }
 
@@ -52,7 +54,7 @@ export default class SplitEmbed {
             throw new RangeError(`${this.maxLength} character limit for embeds exceeded`);
 
         const lastEmbed = this.lastEmbed || this.addEmbed('');
-        const remainingLength = MAX_SPLIT_EMBED_DESC_LENGTH - lastEmbed.description.length;
+        const remainingLength = MAX_EMBED_DESC_LENGTH - lastEmbed.description.length;
 
         let separatorIndex =
             text.length <= remainingLength
@@ -61,8 +63,7 @@ export default class SplitEmbed {
 
         if (separatorIndex === -1)
             separatorIndex =
-                text.length > MAX_SPLIT_EMBED_DESC_LENGTH &&
-                remainingLength === MAX_SPLIT_EMBED_DESC_LENGTH
+                text.length > MAX_EMBED_DESC_LENGTH && remainingLength === MAX_EMBED_DESC_LENGTH
                     ? remainingLength
                     : 0;
 
