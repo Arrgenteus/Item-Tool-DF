@@ -1,3 +1,4 @@
+import { Util } from 'discord.js';
 import { BonusType } from '../../commonTypes/items';
 import { InvalidExpressionError, ValueError } from '../../errors';
 import { capitalize, isResist } from '../../utils/misc';
@@ -334,7 +335,7 @@ export function parseSortExpression(baseExpression: string): SortExpressionData 
             // Display the first 500 characters of their input expression at the max
             let trimmedExpression: string = baseExpression.slice(0, 500);
             if (baseExpression.length > 500) trimmedExpression += '...';
-            err.message += `\n\nYour expression: \`${trimmedExpression}\``;
+            err.message += `\n\nYour expression: \`${Util.escapeMarkdown(trimmedExpression)}\``;
         }
         throw err;
     }

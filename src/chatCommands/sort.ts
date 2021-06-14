@@ -1,4 +1,4 @@
-import { Message, TextChannel } from 'discord.js';
+import { Message, TextChannel, Util } from 'discord.js';
 import { ChatCommandData } from '../commonTypes/commandStructures';
 import { ItemTypes } from '../commonTypes/items';
 import config from '../config';
@@ -115,10 +115,11 @@ const command: ChatCommandData = {
 
         if (!(itemType in ItemTypes)) {
             throw new ValidationError(
-                `"${unmodifiedItemTypeInput}" is not a valid item type. Valid types are: _${Object.keys(
-                    ItemTypes
-                ).join(', ')}_. ` +
-                    '"acc" and "wep" are valid abbreviations for accessories and weapons.'
+                `"${Util.escapeMarkdown(
+                    unmodifiedItemTypeInput
+                )}" is not a valid item type. Valid types are: _${Object.keys(ItemTypes).join(
+                    ', '
+                )}_. ` + '"acc" and "wep" are valid abbreviations for accessories and weapons.'
             );
         }
 
