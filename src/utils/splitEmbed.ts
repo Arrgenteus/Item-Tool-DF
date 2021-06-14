@@ -1,3 +1,9 @@
+import {
+    MAX_EMBED_DESC_LENGTH,
+    MAX_EMBED_FOOTER_LENGTH,
+    MAX_SPLIT_EMBED_DESC_LENGTH,
+} from '../commonTypes/commandStructures';
+
 export default class SplitEmbed {
     private maxLength: number;
     private length: number;
@@ -15,7 +21,8 @@ export default class SplitEmbed {
         if (!Number.isInteger(maxEmbeds) || maxEmbeds < 1 || maxEmbeds > 10)
             throw new RangeError('maxEmbeds must be an integer between 0 and 10');
 
-        this.maxLength = 2048 * maxEmbeds;
+        this.maxLength =
+            maxEmbeds === 1 ? MAX_EMBED_DESC_LENGTH : MAX_SPLIT_EMBED_DESC_LENGTH * maxEmbeds;
         this.length = 0;
     }
 
@@ -47,7 +54,7 @@ export default class SplitEmbed {
             throw new RangeError(`${this.maxLength} character limit for embeds exceeded`);
 
         const lastEmbed = this.lastEmbed || this.addEmbed('');
-        const remainingLength = 2048 - lastEmbed.description.length;
+        const remainingLength = MAX_EMBED_DESC_LENGTH - lastEmbed.description.length;
 
         let separatorIndex =
             text.length <= remainingLength
@@ -55,7 +62,10 @@ export default class SplitEmbed {
                 : text.slice(0, remainingLength).lastIndexOf(this.delimiter) + 1;
 
         if (separatorIndex === -1)
-            separatorIndex = text.length > 2048 && remainingLength === 2048 ? remainingLength : 0;
+            separatorIndex =
+                text.length > MAX_EMBED_DESC_LENGTH && remainingLength === MAX_EMBED_DESC_LENGTH
+                    ? remainingLength
+                    : 0;
 
         const textToAppend = text.slice(0, separatorIndex);
         const remainingText = text.slice(separatorIndex);
@@ -79,7 +89,10 @@ export default class SplitEmbed {
     }
 
     public setFooter(text: string) {
-        if (text.length > 2048) throw new RangeError('Embed footer cannot exceed 2048 characters');
+        if (text.length > MAX_EMBED_FOOTER_LENGTH)
+            throw new RangeError(
+                `Embed footer cannot exceed ${MAX_EMBED_FOOTER_LENGTH} characters`
+            );
         this.footerText = text;
         this.lastEmbed.footer = { text };
     }

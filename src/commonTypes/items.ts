@@ -24,3 +24,23 @@ export const WeaponTypes = {
 };
 
 export type WeaponType = keyof typeof WeaponTypes;
+
+export const BonusTypes = {
+    block: 1,
+    dodge: 1,
+    parry: 1,
+    crit: 1,
+    'magic def': 1,
+    'melee def': 1,
+    'pierce def': 1,
+    wis: 1,
+    end: 1,
+    cha: 1,
+    luk: 1,
+    int: 1,
+    dex: 1,
+    str: 1,
+    bonus: 1,
+};
+
+export type BonusType = keyof typeof BonusTypes;

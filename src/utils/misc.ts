@@ -1,4 +1,4 @@
-import { SimpleEmbed } from '../commonTypes/message';
+import { MessageEmbedOptions } from 'discord.js';
 
 const bonuses: Set<string> = new Set([
     'block',
@@ -67,12 +67,14 @@ export function embed(
     description: string,
     title?: string,
     footerText?: string
-): { embed: SimpleEmbed } {
+): { embeds: MessageEmbedOptions[] } {
     return {
-        embed: {
-            description,
-            title,
-            ...(footerText ? { footer: { text: footerText } } : {}),
-        },
+        embeds: [
+            {
+                description,
+                title,
+                footer: footerText ? { text: footerText } : undefined,
+            },
+        ],
     };
 }
