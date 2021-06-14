@@ -1,6 +1,6 @@
 import { Db, MongoClient } from 'mongodb';
 import { format } from 'util';
-import { config } from './config';
+import config from './config';
 
 export const dbConnection: Promise<Db> = MongoClient.connect(
     format(

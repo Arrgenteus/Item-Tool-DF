@@ -1,20 +1,16 @@
-import { ApplicationCommand, ApplicationCommandOptionType, Interaction, Message } from 'discord.js';
+import {
+    ApplicationCommand,
+    ApplicationCommandOptionType,
+    ButtonInteraction,
+    CommandInteraction,
+    Message,
+    MessageButtonStyleResolvable,
+    MessageComponentTypeResolvable,
+} from 'discord.js';
 
-// export enum ApplicationCommandPermissionType {
-// 	ROLE = 1,
-// 	USER
-// }
-
-// export interface ApplicationCommandPermissions {
-// 	id: Snowflake,
-// 	type: ApplicationCommandPermissionType,
-// 	permission: boolean
-// }
-
-// export interface ApplicationCommandOptionChoice {
-// 	name: string,
-// 	value: string | number
-// }
+export const MAX_EMBED_DESC_LENGTH = 2048;
+export const MAX_EMBED_FOOTER_LENGTH = 2048;
+export const MAX_SPLIT_EMBED_DESC_LENGTH = 2020;
 
 export const ApplicationCommandOptions: {
     [type: string]: ApplicationCommandOptionType;
@@ -30,39 +26,18 @@ export const ApplicationCommandOptions: {
     MENTIONABLE: 'MENTIONABLE',
 };
 
-// export interface ApplicationCommandOption {
-// 	type:
-// 		ApplicationCommandOptionType.STRING | ApplicationCommandOptionType.INTEGER |
-// 		ApplicationCommandOptionType.BOOLEAN | ApplicationCommandOptionType.USER |
-// 		ApplicationCommandOptionType.CHANNEL | ApplicationCommandOptionType.ROLE |
-// 		ApplicationCommandOptionType.MENTIONABLE,
-// 	name: string,
-// 	description: string,
-// 	required?: boolean,
-// 	choices?: ApplicationCommandOptionChoice[],
-// 	options?: never
-// }
+export const MessageComponentTypes: { [type: string]: MessageComponentTypeResolvable } = {
+    ACTION_ROW: 'ACTION_ROW',
+    BUTTON: 'BUTTON',
+};
 
-// export interface ApplicationCommandOptionWithSubCommand {
-// 	type: ApplicationCommandOptionType.SUB_COMMAND,
-// 	name: string,
-// 	description: string,
-// 	options: ApplicationCommandOption[]
-// }
-
-// export interface ApplicationCommandOptionWithSubCommandGroup {
-// 	type: ApplicationCommandOptionType.SUB_COMMAND_GROUP,
-// 	name: string,
-// 	description: string,
-// 	options: ApplicationCommandOptionWithSubCommand[]
-// }
-
-// export interface ApplicationCommandCreationStructure {
-// 	name: string,
-// 	description: string,
-// 	options?: ApplicationCommandOption[] | ApplicationCommandOptionWithSubCommand[] | ApplicationCommandOptionWithSubCommandGroup[],
-// 	default_permission?: boolean
-// };
+export const MessageButtonStyles: { [type: string]: MessageButtonStyleResolvable } = {
+    PRIMARY: 'PRIMARY',
+    SECONDARY: 'SECONDARY',
+    SUCCESS: 'SUCCESS',
+    DANGER: 'DANGER',
+    LINK: 'LINK',
+};
 
 export type ApplicationCommandCreationStructure = Pick<
     ApplicationCommand,
@@ -70,12 +45,18 @@ export type ApplicationCommandCreationStructure = Pick<
 >;
 
 export interface SlashCommandData {
-    preferEphemeralErrorMessage: boolean;
-    structure: ApplicationCommandCreationStructure;
-    run(interaction: Interaction): Promise<void>;
+    readonly preferEphemeralErrorMessage: boolean;
+    readonly structure: ApplicationCommandCreationStructure;
+    run(interaction: CommandInteraction): Promise<void>;
 }
 
 export interface ChatCommandData {
-    names: string[];
+    readonly names: string[];
     run(message: Partial<Message>, args: string, commandName: string): Promise<void>;
+}
+
+export interface ButtonInteractionData {
+    readonly names: readonly string[];
+    readonly preferEphemeralErrorMessage: boolean;
+    run(interaction: ButtonInteraction, handlerName: string): Promise<void>;
 }

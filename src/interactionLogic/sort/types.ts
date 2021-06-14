@@ -16,6 +16,7 @@ export enum SortCommandParams {
     MIN_LEVEL = 'min-level',
     MAX_LEVEL = 'max-level',
     WEAPON_ELEMENT = 'weapon-element',
+    ASCENDING = 'ascending-order',
 }
 
 export type SortableItemType = Exclude<ItemType, 'accessory' | 'wings'>;
@@ -25,8 +26,9 @@ export interface MongoSortExpression {
 }
 
 export interface SortExpressionData {
-    baseExpression: string;
+    baseExpression?: string;
     pretty: string;
+    compressed: string;
     mongo: MongoSortExpression;
 }
 
@@ -37,6 +39,7 @@ export interface ItemTypeMongoFilter {
 
 export interface SortFilterParams {
     itemType: SortableItemType;
+    ascending?: boolean;
     sortExpression: SortExpressionData;
     weaponElement?: string;
     minLevel?: number;
