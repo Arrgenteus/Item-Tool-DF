@@ -12,9 +12,9 @@ function getItemTypeFilter(itemType: SortableItemType): ItemTypeMongoFilter {
 
 export function getSortQueryPipeline(
     moreResults: boolean,
-    { itemType, sortExpression, weaponElement, minLevel, maxLevel }: SortFilterParams
+    { itemType, ascending, sortExpression, weaponElement, minLevel, maxLevel }: SortFilterParams
 ): Object[] {
-    const sortOrder: 1 | -1 = -1;
+    const sortOrder: 1 | -1 = ascending ? 1 : -1;
     const filter: { [filterName: string]: any } = {
         customSortValue: { $exists: true, $ne: 0 },
         ...getItemTypeFilter(itemType),
@@ -26,10 +26,10 @@ export function getSortQueryPipeline(
         ],
         ...(weaponElement ? { elements: weaponElement } : {}),
     };
-    if (minLevel || maxLevel) {
+    if (minLevel !== undefined || maxLevel !== undefined) {
         filter.level = {
-            ...(minLevel ? { $gte: minLevel } : {}),
-            ...(maxLevel ? { $lte: maxLevel } : {}),
+            ...(minLevel !== undefined ? { $gte: minLevel } : {}),
+            ...(maxLevel !== undefined ? { $lte: maxLevel } : {}),
         };
     }
 
@@ -75,7 +75,7 @@ export function getSortQueryPipeline(
         },
         { $addFields: { customSortValue: '$_id.customSortValue' } },
         { $sort: { customSortValue: sortOrder } },
-        { $limit: moreResults ? 20 : 8 },
+        { $limit: moreResults ? 20 : 10 },
     ];
 
     return pipeline;

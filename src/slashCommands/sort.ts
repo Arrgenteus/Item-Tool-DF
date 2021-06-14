@@ -1,15 +1,21 @@
-import { ApplicationCommandOption, Collection, CommandInteractionOption } from 'discord.js';
+import {
+    ApplicationCommandOption,
+    Collection,
+    CommandInteraction,
+    CommandInteractionOption,
+} from 'discord.js';
 import { ValidationError } from '../errors';
 import { ApplicationCommandOptions, SlashCommandData } from '../commonTypes/commandStructures';
 import getSortedItemList from '../interactionLogic/sort/getSortedItems';
 import { parseSortExpression } from '../interactionLogic/sort/sortExpressionParser';
 import {
+    SortableItemType,
     SortCommandParams,
     SortExpressionData,
     SortSubCommand,
 } from '../interactionLogic/sort/types';
 
-export const command: SlashCommandData = {
+const command: SlashCommandData = {
     preferEphemeralErrorMessage: true,
     structure: {
         name: 'sort',
@@ -41,7 +47,13 @@ export const command: SlashCommandData = {
                     {
                         type: ApplicationCommandOptions.INTEGER,
                         name: SortCommandParams.MIN_LEVEL,
-                        description: 'Minumum level of items to be shown in results',
+                        description: 'Minumum level of weapons to be shown in results',
+                    },
+                    {
+                        type: ApplicationCommandOptions.BOOLEAN,
+                        name: SortCommandParams.ASCENDING,
+                        description:
+                            'Whether weapons should be displayed in ascending order. Order is descending by default.',
                     },
                 ],
             },
@@ -54,7 +66,7 @@ export const command: SlashCommandData = {
                 SortSubCommand.TRINKET,
                 SortSubCommand.BRACER,
             ].map((name: SortSubCommand): ApplicationCommandOption => {
-                let formattedName;
+                let formattedName: string;
                 if (name === SortSubCommand.CAPE) formattedName = 'capes/wings';
                 else formattedName = name.replace('-', ' ');
                 if (formattedName.slice(-1) !== 's') formattedName += 's';
@@ -74,12 +86,17 @@ export const command: SlashCommandData = {
                         {
                             type: ApplicationCommandOptions.INTEGER,
                             name: SortCommandParams.MAX_LEVEL,
-                            description: 'Maximum level of weapons to be shown in results',
+                            description: `Maximum level of ${formattedName} to be shown in results`,
                         },
                         {
                             type: ApplicationCommandOptions.INTEGER,
                             name: SortCommandParams.MIN_LEVEL,
-                            description: 'Minimum level of items to be shown in results',
+                            description: `Minimum level of ${formattedName} to be shown in results`,
+                        },
+                        {
+                            type: ApplicationCommandOptions.BOOLEAN,
+                            name: SortCommandParams.ASCENDING,
+                            description: `Whether ${formattedName} should be displayed in ascending order. Order is descending by default.`,
                         },
                     ],
                 };
@@ -89,10 +106,9 @@ export const command: SlashCommandData = {
         ),
     },
 
-    // TODO: Fix types here
-    run: async (interaction: any) => {
-        const command = interaction.options.first();
-        const options: Collection<string, CommandInteractionOption> = command.options;
+    run: async (interaction: CommandInteraction) => {
+        const command: CommandInteractionOption = interaction.options.first()!;
+        const options: Collection<string, CommandInteractionOption> = command.options!;
 
         const sortExpression: SortExpressionData = parseSortExpression(
             options.get(SortCommandParams.SORT_EXPRESSION)!.value as string
@@ -100,27 +116,30 @@ export const command: SlashCommandData = {
         const weaponElement = options.get(SortCommandParams.WEAPON_ELEMENT)?.value as
             | string
             | undefined;
-        if (weaponElement && weaponElement.length > 100)
+        if (weaponElement && weaponElement.length > 20)
             throw new ValidationError(
-                `Element name \`${weaponElement}\` is too long. It should be a maximum of 100 characters.`
+                `Element name \`${weaponElement}\` is too long. It should be a maximum of 20 characters.`
             );
 
-        let minLevel = options.get(SortCommandParams.MIN_LEVEL)?.value as number;
-        let maxLevel = options.get(SortCommandParams.MIN_LEVEL)?.value as number;
-        minLevel = Math.min(Math.max(minLevel, 0), 90);
-        maxLevel = Math.min(Math.max(maxLevel, 0), 90);
+        let minLevel = options.get(SortCommandParams.MIN_LEVEL)?.value as number | undefined;
+        let maxLevel = options.get(SortCommandParams.MAX_LEVEL)?.value as number | undefined;
+        if (minLevel !== undefined) minLevel = Math.min(Math.max(minLevel, 0), 90);
+        if (maxLevel !== undefined) maxLevel = Math.min(Math.max(maxLevel, 0), 90);
 
         console.log(
             `${interaction.user.tag} used /sort ${command.name} ${sortExpression.baseExpression}`
         );
         await interaction.defer({ ephemeral: true });
         const sortedItems = await getSortedItemList(10, {
-            itemType: command.name,
+            itemType: command.name as SortableItemType,
             sortExpression,
             weaponElement,
             minLevel,
             maxLevel,
+            ascending: options.get(SortCommandParams.ASCENDING)?.value as boolean,
         });
-        await interaction.editReply({ embeds: sortedItems });
+        await interaction.editReply(sortedItems);
     },
 };
+
+export default command;
