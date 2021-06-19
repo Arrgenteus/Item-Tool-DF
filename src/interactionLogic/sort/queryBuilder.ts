@@ -43,6 +43,35 @@ export function getSortQueryPipeline(
         },
         { $addFields: { customSortValue: sortExpression.mongo } },
         { $match: filter },
+        // Display rare items only while displaying extended list
+        ...(moreResults
+            ? []
+            : [
+                  {
+                      $addFields: {
+                          alwaysRare: {
+                              $cond: [
+                                  {
+                                      $size: {
+                                          $reduce: {
+                                              input: '$tagSet',
+                                              initialValue: ['rare'],
+                                              in: { $setIntersection: ['$$this.tags', '$$value'] },
+                                          },
+                                      },
+                                  },
+                                  true,
+                                  false,
+                              ],
+                          },
+                      },
+                  },
+                  {
+                      $match: {
+                          alwaysRare: false,
+                      },
+                  },
+              ]),
         // { $sort: { customSortValue: sortOrder, level: -1 } },
         // Group documents that belong to the same family
         // {
@@ -53,6 +82,7 @@ export function getSortQueryPipeline(
         // },
         // { $sort: { 'doc.customSortValue': sortOrder, 'doc.level': -1 } },
         // { $replaceRoot: { newRoot: '$doc' } },
+
         // Group documents
         {
             $group: {
