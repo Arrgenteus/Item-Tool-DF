@@ -27,6 +27,7 @@ const command: ChatCommandData = {
             await channel.send(
                 embed(
                     `Usage: ${CC}${commandName} \`item type\`, \`sort expression\`, \`max level (optional)\`\n` +
+                        '(Yes, the commas between them matter)\n' +
                         `\`item type\` - Valid types are: _${Array.from(allItemTypes).join(
                             ', '
                         )}_, and _item_. ` +
