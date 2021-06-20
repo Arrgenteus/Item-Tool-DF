@@ -1,6 +1,6 @@
 import { Message, TextChannel, Util } from 'discord.js';
 import { ChatCommandData } from '../commonTypes/commandStructures';
-import { ItemTypes } from '../commonTypes/items';
+import { allItemTypes, ItemTypes } from '../commonTypes/items';
 import config from '../config';
 import { ValidationError } from '../errors';
 import getSortedItemList, {
@@ -27,7 +27,7 @@ const command: ChatCommandData = {
             await channel.send(
                 embed(
                     `Usage: ${CC}${commandName} \`item type\`, \`sort expression\`, \`max level (optional)\`\n` +
-                        `\`item type\` - Valid types are: _${Object.keys(ItemTypes).join(
+                        `\`item type\` - Valid types are: _${Array.from(allItemTypes).join(
                             ', '
                         )}_, and _item_. ` +
                         "Abbreviations such as 'acc' and 'wep' also work.\n" +
@@ -38,8 +38,8 @@ const command: ChatCommandData = {
                         '_(eg. STR, Melee Def, Bonus, All, Ice, Health, etc.)_, or in the case of weapons, _Damage_. ' +
                         'Examples: _All + Health_, _-Health_, _INT - (DEX + STR)_, etc.\n' +
                         `\`${CC}sort\` sorts in descending order. Use \`${CC}sortasc\` to sort in ascending order instead.\n\n` +
-                        `It is **recommended** to use the slash command **\`/sort\`** instead of ${CC}sort from now on, unless you want to ` +
-                        'show sort results to someone else in the chat. `/sort` is (arguably) easier to use and will also ' +
+                        `It is **recommended** to use the slash command **\`/sort\`** instead of ${CC}sort from now on, ` +
+                        'since it is (arguably) easier to use and will also ' +
                         'be more usable when more sort filters are added in the future.'
                 )
             );
@@ -76,10 +76,10 @@ const command: ChatCommandData = {
             );
 
         let itemType: SortableItemType;
-        if (inputItemType === 'wep' || inputItemType === 'weapon') itemType = 'weapon';
+        if (['wep', 'weapon'].includes(inputItemType)) itemType = ItemTypes.WEAPON;
         // "accessorie" because the trailing s would have been removed
-        else if (inputItemType === 'helmet') itemType = 'helm';
-        else if (inputItemType === 'wing') itemType = 'cape';
+        else if (['helm', 'helmet'].includes(inputItemType)) itemType = ItemTypes.HELM;
+        else if (inputItemType === 'wing') itemType = ItemTypes.CAPE;
         else if (
             inputItemType === 'accessorie' ||
             inputItemType === 'acc' ||
@@ -88,36 +88,33 @@ const command: ChatCommandData = {
             inputItemType === 'all items'
         ) {
             const sortExpression: SortExpressionData = parseSortExpression(inputSortExp);
+            const itemTypes: SortableItemType[] = [
+                ItemTypes.WEAPON,
+                ItemTypes.HELM,
+                ItemTypes.CAPE,
+                ItemTypes.BELT,
+                ItemTypes.NECKLACE,
+                ItemTypes.RING,
+                ItemTypes.TRINKET,
+                ItemTypes.BRACER,
+            ];
+            if (inputItemType === 'acc' || inputItemType === 'accessorie') itemTypes.shift();
             await channel.send(
-                multiItemDisplayMessage(
-                    inputItemType === 'acc' || inputItemType === 'accessorie'
-                        ? ['helm', 'cape', 'belt', 'necklace', 'ring', 'trinket', 'bracer']
-                        : [
-                              'weapon',
-                              'helm',
-                              'cape',
-                              'belt',
-                              'necklace',
-                              'ring',
-                              'trinket',
-                              'bracer',
-                          ],
-                    {
-                        ascending: commandName === 'sortasc',
-                        sortExpression,
-                        weaponElement,
-                        maxLevel,
-                    }
-                )
+                multiItemDisplayMessage(itemTypes, {
+                    ascending: commandName === 'sortasc',
+                    sortExpression,
+                    weaponElement,
+                    maxLevel,
+                })
             );
             return;
         } else itemType = inputItemType as SortableItemType;
 
-        if (!(itemType in ItemTypes)) {
+        if (!allItemTypes) {
             throw new ValidationError(
                 `"${Util.escapeMarkdown(
                     unmodifiedItemTypeInput
-                )}" is not a valid item type. Valid types are: _${Object.keys(ItemTypes).join(
+                )}" is not a valid item type. Valid types are: _${Array.from(allItemTypes).join(
                     ', '
                 )}_. ` + '"acc" and "wep" are valid abbreviations for accessories and weapons.'
             );

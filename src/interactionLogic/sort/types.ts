@@ -1,4 +1,4 @@
-import { ItemType } from '../../commonTypes/items';
+import { ItemTypes } from '../../commonTypes/items';
 
 export enum SortSubCommand {
     WEAPON = 'weapon',
@@ -19,7 +19,7 @@ export enum SortCommandParams {
     ASCENDING = 'ascending-order',
 }
 
-export type SortableItemType = Exclude<ItemType, 'accessory' | 'wings'>;
+export type SortableItemType = Exclude<ItemTypes, ItemTypes.ACCESSORY | ItemTypes.WINGS>;
 
 export interface MongoSortExpression {
     [operator: string]: (number | string | boolean | MongoSortExpression)[];
@@ -34,7 +34,7 @@ export interface SortExpressionData {
 
 export interface ItemTypeMongoFilter {
     category?: string;
-    type?: ItemType | { $in: ItemType[] };
+    type?: ItemTypes | { $in: ItemTypes[] };
 }
 
 export interface SortFilterParams {

@@ -19,6 +19,7 @@ import {
     MAX_EMBED_FOOTER_LENGTH,
 } from '../../commonTypes/commandStructures';
 import { compressSortFilters } from './sortFilterCompression';
+import { ItemTypes } from '../../commonTypes/items';
 
 const ITEM_LIST_DELIMITER = ', `';
 const itemCollection: Promise<MongoCollection> = dbConnection.then((db: Db) =>
@@ -26,7 +27,7 @@ const itemCollection: Promise<MongoCollection> = dbConnection.then((db: Db) =>
 );
 
 function prettifyType(itemType: SortableItemType): string {
-    if (itemType === SortSubCommand.CAPE) return 'Capes/Wings';
+    if (itemType === ItemTypes.CAPE) return 'Capes/Wings';
     return capitalize(itemType) + 's';
 }
 

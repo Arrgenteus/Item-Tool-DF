@@ -1,17 +1,27 @@
-export const ItemTypes = {
-    weapon: 1,
-    accessory: 1,
-    cape: 1,
-    wings: 1,
-    helm: 1,
-    belt: 1,
-    necklace: 1,
-    ring: 1,
-    trinket: 1,
-    bracer: 1,
-};
+export const enum ItemTypes {
+    WEAPON = 'weapon',
+    ACCESSORY = 'accessory',
+    CAPE = 'cape',
+    WINGS = 'wings',
+    HELM = 'helm',
+    BELT = 'belt',
+    NECKLACE = 'necklace',
+    RING = 'ring',
+    TRINKET = 'trinket',
+    BRACER = 'bracer',
+}
 
-export type ItemType = keyof typeof ItemTypes;
+export const allItemTypes: Set<ItemTypes> = new Set([
+    ItemTypes.WEAPON,
+    ItemTypes.ACCESSORY,
+    ItemTypes.CAPE,
+    ItemTypes.WINGS,
+    ItemTypes.HELM,
+    ItemTypes.BELT,
+    ItemTypes.NECKLACE,
+    ItemTypes.TRINKET,
+    ItemTypes.BRACER,
+]);
 
 export const WeaponTypes = {
     sword: 1,
