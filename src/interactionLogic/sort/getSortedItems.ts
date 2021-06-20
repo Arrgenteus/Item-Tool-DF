@@ -4,7 +4,7 @@ import { dbConnection } from '../../dbConnection';
 import { capitalize, embed } from '../../utils/misc';
 import SplitEmbed from '../../utils/splitEmbed';
 import { getSortQueryPipeline } from './queryBuilder';
-import { SortableItemType, SortFilterParams, SortSubCommand } from './types';
+import { SHORT_RESULT_LIMIT, SortableItemType, SortFilterParams, SortSubCommand } from './types';
 import { unaliasBonusName } from './sortExpressionParser';
 import {
     MessageActionRowComponentResolvable,
@@ -112,17 +112,34 @@ export default async function getSortedItemList(
     if (sortFilterParams.weaponElement)
         sortFilterParams.weaponElement = unaliasBonusName(sortFilterParams.weaponElement);
 
-    const pipeline = getSortQueryPipeline(embedCount > 1, sortFilterParams);
-    const sortResults: AggregationCursor = (await itemCollection).aggregate(pipeline);
+    const shortResult = embedCount <= 2;
 
+    const isVisibleItem: boolean = ['weapon', 'cape', 'helm'].includes(sortFilterParams.itemType);
+
+    let pipeline = getSortQueryPipeline(
+        !shortResult,
+        sortFilterParams,
+        shortResult && isVisibleItem
+    );
+    let sortResults: AggregationCursor = (await itemCollection).aggregate(pipeline);
     let itemGroup: {
         customSortValue: number;
         items: { title: string; levels: string[]; tagSet: { tags: string[] }[] }[];
     } | null;
+    itemGroup = await sortResults.next();
+
+    if (!itemGroup && isVisibleItem && shortResult) {
+        pipeline = getSortQueryPipeline(!shortResult, sortFilterParams);
+        sortResults = (await itemCollection).aggregate(pipeline);
+        itemGroup = await sortResults.next();
+    }
+
     let sortedList: string = '';
     let lastResult: string = '';
+    let resultNumber: number = 0;
+    while (itemGroup !== null) {
+        resultNumber += 1;
 
-    while ((itemGroup = await sortResults.next()) !== null) {
         let items: {
             title: string;
             levels: string[];
@@ -142,9 +159,15 @@ export default async function getSortedItemList(
             `**${sign}${itemGroup.customSortValue}**`,
             `${itemDisplayList.join(', ')}\n\n`,
         ].join(embedCount === 1 ? ' ' : '\n');
-        if (lastResult.length + sortedList.length > MAX_SPLIT_EMBED_DESC_LENGTH * embedCount) break;
+        if (
+            lastResult.length + sortedList.length > MAX_SPLIT_EMBED_DESC_LENGTH * embedCount ||
+            (resultNumber >= SHORT_RESULT_LIMIT - 1 && shortResult)
+        )
+            break;
 
         sortedList += lastResult;
+
+        itemGroup = await sortResults.next();
     }
     if (!sortedList && embedCount === 1 && lastResult) {
         const ellipses = ' **...**';

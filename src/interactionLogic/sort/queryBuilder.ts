@@ -1,4 +1,11 @@
-import { ItemTypeMongoFilter, SortableItemType, SortFilterParams, SortSubCommand } from './types';
+import {
+    ItemTypeMongoFilter,
+    LONG_RESULT_LIMIT,
+    SHORT_RESULT_LIMIT,
+    SortableItemType,
+    SortFilterParams,
+    SortSubCommand,
+} from './types';
 
 function getItemTypeFilter(itemType: SortableItemType): ItemTypeMongoFilter {
     if (itemType === SortSubCommand.WEAPON) return { category: 'weapon' };
@@ -12,7 +19,8 @@ function getItemTypeFilter(itemType: SortableItemType): ItemTypeMongoFilter {
 
 export function getSortQueryPipeline(
     moreResults: boolean,
-    { itemType, ascending, sortExpression, weaponElement, minLevel, maxLevel }: SortFilterParams
+    { itemType, ascending, sortExpression, weaponElement, minLevel, maxLevel }: SortFilterParams,
+    hideRares?: boolean
 ): Object[] {
     const sortOrder: 1 | -1 = ascending ? 1 : -1;
     const filter: { [filterName: string]: any } = {
@@ -44,9 +52,8 @@ export function getSortQueryPipeline(
         { $addFields: { customSortValue: sortExpression.mongo } },
         { $match: filter },
         // Display rare items only while displaying extended list
-        ...(moreResults
-            ? []
-            : [
+        ...(hideRares
+            ? [
                   {
                       $addFields: {
                           alwaysRare: {
@@ -71,7 +78,8 @@ export function getSortQueryPipeline(
                           alwaysRare: false,
                       },
                   },
-              ]),
+              ]
+            : []),
         // { $sort: { customSortValue: sortOrder, level: -1 } },
         // Group documents that belong to the same family
         // {
@@ -105,7 +113,7 @@ export function getSortQueryPipeline(
         },
         { $addFields: { customSortValue: '$_id.customSortValue' } },
         { $sort: { customSortValue: sortOrder } },
-        { $limit: moreResults ? 20 : 10 },
+        { $limit: moreResults ? LONG_RESULT_LIMIT : SHORT_RESULT_LIMIT },
     ];
 
     return pipeline;
