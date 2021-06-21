@@ -82,7 +82,7 @@ export function getSortQueryPipeline(
         },
         { $addFields: { customSortValue: '$_id.customSortValue' } },
         { $sort: { customSortValue: sortOrder } },
-        { $limit: moreResults ? 20 : 10 },
+        { $limit: moreResults ? LONG_RESULT_LIMIT : SHORT_RESULT_LIMIT },
     ];
 
     return pipeline;

@@ -1,5 +1,8 @@
 import { ItemTypes } from '../../commonTypes/items';
 
+export const LONG_RESULT_LIMIT = 15;
+export const SHORT_RESULT_LIMIT = 8;
+
 export enum SortSubCommand {
     WEAPON = 'weapon',
     CAPE = 'cape',

@@ -4,7 +4,7 @@ import { dbConnection } from '../../dbConnection';
 import { capitalize, embed } from '../../utils/misc';
 import SplitEmbed from '../../utils/splitEmbed';
 import { getSortQueryPipeline } from './queryBuilder';
-import { SortableItemType, SortFilterParams, SortSubCommand } from './types';
+import { SHORT_RESULT_LIMIT, SortableItemType, SortFilterParams, SortSubCommand } from './types';
 import { unaliasBonusName } from './sortExpressionParser';
 import {
     MessageActionRowComponentResolvable,
@@ -122,8 +122,10 @@ export default async function getSortedItemList(
     } | null;
     let sortedList: string = '';
     let lastResult: string = '';
+    let groupCount: number = 0;
 
     while ((itemGroup = await sortResults.next()) !== null) {
+        groupCount += 1;
         let items: {
             title: string;
             levels: string[];
@@ -143,7 +145,13 @@ export default async function getSortedItemList(
             `**${sign}${itemGroup.customSortValue}**`,
             `${itemDisplayList.join(', ')}\n\n`,
         ].join(embedCount === 1 ? ' ' : '\n');
-        if (lastResult.length + sortedList.length > MAX_SPLIT_EMBED_DESC_LENGTH * embedCount) break;
+
+        if (
+            lastResult.length + sortedList.length > MAX_SPLIT_EMBED_DESC_LENGTH * embedCount ||
+            (embedCount <= 2 && groupCount > SHORT_RESULT_LIMIT - 1)
+        ) {
+            break;
+        }
 
         sortedList += lastResult;
     }
