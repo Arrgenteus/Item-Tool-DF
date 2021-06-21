@@ -131,7 +131,7 @@ export default async function getSortedItemList(
     // when a short result (1 or 2 embeds) is desired
     // We stop at 1 less than the short result limit to prevent the 'more results' button from
     // being redundant for short results.
-    while (itemGroup !== null && !(embedCount <= 2 && groupCount >= SHORT_RESULT_LIMIT)) {
+    while (itemGroup !== null && !(embedCount <= 2 && groupCount >= SHORT_RESULT_LIMIT - 1)) {
         groupCount += 1;
 
         let items: {
