@@ -1,3 +1,4 @@
+import { ItemTypes } from '../../commonTypes/items';
 import { ValueError } from '../../errors';
 import { parseCompressedSortExpression } from './sortExpressionParser';
 import { SortableItemType, SortExpressionData, SortFilterParams } from './types';
@@ -5,14 +6,14 @@ import { SortableItemType, SortExpressionData, SortFilterParams } from './types'
 const compressedItemTypeMapping: {
     [itemType: string]: SortableItemType;
 } = {
-    w: 'weapon',
-    c: 'cape',
-    h: 'helm',
-    b: 'belt',
-    n: 'necklace',
-    r: 'ring',
-    t: 'trinket',
-    br: 'bracer',
+    w: ItemTypes.WEAPON,
+    c: ItemTypes.CAPE,
+    h: ItemTypes.HELM,
+    b: ItemTypes.BELT,
+    n: ItemTypes.NECKLACE,
+    r: ItemTypes.RING,
+    t: ItemTypes.TRINKET,
+    br: ItemTypes.BRACER,
 };
 
 const uncompressedItemTypeMapping: {

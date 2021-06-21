@@ -4,7 +4,7 @@ import { dbConnection } from '../../dbConnection';
 import { capitalize, embed } from '../../utils/misc';
 import SplitEmbed from '../../utils/splitEmbed';
 import { getSortQueryPipeline } from './queryBuilder';
-import { SortableItemType, SortFilterParams, SortSubCommand } from './types';
+import { SHORT_RESULT_LIMIT, SortableItemType, SortFilterParams, SortSubCommand } from './types';
 import { unaliasBonusName } from './sortExpressionParser';
 import {
     MessageActionRowComponentResolvable,
@@ -19,6 +19,7 @@ import {
     MAX_EMBED_FOOTER_LENGTH,
 } from '../../commonTypes/commandStructures';
 import { compressSortFilters } from './sortFilterCompression';
+import { ItemTypes } from '../../commonTypes/items';
 
 const ITEM_LIST_DELIMITER = ', `';
 const itemCollection: Promise<MongoCollection> = dbConnection.then((db: Db) =>
@@ -26,7 +27,7 @@ const itemCollection: Promise<MongoCollection> = dbConnection.then((db: Db) =>
 );
 
 function prettifyType(itemType: SortableItemType): string {
-    if (itemType === SortSubCommand.CAPE) return 'Capes/Wings';
+    if (itemType === ItemTypes.CAPE) return 'Capes/Wings';
     return capitalize(itemType) + 's';
 }
 
@@ -121,14 +122,25 @@ export default async function getSortedItemList(
     } | null;
     let sortedList: string = '';
     let lastResult: string = '';
+    let groupCount: number = 0;
 
-    while ((itemGroup = await sortResults.next()) !== null) {
+    itemGroup = await sortResults.next();
+
+    // Keep populating results until itemGroups have been exhausted, or
+    // if the number of read groups is less than or equal to 1 less than the short result limit
+    // when a short result (1 or 2 embeds) is desired
+    // We stop at 1 less than the short result limit to prevent the 'more results' button from
+    // being redundant for short results.
+    while (itemGroup !== null && !(embedCount <= 2 && groupCount >= SHORT_RESULT_LIMIT - 1)) {
+        groupCount += 1;
+
         let items: {
             title: string;
             levels: string[];
             tagSet: { tags: string[] }[];
         }[] = itemGroup.items;
 
+        // Format and concatenate items in the itemGroup
         const itemDisplayList: string[] = items.map((item) => {
             let tags: string = item.tagSet
                 .map(({ tags }) => (tags.length ? tags.map(capitalize).join('+') : 'None'))
@@ -137,15 +149,25 @@ export default async function getSortedItemList(
             return `\`${item.title}\` (lv. ${item.levels.join(', ')}) ${tags}`.trim();
         });
 
+        // Store the last formatted result
         const sign: string = itemGroup.customSortValue < 0 ? '' : '+';
         lastResult = [
             `**${sign}${itemGroup.customSortValue}**`,
             `${itemDisplayList.join(', ')}\n\n`,
         ].join(embedCount === 1 ? ' ' : '\n');
-        if (lastResult.length + sortedList.length > MAX_SPLIT_EMBED_DESC_LENGTH * embedCount) break;
+
+        // Stop populating results if including lastResult will exceed the character limit
+        if (lastResult.length + sortedList.length > MAX_SPLIT_EMBED_DESC_LENGTH * embedCount) {
+            break;
+        }
 
         sortedList += lastResult;
+
+        itemGroup = await sortResults.next();
     }
+
+    // Handle case in which embedCount is 1, but the first itemGroup fetched exceeds the embed's character limit
+    // In this case, display as many items as possible and append ellipses '...'
     if (!sortedList && embedCount === 1 && lastResult) {
         const ellipses = ' **...**';
         const lastItemIndexBeforeLimit: number = lastResult
@@ -155,6 +177,10 @@ export default async function getSortedItemList(
             sortedList = lastResult.slice(0, lastItemIndexBeforeLimit) + ellipses;
     }
 
+    // Add a "more results" button to the message if:
+    // 1) sort results exist
+    // 2) embedCount is 5 or less
+    // 3) we haven't exhausted all itemGroups
     const messageButtons: MessageComponentOptions[] | undefined =
         embedCount <= 5 && sortedList.length && itemGroup !== null
             ? getButtonsForMoreResults(sortFilterParams)
@@ -162,17 +188,22 @@ export default async function getSortedItemList(
 
     sortedList = sortedList || 'No results were found';
 
-    const splitEmbed = new SplitEmbed(ITEM_LIST_DELIMITER, embedCount);
+    // Split results into one or more embeds
+    const splitEmbed: SplitEmbed = new SplitEmbed(ITEM_LIST_DELIMITER, embedCount);
     splitEmbed.addText(sortedList);
 
+    // Pretty print the input item type and weapon name, if applicable
     const prettifiedType: string = sortFilterParams.weaponElement
         ? `${capitalize(sortFilterParams.weaponElement)} ${prettifyType(sortFilterParams.itemType)}`
         : prettifyType(sortFilterParams.itemType);
     const title: string = `Sort ${prettifiedType} by ${sortFilterParams.sortExpression.pretty}`;
     splitEmbed.setTitle(title);
 
-    let footer =
-        sortedList.length <= MAX_EMBED_FOOTER_LENGTH
+    // Get footer text for embed(s)
+    // If the results are limited to a single embed, only display sort order and level filters
+    // Otherwise, display everything
+    let footer: string =
+        embedCount === 1
             ? getFiltersUsedText({
                   ascending: sortFilterParams.ascending,
                   minLevel: sortFilterParams.minLevel,

@@ -1,9 +1,16 @@
-import { ItemTypeMongoFilter, SortableItemType, SortFilterParams, SortSubCommand } from './types';
+import { ItemTypes } from '../../commonTypes/items';
+import {
+    ItemTypeMongoFilter,
+    LONG_RESULT_LIMIT,
+    SHORT_RESULT_LIMIT,
+    SortableItemType,
+    SortFilterParams,
+} from './types';
 
 function getItemTypeFilter(itemType: SortableItemType): ItemTypeMongoFilter {
-    if (itemType === SortSubCommand.WEAPON) return { category: 'weapon' };
-    if (itemType === SortSubCommand.CAPE)
-        return { category: 'accessory', type: { $in: ['cape', 'wings'] } };
+    if (itemType === ItemTypes.WEAPON) return { category: 'weapon' };
+    if (itemType === ItemTypes.CAPE)
+        return { category: 'accessory', type: { $in: [ItemTypes.CAPE, ItemTypes.WINGS] } };
     return {
         category: 'accessory',
         type: itemType,
@@ -75,7 +82,7 @@ export function getSortQueryPipeline(
         },
         { $addFields: { customSortValue: '$_id.customSortValue' } },
         { $sort: { customSortValue: sortOrder } },
-        { $limit: moreResults ? 20 : 10 },
+        { $limit: moreResults ? LONG_RESULT_LIMIT : SHORT_RESULT_LIMIT },
     ];
 
     return pipeline;
