@@ -77,17 +77,11 @@ const command: ChatCommandData = {
             );
 
         let itemType: SortableItemType;
-        if (['wep', 'weapon'].includes(inputItemType)) itemType = ItemTypes.WEAPON;
+        if (inputItemType === 'wep') itemType = ItemTypes.WEAPON;
         // "accessorie" because the trailing s would have been removed
-        else if (['helm', 'helmet'].includes(inputItemType)) itemType = ItemTypes.HELM;
+        else if (inputItemType === 'helmet') itemType = ItemTypes.HELM;
         else if (inputItemType === 'wing') itemType = ItemTypes.CAPE;
-        else if (
-            inputItemType === 'accessorie' ||
-            inputItemType === 'acc' ||
-            inputItemType === 'item' ||
-            inputItemType === 'all' ||
-            inputItemType === 'all items'
-        ) {
+        else if (['accessorie', 'acc', 'item', 'all', 'all items'].includes(inputItemType)) {
             const sortExpression: SortExpressionData = parseSortExpression(inputSortExp);
             const itemTypes: SortableItemType[] = [
                 ItemTypes.WEAPON,
@@ -109,9 +103,7 @@ const command: ChatCommandData = {
                 })
             );
             return;
-        } else itemType = inputItemType as SortableItemType;
-
-        if (!allItemTypes) {
+        } else if (!allItemTypes.has(inputItemType as ItemTypes)) {
             throw new ValidationError(
                 `"${Util.escapeMarkdown(
                     unmodifiedItemTypeInput
@@ -119,6 +111,8 @@ const command: ChatCommandData = {
                     ', '
                 )}_. ` + '"acc" and "wep" are valid abbreviations for accessories and weapons.'
             );
+        } else {
+            itemType = inputItemType as SortableItemType;
         }
 
         const sortExpression: SortExpressionData = parseSortExpression(inputSortExp);
