@@ -18,6 +18,7 @@ export const allItemTypes: Set<ItemTypes> = new Set([
     ItemTypes.WINGS,
     ItemTypes.HELM,
     ItemTypes.BELT,
+    ItemTypes.RING,
     ItemTypes.NECKLACE,
     ItemTypes.TRINKET,
     ItemTypes.BRACER,
