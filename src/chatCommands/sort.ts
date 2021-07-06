@@ -77,12 +77,15 @@ const command: ChatCommandData = {
             );
 
         let itemType: SortableItemType;
+        let sortExpression: SortExpressionData;
         if (inputItemType === 'wep') itemType = ItemTypes.WEAPON;
         // "accessorie" because the trailing s would have been removed
         else if (inputItemType === 'helmet') itemType = ItemTypes.HELM;
         else if (inputItemType === 'wing') itemType = ItemTypes.CAPE;
-        else if (['accessorie', 'acc', 'item', 'all', 'all items'].includes(inputItemType)) {
-            const sortExpression: SortExpressionData = parseSortExpression(inputSortExp);
+        else if (
+            ['accessory', 'accessorie', 'acc', 'item', 'all', 'all items'].includes(inputItemType)
+        ) {
+            sortExpression = parseSortExpression(inputSortExp);
             const itemTypes: SortableItemType[] = [
                 ItemTypes.WEAPON,
                 ItemTypes.HELM,
@@ -93,7 +96,7 @@ const command: ChatCommandData = {
                 ItemTypes.TRINKET,
                 ItemTypes.BRACER,
             ];
-            if (inputItemType === 'acc' || inputItemType === 'accessorie') itemTypes.shift();
+            if (['acc', 'accessorie', 'accessory'].includes(inputItemType)) itemTypes.shift();
             await channel.send(
                 multiItemDisplayMessage(itemTypes, {
                     ascending: commandName === 'sortasc',
@@ -115,7 +118,7 @@ const command: ChatCommandData = {
             itemType = inputItemType as SortableItemType;
         }
 
-        const sortExpression: SortExpressionData = parseSortExpression(inputSortExp);
+        sortExpression = parseSortExpression(inputSortExp);
 
         const sortFilters: SortFilterParams = {
             ascending: commandName === 'sortasc',
