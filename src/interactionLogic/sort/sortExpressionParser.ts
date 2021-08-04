@@ -1,5 +1,4 @@
 import { Util } from 'discord.js';
-import { BonusType } from '../../commonTypes/items';
 import { InvalidExpressionError, ValueError } from '../../errors';
 import { capitalize, isResist } from '../../utils/misc';
 import { MongoSortExpression, SortExpressionData } from './types';
@@ -103,7 +102,6 @@ export function unaliasBonusName(operand: string): string {
 function tokenizeExpression(expression: string, isCompressed?: boolean): string[] {
     expression = expression.trim();
     const tokenizedExpression: string[] = [];
-    const usedOperands: Set<string> = new Set();
     let operatorCount = 0;
     for (let i = 0; i < expression.length; ++i) {
         const token = expression[i].toLowerCase();
@@ -131,11 +129,6 @@ function tokenizeExpression(expression: string, isCompressed?: boolean): string[
             }
             i -= 1;
             operand = unaliasBonusName(operand.trim());
-            if (usedOperands.has(operand))
-                throw new InvalidExpressionError(
-                    `You cannot use an operand more than once. You reused \`${operand}\`.`
-                );
-            usedOperands.add(operand);
             tokenizedExpression.push(operand.trim());
         } else if (token === '#') {
             // Denotes an alias
@@ -153,8 +146,6 @@ function tokenizeExpression(expression: string, isCompressed?: boolean): string[
             const operand: string | undefined = uncompressedOperands[compressedOperand];
             if (!operand) throw new ValueError(`Invalid sort operator alias ${operand}`);
 
-            if (usedOperands.has(operand)) throw new ValueError(`Operator ${operand} reused`);
-            usedOperands.add(operand);
             tokenizedExpression.push(operand);
         } else
             throw new InvalidExpressionError(`'${token}' is an invalid sort expression character.`);
@@ -240,7 +231,7 @@ function infixToPostfix(tokenizedExpression: string[]): string[] {
 
     while (operatorStack.length) {
         const operator: string = pop(operatorStack);
-        if (operator! in { '(': 1, ')': 1 }) {
+        if (operator in { '(': 1, ')': 1 }) {
             throw new InvalidExpressionError('The brackets in your expression are not balanced.');
         }
         postfixExpression.push(operator);
@@ -288,20 +279,20 @@ function cleanExpression(postfixExpression: string[], compressed?: boolean): str
 }
 
 function mongoExpression(postfixExpression: string[]): MongoSortExpression {
-    const mongoExpression: MongoSortExpression[] = [];
+    const mongoExp: MongoSortExpression[] = [];
     for (const token of postfixExpression) {
         if (token in OPERATORS) {
             const operator = OPERATORS[token];
-            const topOperand: MongoSortExpression = pop(mongoExpression);
+            const topOperand: MongoSortExpression = pop(mongoExp);
 
             // Handle unary operators
             if (operator.unary) {
-                mongoExpression.push({ [operator.mongoFunc]: [0, topOperand] });
+                mongoExp.push({ [operator.mongoFunc]: [0, topOperand] });
             }
             // Handle binary operators
             else {
-                const previousOperand = pop(mongoExpression);
-                mongoExpression.push({
+                const previousOperand = pop(mongoExp);
+                mongoExp.push({
                     [operator.mongoFunc]: [previousOperand, topOperand],
                 });
             }
@@ -311,11 +302,11 @@ function mongoExpression(postfixExpression: string[]): MongoSortExpression {
             else if (!isResist(token)) field = '$bonuses.' + field;
             else field = '$resists.' + field;
 
-            mongoExpression.push({ $ifNull: [field, 0] });
+            mongoExp.push({ $ifNull: [field, 0] });
         }
     }
 
-    return pop(mongoExpression);
+    return pop(mongoExp);
 }
 
 export function parseSortExpression(baseExpression: string): SortExpressionData {
