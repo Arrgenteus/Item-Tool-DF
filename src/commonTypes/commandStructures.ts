@@ -8,9 +8,9 @@ import {
     MessageComponentTypeResolvable,
 } from 'discord.js';
 
-export const MAX_EMBED_DESC_LENGTH = 2048;
-export const MAX_EMBED_FOOTER_LENGTH = 2048;
-export const MAX_SPLIT_EMBED_DESC_LENGTH = 2020;
+export const MAX_EMBED_DESC_LENGTH = 4096;
+export const MAX_SPLIT_EMBED_DESC_LENGTH = 4070;
+export const MAX_EMBED_FOOTER_LENGTH = 1904;
 
 export const ApplicationCommandOptions: {
     [type: string]: ApplicationCommandOptionType;
