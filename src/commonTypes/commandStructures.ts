@@ -4,8 +4,6 @@ import {
     ButtonInteraction,
     CommandInteraction,
     Message,
-    MessageButtonStyleResolvable,
-    MessageComponentTypeResolvable,
 } from 'discord.js';
 
 export const MAX_EMBED_DESC_LENGTH = 4096;
@@ -24,19 +22,6 @@ export const ApplicationCommandOptions: {
     CHANNEL: 'CHANNEL',
     ROLE: 'ROLE',
     MENTIONABLE: 'MENTIONABLE',
-};
-
-export const MessageComponentTypes: { [type: string]: MessageComponentTypeResolvable } = {
-    ACTION_ROW: 'ACTION_ROW',
-    BUTTON: 'BUTTON',
-};
-
-export const MessageButtonStyles: { [type: string]: MessageButtonStyleResolvable } = {
-    PRIMARY: 'PRIMARY',
-    SECONDARY: 'SECONDARY',
-    SUCCESS: 'SUCCESS',
-    DANGER: 'DANGER',
-    LINK: 'LINK',
 };
 
 export type ApplicationCommandCreationStructure = Pick<

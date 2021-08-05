@@ -58,9 +58,9 @@ async function slashCommandHandler(interaction: CommandInteraction): Promise<voi
 }
 
 async function buttonInteractionHandler(interaction: ButtonInteraction): Promise<void> {
-    let separatorIndex: number = interaction.customID.indexOf('`');
-    if (separatorIndex === -1) separatorIndex = interaction.customID.length;
-    let handlerName: string = interaction.customID.slice(0, separatorIndex);
+    let separatorIndex: number = interaction.customId.indexOf('`');
+    if (separatorIndex === -1) separatorIndex = interaction.customId.length;
+    let handlerName: string = interaction.customId.slice(0, separatorIndex);
     const handler: ButtonInteractionData | undefined = buttonInteractionHandlers.get(handlerName);
     if (!handler) return;
 
@@ -72,7 +72,7 @@ async function buttonInteractionHandler(interaction: ButtonInteraction): Promise
 }
 
 const interactionEventHandler: ClientEventHandler = {
-    eventName: 'interaction',
+    eventName: 'interactionCreate',
     async run(interaction: CommandInteraction | ButtonInteraction): Promise<void> {
         if (interaction.isCommand()) await slashCommandHandler(interaction);
         else await buttonInteractionHandler(interaction);
