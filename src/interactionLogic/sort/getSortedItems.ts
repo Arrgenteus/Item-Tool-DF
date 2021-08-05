@@ -4,19 +4,18 @@ import { dbConnection } from '../../dbConnection';
 import { capitalize, embed } from '../../utils/misc';
 import SplitEmbed from '../../utils/splitEmbed';
 import { getSortQueryPipeline } from './queryBuilder';
-import { SHORT_RESULT_LIMIT, SortableItemType, SortFilterParams, SortSubCommand } from './types';
+import { SHORT_RESULT_LIMIT, SortableItemType, SortFilterParams } from './types';
 import { unaliasBonusName } from './sortExpressionParser';
 import {
     MessageActionRowComponentResolvable,
+    MessageActionRowOptions,
     MessageComponentOptions,
     MessageEmbedOptions,
+    MessageOptions,
 } from 'discord.js';
 import {
-    MessageComponentTypes,
-    MessageButtonStyles,
     MAX_EMBED_DESC_LENGTH,
     MAX_SPLIT_EMBED_DESC_LENGTH,
-    MAX_EMBED_FOOTER_LENGTH,
 } from '../../commonTypes/commandStructures';
 import { compressSortFilters } from './sortFilterCompression';
 import { ItemTypes } from '../../commonTypes/items';
@@ -51,19 +50,19 @@ export function getFiltersUsedText({
     return result;
 }
 
-function getButtonsForMoreResults(sortFilterParams: SortFilterParams): MessageComponentOptions[] {
+function getButtonsForMoreResults(sortFilterParams: SortFilterParams): MessageActionRowOptions[] {
     const compressedFilters: string | undefined = compressSortFilters(sortFilterParams);
     if (!compressedFilters) return [];
 
     return [
         {
-            type: MessageComponentTypes.ACTION_ROW,
+            type: 'ACTION_ROW',
             components: [
                 {
-                    type: MessageComponentTypes.BUTTON,
+                    type: 'BUTTON',
                     label: 'More Results',
-                    customID: compressedFilters,
-                    style: MessageButtonStyles.PRIMARY,
+                    customId: compressedFilters,
+                    style: 'PRIMARY',
                 },
             ],
         },
@@ -73,7 +72,7 @@ function getButtonsForMoreResults(sortFilterParams: SortFilterParams): MessageCo
 export function multiItemDisplayMessage(
     itemTypes: SortableItemType[],
     sortFilterParams: Omit<SortFilterParams, 'itemType'>
-): { components: MessageComponentOptions[] | undefined; embeds: MessageEmbedOptions[] } {
+): Pick<MessageOptions, 'embeds' | 'components'> {
     return {
         embeds: embed(
             'Click on one of the buttons below',
@@ -86,16 +85,16 @@ export function multiItemDisplayMessage(
         ).embeds,
         components: [itemTypes.slice(0, 5), itemTypes.slice(5)].map(
             (itemTypeSubset: SortableItemType[]) => ({
-                type: MessageComponentTypes.ACTION_ROW,
+                type: 'ACTION_ROW',
                 components: itemTypeSubset.map(
                     (itemType: SortableItemType): MessageActionRowComponentResolvable => ({
-                        type: MessageComponentTypes.BUTTON,
+                        type: 'BUTTON',
                         label: capitalize(itemType),
-                        customID: compressSortFilters(
+                        customId: compressSortFilters(
                             Object.assign(sortFilterParams, { itemType }),
                             true
                         ),
-                        style: MessageButtonStyles.PRIMARY,
+                        style: 'PRIMARY',
                     })
                 ),
             })
@@ -106,7 +105,7 @@ export function multiItemDisplayMessage(
 export default async function getSortedItemList(
     embedCount: number,
     sortFilterParams: SortFilterParams
-): Promise<{ components: MessageComponentOptions[] | undefined; embeds: MessageEmbedOptions[] }> {
+): Promise<Pick<MessageOptions, 'embeds' | 'components'>> {
     if (!Number.isInteger(embedCount) || embedCount < 1 || embedCount > 10)
         throw new RangeError('embedCount must be an integer between 1 and 10');
 
@@ -181,7 +180,7 @@ export default async function getSortedItemList(
     // 1) sort results exist
     // 2) embedCount is 5 or less
     // 3) we haven't exhausted all itemGroups
-    const messageButtons: MessageComponentOptions[] | undefined =
+    const messageButtons: MessageActionRowOptions[] | undefined =
         embedCount <= 5 && sortedList.length && itemGroup !== null
             ? getButtonsForMoreResults(sortFilterParams)
             : undefined;

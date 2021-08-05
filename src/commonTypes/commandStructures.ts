@@ -26,19 +26,6 @@ export const ApplicationCommandOptions: {
     MENTIONABLE: 'MENTIONABLE',
 };
 
-export const MessageComponentTypes: { [type: string]: MessageComponentTypeResolvable } = {
-    ACTION_ROW: 'ACTION_ROW',
-    BUTTON: 'BUTTON',
-};
-
-export const MessageButtonStyles: { [type: string]: MessageButtonStyleResolvable } = {
-    PRIMARY: 'PRIMARY',
-    SECONDARY: 'SECONDARY',
-    SUCCESS: 'SUCCESS',
-    DANGER: 'DANGER',
-    LINK: 'LINK',
-};
-
 export type ApplicationCommandCreationStructure = Pick<
     ApplicationCommand,
     'name' | 'description' | 'options'
