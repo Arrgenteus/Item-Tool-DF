@@ -6,10 +6,10 @@ import { ValidationError } from '../errors';
 import chatCommands from '../storage/chatCommands';
 
 const messageEventHandler: ClientEventHandler = {
-    eventName: 'message',
+    eventName: 'messageCreate',
     async run(message: Message): Promise<void> {
         if (
-            message.channel.type !== 'text' ||
+            message.channel.type !== 'GUILD_TEXT' ||
             !message.content.startsWith(config.COMMAND_CHAR) ||
             message.author.bot
         )

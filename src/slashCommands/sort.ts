@@ -1,9 +1,4 @@
-import {
-    ApplicationCommandOption,
-    Collection,
-    CommandInteraction,
-    CommandInteractionOption,
-} from 'discord.js';
+import { ApplicationCommandOption, CommandInteraction } from 'discord.js';
 import { ValidationError } from '../errors';
 import { ApplicationCommandOptions, SlashCommandData } from '../commonTypes/commandStructures';
 import getSortedItemList from '../interactionLogic/sort/getSortedItems';
@@ -107,33 +102,35 @@ const command: SlashCommandData = {
     },
 
     run: async (interaction: CommandInteraction) => {
-        const commandUsed: CommandInteractionOption = interaction.options.first()!;
-        const options: Collection<string, CommandInteractionOption> = commandUsed.options!;
+        const commandUsed: string = interaction.options.getSubcommand(true);
 
         const sortExpression: SortExpressionData = parseSortExpression(
-            options.get(SortCommandParams.SORT_EXPRESSION)!.value as string
+            interaction.options.getString(SortCommandParams.SORT_EXPRESSION, true)
         );
-        const weaponElement = options.get(SortCommandParams.WEAPON_ELEMENT)?.value as
-            | string
-            | undefined;
-        if (weaponElement && weaponElement.length > 20)
+        const weaponElement: string | undefined =
+            interaction.options.getString(SortCommandParams.WEAPON_ELEMENT) ?? undefined;
+        if (weaponElement && weaponElement.length > 20) {
             throw new ValidationError(
                 `Element name \`${weaponElement}\` is too long. It should be a maximum of 20 characters.`
             );
+        }
 
-        let minLevel = options.get(SortCommandParams.MIN_LEVEL)?.value as number | undefined;
-        let maxLevel = options.get(SortCommandParams.MAX_LEVEL)?.value as number | undefined;
+        let minLevel: number | undefined =
+            interaction.options.getInteger(SortCommandParams.MIN_LEVEL) ?? undefined;
+        let maxLevel: number | undefined =
+            interaction.options.getInteger(SortCommandParams.MAX_LEVEL) ?? undefined;
         if (minLevel !== undefined) minLevel = Math.min(Math.max(minLevel, 0), 90);
         if (maxLevel !== undefined) maxLevel = Math.min(Math.max(maxLevel, 0), 90);
 
         const sortedItems = await getSortedItemList(1, {
-            itemType: commandUsed.name as SortableItemType,
+            itemType: commandUsed as SortableItemType,
             sortExpression,
             weaponElement,
             minLevel,
             maxLevel,
-            ascending: options.get(SortCommandParams.ASCENDING)?.value as boolean,
+            ascending: interaction.options.getBoolean(SortCommandParams.ASCENDING) ?? false,
         });
+
         await interaction.reply(sortedItems);
     },
 };
