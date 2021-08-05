@@ -4,8 +4,6 @@ import {
     ButtonInteraction,
     CommandInteraction,
     Message,
-    MessageButtonStyleResolvable,
-    MessageComponentTypeResolvable,
 } from 'discord.js';
 
 export const MAX_EMBED_DESC_LENGTH = 4096;

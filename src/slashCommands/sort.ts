@@ -1,9 +1,4 @@
-import {
-    ApplicationCommandOption,
-    Collection,
-    CommandInteraction,
-    CommandInteractionOption,
-} from 'discord.js';
+import { ApplicationCommandOption, CommandInteraction } from 'discord.js';
 import { ValidationError } from '../errors';
 import { ApplicationCommandOptions, SlashCommandData } from '../commonTypes/commandStructures';
 import getSortedItemList from '../interactionLogic/sort/getSortedItems';

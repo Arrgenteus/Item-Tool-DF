@@ -9,8 +9,6 @@ import { unaliasBonusName } from './sortExpressionParser';
 import {
     MessageActionRowComponentResolvable,
     MessageActionRowOptions,
-    MessageComponentOptions,
-    MessageEmbedOptions,
     MessageOptions,
 } from 'discord.js';
 import {
