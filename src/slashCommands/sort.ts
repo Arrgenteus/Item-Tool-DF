@@ -107,8 +107,8 @@ const command: SlashCommandData = {
     },
 
     run: async (interaction: CommandInteraction) => {
-        const command: CommandInteractionOption = interaction.options.first()!;
-        const options: Collection<string, CommandInteractionOption> = command.options!;
+        const commandUsed: CommandInteractionOption = interaction.options.first()!;
+        const options: Collection<string, CommandInteractionOption> = commandUsed.options!;
 
         const sortExpression: SortExpressionData = parseSortExpression(
             options.get(SortCommandParams.SORT_EXPRESSION)!.value as string
@@ -126,19 +126,15 @@ const command: SlashCommandData = {
         if (minLevel !== undefined) minLevel = Math.min(Math.max(minLevel, 0), 90);
         if (maxLevel !== undefined) maxLevel = Math.min(Math.max(maxLevel, 0), 90);
 
-        console.log(
-            `${interaction.user.tag} used /sort ${command.name} ${sortExpression.baseExpression}`
-        );
-        await interaction.defer({ ephemeral: true });
-        const sortedItems = await getSortedItemList(10, {
-            itemType: command.name as SortableItemType,
+        const sortedItems = await getSortedItemList(1, {
+            itemType: commandUsed.name as SortableItemType,
             sortExpression,
             weaponElement,
             minLevel,
             maxLevel,
             ascending: options.get(SortCommandParams.ASCENDING)?.value as boolean,
         });
-        await interaction.editReply(sortedItems);
+        await interaction.reply(sortedItems);
     },
 };
 
