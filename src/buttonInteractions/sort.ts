@@ -9,7 +9,7 @@ const buttonInteration: ButtonInteractionData = {
     preferEphemeralErrorMessage: true,
     run: async (interaction: ButtonInteraction, handlerName: 's' | 'ss'): Promise<void> => {
         const sortFilters = uncompressSortFilters(
-            interaction.customID.slice(handlerName.length + 1)
+            interaction.customId.slice(handlerName.length + 1)
         );
         const sortedItems = await getSortedItemList(handlerName === 'ss' ? 1 : 10, sortFilters);
 
