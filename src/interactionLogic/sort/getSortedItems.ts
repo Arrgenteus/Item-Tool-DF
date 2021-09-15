@@ -11,10 +11,7 @@ import {
     MessageActionRowOptions,
     MessageOptions,
 } from 'discord.js';
-import {
-    MAX_EMBED_DESC_LENGTH,
-    MAX_SPLIT_EMBED_DESC_LENGTH,
-} from '../../commonTypes/commandStructures';
+import { MAX_EMBED_DESC_LENGTH, MAX_SPLIT_EMBED_DESC_LENGTH } from '../../utils/constants';
 import { compressSortFilters } from './sortFilterCompression';
 import { ItemTypes } from '../../commonTypes/items';
 

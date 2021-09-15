@@ -1,8 +1,8 @@
 import { Message, MessageOptions } from 'discord.js';
-import { ChatCommandData } from '../commonTypes/commandStructures';
 import { ClientEventHandler } from '../commonTypes/eventHandler';
 import config from '../config';
 import { ValidationError } from '../errors';
+import { ChatCommandData } from '../eventHandlerTypes';
 import chatCommands from '../storage/chatCommands';
 
 const messageEventHandler: ClientEventHandler = {

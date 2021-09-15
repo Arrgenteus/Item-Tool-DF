@@ -1,6 +1,6 @@
-import { ApplicationCommandOption, CommandInteraction } from 'discord.js';
+import { ApplicationCommandOptionData, CommandInteraction } from 'discord.js';
 import { ValidationError } from '../errors';
-import { ApplicationCommandOptions, SlashCommandData } from '../commonTypes/commandStructures';
+import { SlashCommandData } from '../eventHandlerTypes';
 import getSortedItemList from '../interactionLogic/sort/getSortedItems';
 import { parseSortExpression } from '../interactionLogic/sort/sortExpressionParser';
 import {
@@ -18,34 +18,34 @@ const command: SlashCommandData = {
             'Sort items by provided criteria. Returns a large response that only you can see.',
         options: [
             {
-                type: ApplicationCommandOptions.SUB_COMMAND,
+                type: 'SUB_COMMAND',
                 name: SortSubCommand.WEAPON,
                 description: 'Sort weapons by provided criteria.',
                 options: [
                     {
-                        type: ApplicationCommandOptions.STRING,
+                        type: 'STRING',
                         name: SortCommandParams.SORT_EXPRESSION,
                         required: true,
                         description:
                             'Eg. "Ice", "All + Health", "INT - (DEX + STR)", "Damage", etc. Can only contain + or - operators.',
                     },
                     {
-                        type: ApplicationCommandOptions.STRING,
+                        type: 'STRING',
                         name: SortCommandParams.WEAPON_ELEMENT,
                         description: 'Optional filter for weapons of a specific element',
                     },
                     {
-                        type: ApplicationCommandOptions.INTEGER,
+                        type: 'INTEGER',
                         name: SortCommandParams.MAX_LEVEL,
                         description: 'Maximum level of weapons to be shown in results',
                     },
                     {
-                        type: ApplicationCommandOptions.INTEGER,
+                        type: 'INTEGER',
                         name: SortCommandParams.MIN_LEVEL,
                         description: 'Minumum level of weapons to be shown in results',
                     },
                     {
-                        type: ApplicationCommandOptions.BOOLEAN,
+                        type: 'BOOLEAN',
                         name: SortCommandParams.ASCENDING,
                         description:
                             'Whether weapons should be displayed in ascending order. Order is descending by default.',
@@ -60,45 +60,45 @@ const command: SlashCommandData = {
                 SortSubCommand.RING,
                 SortSubCommand.TRINKET,
                 SortSubCommand.BRACER,
-            ].map((name: SortSubCommand): ApplicationCommandOption => {
-                let formattedName: string;
-                if (name === SortSubCommand.CAPE) formattedName = 'capes/wings';
-                else formattedName = name.replace('-', ' ');
-                if (formattedName.slice(-1) !== 's') formattedName += 's';
+            ]
+                .sort((a: SortSubCommand, b: SortSubCommand): number => (a > b ? 1 : -1))
+                .map((name: SortSubCommand): ApplicationCommandOptionData => {
+                    let formattedName: string;
+                    if (name === SortSubCommand.CAPE) formattedName = 'capes/wings';
+                    else formattedName = name.replace('-', ' ');
+                    if (formattedName.slice(-1) !== 's') formattedName += 's';
 
-                return {
-                    type: ApplicationCommandOptions.SUB_COMMAND,
-                    name: name,
-                    description: `Sort ${formattedName} by provided criteria.`,
-                    options: [
-                        {
-                            type: ApplicationCommandOptions.STRING,
-                            name: SortCommandParams.SORT_EXPRESSION,
-                            required: true,
-                            description:
-                                'Eg. "Ice", "All + Health", "INT - (DEX + STR)", etc. Can only contain + or - operators.',
-                        },
-                        {
-                            type: ApplicationCommandOptions.INTEGER,
-                            name: SortCommandParams.MAX_LEVEL,
-                            description: `Maximum level of ${formattedName} to be shown in results`,
-                        },
-                        {
-                            type: ApplicationCommandOptions.INTEGER,
-                            name: SortCommandParams.MIN_LEVEL,
-                            description: `Minimum level of ${formattedName} to be shown in results`,
-                        },
-                        {
-                            type: ApplicationCommandOptions.BOOLEAN,
-                            name: SortCommandParams.ASCENDING,
-                            description: `Whether ${formattedName} should be displayed in ascending order. Order is descending by default.`,
-                        },
-                    ],
-                };
-            }),
-        ].sort((a: ApplicationCommandOption, b: ApplicationCommandOption) =>
-            a.name > b.name ? 1 : -1
-        ),
+                    return {
+                        type: 'SUB_COMMAND',
+                        name: name,
+                        description: `Sort ${formattedName} by provided criteria.`,
+                        options: [
+                            {
+                                type: 'STRING',
+                                name: SortCommandParams.SORT_EXPRESSION,
+                                required: true,
+                                description:
+                                    'Eg. "Ice", "All + Health", "INT - (DEX + STR)", etc. Can only contain + or - operators.',
+                            },
+                            {
+                                type: 'INTEGER',
+                                name: SortCommandParams.MAX_LEVEL,
+                                description: `Maximum level of ${formattedName} to be shown in results`,
+                            },
+                            {
+                                type: 'INTEGER',
+                                name: SortCommandParams.MIN_LEVEL,
+                                description: `Minimum level of ${formattedName} to be shown in results`,
+                            },
+                            {
+                                type: 'BOOLEAN',
+                                name: SortCommandParams.ASCENDING,
+                                description: `Whether ${formattedName} should be displayed in ascending order. Order is descending by default.`,
+                            },
+                        ],
+                    };
+                }),
+        ],
     },
 
     run: async (interaction: CommandInteraction) => {

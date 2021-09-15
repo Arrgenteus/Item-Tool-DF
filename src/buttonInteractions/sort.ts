@@ -1,5 +1,5 @@
 import { ButtonInteraction } from 'discord.js';
-import { ButtonInteractionData } from '../commonTypes/commandStructures';
+import { ButtonInteractionData } from '../eventHandlerTypes';
 import getSortedItemList from '../interactionLogic/sort/getSortedItems';
 import { uncompressSortFilters } from '../interactionLogic/sort/sortFilterCompression';
 
