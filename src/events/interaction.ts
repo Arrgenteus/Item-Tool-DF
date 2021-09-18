@@ -5,6 +5,7 @@ import { ValidationError } from '../errors';
 import { ButtonInteractionData } from '../eventHandlerTypes';
 import buttonInteractionHandlers from '../handlerStorage/buttonInteractionHandlers';
 import slashCommands from '../handlerStorage/slashCommands';
+import { BUTTON_ID_ARG_SEPARATOR } from '../utils/constants';
 
 async function interactionErrorHandler(
     err: Error,
@@ -62,7 +63,7 @@ async function slashCommandHandler(interaction: CommandInteraction): Promise<voi
 }
 
 async function buttonInteractionHandler(interaction: ButtonInteraction): Promise<void> {
-    let separatorIndex: number = interaction.customId.indexOf('`');
+    let separatorIndex: number = interaction.customId.indexOf(BUTTON_ID_ARG_SEPARATOR);
     if (separatorIndex === -1) separatorIndex = interaction.customId.length;
     let handlerName: string = interaction.customId.slice(0, separatorIndex);
     const handler: ButtonInteractionData | undefined = buttonInteractionHandlers.get(handlerName);
@@ -83,7 +84,7 @@ const interactionEventHandler: ClientEventHandler = {
     eventName: 'interactionCreate',
     async run(interaction: CommandInteraction | ButtonInteraction): Promise<void> {
         if (interaction.isCommand()) await slashCommandHandler(interaction);
-        else await buttonInteractionHandler(interaction);
+        else if (interaction.isButton()) await buttonInteractionHandler(interaction);
     },
 };
 

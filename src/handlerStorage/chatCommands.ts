@@ -1,12 +1,22 @@
 import { Collection } from 'discord.js';
-import sortCommand from '../chatCommands/sort';
+import fs from 'fs';
+import path from 'path';
 import { ChatCommandData } from '../eventHandlerTypes';
 
 const chatCommands: Collection<string, ChatCommandData> = new Collection();
 
-const commandList: ChatCommandData[] = [sortCommand];
-for (const command of commandList) {
-    for (const commandName of command.names) chatCommands.set(commandName, command);
+for (const fileName of fs.readdirSync(path.join(__dirname, '../chatCommands'))) {
+    if (!fileName.endsWith('.js')) continue;
+
+    const command: ChatCommandData = require(path.join(
+        __dirname,
+        '../chatCommands/' + fileName
+    )).default;
+    if (!command) continue;
+
+    for (const commandName of command.names) {
+        chatCommands.set(commandName, command);
+    }
 }
 console.log('Chat commands have been loaded');
 
