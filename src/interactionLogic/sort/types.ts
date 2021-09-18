@@ -1,7 +1,6 @@
 import { ItemTypes } from '../../commonTypes/items';
 
-export const LONG_RESULT_LIMIT = 15;
-export const SHORT_RESULT_LIMIT = 8;
+export const QUERY_RESULT_LIMIT = 7;
 
 export enum SortSubCommand {
     WEAPON = 'weapon',
@@ -47,4 +46,6 @@ export interface SortFilterParams {
     weaponElement?: string;
     minLevel?: number;
     maxLevel?: number;
+    prevPageValueLimit?: number;
+    nextPageValueLimit?: number;
 }

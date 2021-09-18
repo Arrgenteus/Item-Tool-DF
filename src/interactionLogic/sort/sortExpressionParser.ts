@@ -17,6 +17,9 @@ const OPERATORS: {
     'u-': { precedence: 2, unary: true, mongoFunc: '$subtract' },
 };
 const ALIASES: { [alias: string]: string } = {
+    'average damage': 'damage',
+    'avg damage': 'damage',
+    'avg dmg': 'damage',
     dark: 'darkness',
     dmg: 'damage',
     immo: 'immobility',

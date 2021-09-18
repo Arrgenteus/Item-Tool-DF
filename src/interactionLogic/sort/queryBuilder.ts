@@ -1,8 +1,7 @@
 import { ItemTypes } from '../../commonTypes/items';
 import {
     ItemTypeMongoFilter,
-    LONG_RESULT_LIMIT,
-    SHORT_RESULT_LIMIT,
+    QUERY_RESULT_LIMIT,
     SortableItemType,
     SortFilterParams,
 } from './types';
@@ -17,11 +16,16 @@ function getItemTypeFilter(itemType: SortableItemType): ItemTypeMongoFilter {
     };
 }
 
-export function getSortQueryPipeline(
-    moreResults: boolean,
-    { itemType, ascending, sortExpression, weaponElement, minLevel, maxLevel }: SortFilterParams
-): Object[] {
-    const sortOrder: 1 | -1 = ascending ? 1 : -1;
+export function getSortQueryPipeline({
+    itemType,
+    ascending,
+    sortExpression,
+    weaponElement,
+    minLevel,
+    maxLevel,
+    nextPageValueLimit,
+    prevPageValueLimit,
+}: SortFilterParams): Object[] {
     const filter: { [filterName: string]: any } = {
         customSortValue: { $exists: true, $ne: 0 },
         ...getItemTypeFilter(itemType),
@@ -39,8 +43,18 @@ export function getSortQueryPipeline(
             ...(maxLevel !== undefined ? { $lte: maxLevel } : {}),
         };
     }
+    if (nextPageValueLimit !== undefined) {
+        if (ascending) filter.customSortValue.$gt = nextPageValueLimit;
+        else filter.customSortValue.$lt = nextPageValueLimit;
+    } else if (prevPageValueLimit !== undefined) {
+        if (ascending) filter.customSortValue.$lt = prevPageValueLimit;
+        else filter.customSortValue.$gt = prevPageValueLimit;
+    }
 
-    const pipeline = [
+    const sortOrder: 1 | -1 =
+        (ascending && !prevPageValueLimit) || (!ascending && prevPageValueLimit) ? 1 : -1;
+
+    return [
         {
             $addFields: {
                 damage: { $avg: '$damage' },
@@ -63,7 +77,11 @@ export function getSortQueryPipeline(
         // Group documents
         {
             $group: {
-                _id: { customSortValue: '$customSortValue', title: '$title', tagSet: '$tagSet' },
+                _id: {
+                    customSortValue: '$customSortValue',
+                    title: '$title',
+                    tagSet: '$tagSet',
+                },
                 levels: { $push: '$level' },
             },
         },
@@ -82,8 +100,6 @@ export function getSortQueryPipeline(
         },
         { $addFields: { customSortValue: '$_id.customSortValue' } },
         { $sort: { customSortValue: sortOrder } },
-        { $limit: moreResults ? LONG_RESULT_LIMIT : SHORT_RESULT_LIMIT },
+        { $limit: QUERY_RESULT_LIMIT },
     ];
-
-    return pipeline;
 }
