@@ -3,7 +3,7 @@ import { ClientEventHandler } from '../commonTypes/eventHandler';
 import config from '../config';
 import { ValidationError } from '../errors';
 import { ChatCommandData } from '../eventHandlerTypes';
-import chatCommands from '../storage/chatCommands';
+import chatCommands from '../handlerStorage/chatCommands';
 
 const messageEventHandler: ClientEventHandler = {
     eventName: 'messageCreate',

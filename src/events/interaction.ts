@@ -3,8 +3,8 @@ import { ClientEventHandler } from '../commonTypes/eventHandler';
 import config from '../config';
 import { ValidationError } from '../errors';
 import { ButtonInteractionData } from '../eventHandlerTypes';
-import buttonInteractionHandlers from '../storage/buttonInteractionHandlers';
-import slashCommands from '../storage/slashCommands';
+import buttonInteractionHandlers from '../handlerStorage/buttonInteractionHandlers';
+import slashCommands from '../handlerStorage/slashCommands';
 
 async function interactionErrorHandler(
     err: Error,
