@@ -1,8 +1,8 @@
-import { ButtonInteraction, CommandInteraction, Message } from 'discord.js';
-import { ButtonInteractionData } from '../commonTypes/commandStructures';
+import { ButtonInteraction, CommandInteraction } from 'discord.js';
 import { ClientEventHandler } from '../commonTypes/eventHandler';
 import config from '../config';
 import { ValidationError } from '../errors';
+import { ButtonInteractionData } from '../eventHandlerTypes';
 import buttonInteractionHandlers from '../storage/buttonInteractionHandlers';
 import slashCommands from '../storage/slashCommands';
 
@@ -53,7 +53,11 @@ async function slashCommandHandler(interaction: CommandInteraction): Promise<voi
     try {
         await command.run(interaction);
     } catch (err) {
-        await interactionErrorHandler(err, interaction, command.preferEphemeralErrorMessage);
+        await interactionErrorHandler(
+            err as Error,
+            interaction,
+            command.preferEphemeralErrorMessage ?? true
+        );
     }
 }
 
@@ -67,7 +71,11 @@ async function buttonInteractionHandler(interaction: ButtonInteraction): Promise
     try {
         await handler.run(interaction, handlerName);
     } catch (err) {
-        await interactionErrorHandler(err, interaction, handler.preferEphemeralErrorMessage);
+        await interactionErrorHandler(
+            err as Error,
+            interaction,
+            handler.preferEphemeralErrorMessage ?? false
+        );
     }
 }
 

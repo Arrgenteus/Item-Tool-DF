@@ -1,6 +1,6 @@
 import { Collection } from 'discord.js';
-import { ButtonInteractionData } from '../commonTypes/commandStructures';
 import sortItemButtonInteraction from '../buttonInteractions/sort';
+import { ButtonInteractionData } from '../eventHandlerTypes';
 
 const buttonInteractionHandlers: Collection<string, ButtonInteractionData> = new Collection();
 
