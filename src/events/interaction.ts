@@ -1,8 +1,7 @@
 import { ButtonInteraction, CommandInteraction } from 'discord.js';
-import { ClientEventHandler } from '../commonTypes/eventHandler';
 import config from '../config';
 import { ValidationError } from '../errors';
-import { ButtonInteractionData } from '../eventHandlerTypes';
+import { ButtonInteractionData, ClientEventHandler } from '../eventHandlerTypes';
 import buttonInteractionHandlers from '../handlerStorage/buttonInteractionHandlers';
 import slashCommands from '../handlerStorage/slashCommands';
 import { BUTTON_ID_ARG_SEPARATOR } from '../utils/constants';
