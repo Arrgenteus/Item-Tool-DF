@@ -1,6 +1,6 @@
-import { Client as DiscordClient, Guild, Intents, Interaction, Message } from 'discord.js';
-import { SlashCommandData } from './commonTypes/commandStructures';
+import { Client as DiscordClient, Guild, Intents } from 'discord.js';
 import config from './config';
+import { SlashCommandData } from './eventHandlerTypes';
 import interactionEventHandler from './events/interaction';
 import messageEventHandler from './events/message';
 import slashCommands from './storage/slashCommands';
