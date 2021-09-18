@@ -1,7 +1,7 @@
 import { ButtonInteraction, Message, MessageOptions } from 'discord.js';
 import { ButtonInteractionData } from '../eventHandlerTypes';
 import getSortedItemList from '../interactionLogic/sort/getSortedItems';
-import { getFiltersFromEmbed } from '../interactionLogic/sort/paginationHelpers';
+import { getFiltersFromEmbed } from '../interactionLogic/sort/queryBuilder';
 import { SortableItemType, SortFilterParams } from '../interactionLogic/sort/types';
 import { BUTTON_ID_ARG_SEPARATOR } from '../utils/constants';
 

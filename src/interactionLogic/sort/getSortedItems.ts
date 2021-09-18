@@ -23,7 +23,7 @@ function prettifyType(itemType: SortableItemType): string {
     return capitalize(itemType) + 's';
 }
 
-export function getFiltersUsedText({
+function getFiltersUsedText({
     ascending,
     weaponElement,
     minLevel,
