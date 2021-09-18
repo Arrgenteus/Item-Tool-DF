@@ -1,4 +1,4 @@
-import { ItemTypes } from '../../commonTypes/items';
+import { ItemTypes } from '../../utils/itemTypeData';
 import { ValueError } from '../../errors';
 import { parseCompressedSortExpression } from './sortExpressionParser';
 import { SortableItemType, SortExpressionData, SortFilterParams } from './types';

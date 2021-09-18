@@ -1,4 +1,4 @@
-import { ItemTypes } from '../../commonTypes/items';
+import { ItemTypes } from '../../utils/itemTypeData';
 
 export const QUERY_RESULT_LIMIT = 7;
 

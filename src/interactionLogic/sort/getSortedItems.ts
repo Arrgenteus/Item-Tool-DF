@@ -11,7 +11,7 @@ import {
     MessageOptions,
 } from 'discord.js';
 import { BUTTON_ID_ARG_SEPARATOR, MAX_EMBED_DESC_LENGTH } from '../../utils/constants';
-import { ItemTypes } from '../../commonTypes/items';
+import { ItemTypes } from '../../utils/itemTypeData';
 
 const ITEM_LIST_DELIMITER = ', `';
 const itemCollection: Promise<MongoCollection> = dbConnection.then((db: Db) =>

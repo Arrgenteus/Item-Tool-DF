@@ -1,4 +1,4 @@
-import { ItemTypes } from '../../commonTypes/items';
+import { ItemTypes } from '../../utils/itemTypeData';
 import {
     ItemTypeMongoFilter,
     QUERY_RESULT_LIMIT,

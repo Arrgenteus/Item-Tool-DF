@@ -1,5 +1,5 @@
 import { Message, MessageOptions, TextChannel, Util } from 'discord.js';
-import { allItemTypes, ItemTypes } from '../commonTypes/items';
+import { allItemTypes, ItemTypes } from '../utils/itemTypeData';
 import config from '../config';
 import { ValidationError } from '../errors';
 import { ChatCommandData } from '../eventHandlerTypes';
