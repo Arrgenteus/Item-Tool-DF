@@ -1,5 +1,5 @@
 import { Collection } from 'discord.js';
-import { SlashCommandData } from '../commonTypes/commandStructures';
+import { SlashCommandData } from '../eventHandlerTypes';
 import sortCommand from '../slashCommands/sort';
 
 const slashCommands: Collection<string, SlashCommandData> = new Collection();

@@ -1,6 +1,6 @@
 import { Collection } from 'discord.js';
-import { ChatCommandData } from '../commonTypes/commandStructures';
 import sortCommand from '../chatCommands/sort';
+import { ChatCommandData } from '../eventHandlerTypes';
 
 const chatCommands: Collection<string, ChatCommandData> = new Collection();
 

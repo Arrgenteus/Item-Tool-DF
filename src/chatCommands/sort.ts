@@ -1,8 +1,8 @@
 import { Message, TextChannel, Util } from 'discord.js';
-import { ChatCommandData } from '../commonTypes/commandStructures';
 import { allItemTypes, ItemTypes } from '../commonTypes/items';
 import config from '../config';
 import { ValidationError } from '../errors';
+import { ChatCommandData } from '../eventHandlerTypes';
 import getSortedItemList, {
     multiItemDisplayMessage,
 } from '../interactionLogic/sort/getSortedItems';
