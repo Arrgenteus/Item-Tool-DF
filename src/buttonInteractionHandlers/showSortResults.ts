@@ -1,4 +1,4 @@
-import { ButtonInteraction, Message, MessageOptions } from 'discord.js';
+import { ButtonInteraction, MessageOptions } from 'discord.js';
 import { ButtonInteractionData } from '../eventHandlerTypes';
 import getSortedItemList from '../interactionLogic/sort/getSortedItems';
 import { getFiltersFromEmbed } from '../interactionLogic/sort/queryBuilder';

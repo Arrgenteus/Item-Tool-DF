@@ -16,7 +16,7 @@ const buttonInteration: ButtonInteractionData = {
             interaction.customId.split(BUTTON_ID_ARG_SEPARATOR);
         const usedFilters: SortFilterParams = getFiltersFromEmbed(
             interaction.message.embeds[0].title!,
-            interaction.message.embeds[0].description!,
+            interaction.message.embeds[0].description ?? undefined,
             itemType as SortableItemType
         );
         if (handlerName === 'next-page-sort-results') {
