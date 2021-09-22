@@ -6,6 +6,7 @@ import {
     CommandInteraction,
     Message,
     PermissionResolvable,
+    SelectMenuInteraction,
 } from 'discord.js';
 
 export interface ClientEventHandler {
@@ -26,8 +27,8 @@ export interface ChatCommandData {
     run(message: Partial<Message>, args: string, commandName: string): Promise<void>;
 }
 
-export interface ButtonInteractionData {
+export interface ActionRowInteractionData {
     readonly names: readonly string[];
     readonly preferEphemeralErrorMessage?: boolean;
-    run(interaction: ButtonInteraction, handlerName: string): Promise<void>;
+    run(interaction: ButtonInteraction | SelectMenuInteraction, handlerName: string): Promise<void>;
 }

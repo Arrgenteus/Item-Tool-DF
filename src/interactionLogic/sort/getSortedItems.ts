@@ -3,31 +3,29 @@ import config from '../../config';
 import { dbConnection } from '../../dbConnection';
 import { capitalize } from '../../utils/misc';
 import { getSortQueryPipeline } from './queryBuilder';
-import { QUERY_RESULT_LIMIT, SortableItemType, SortFilterParams } from './types';
+import { SortableItemType, SortFilterParams } from './types';
 import { unaliasBonusName } from './sortExpressionParser';
 import {
     MessageActionRowComponentResolvable,
     MessageActionRowOptions,
     MessageOptions,
+    MessageSelectOptionData,
 } from 'discord.js';
-import { BUTTON_ID_ARG_SEPARATOR, MAX_EMBED_DESC_LENGTH } from '../../utils/constants';
-import { ItemTypes } from '../../utils/itemTypeData';
+import { INTERACTION_ID_ARG_SEPARATOR, MAX_EMBED_DESC_LENGTH } from '../../utils/constants';
+import { ItemTag, PRETTY_TAG_NAMES } from '../../utils/itemTypeData';
+import { ITEM_TAG_FILTER_OPTION_NAMES, PRETTY_ITEM_TYPES, QUERY_RESULT_LIMIT } from './constants';
 
 const ITEM_LIST_DELIMITER = ', `';
 const itemCollection: Promise<MongoCollection> = dbConnection.then((db: Db) =>
     db.collection(config.DB_COLLECTION)
 );
 
-function prettifyType(itemType: SortableItemType): string {
-    if (itemType === ItemTypes.CAPE) return 'Capes/Wings';
-    return capitalize(itemType) + 's';
-}
-
 function getFiltersUsedText({
     ascending,
     weaponElement,
     minLevel,
     maxLevel,
+    excludeTags,
 }: Partial<SortFilterParams>): string {
     const filterText: string[] = [];
     if (weaponElement) filterText.push(`**Weapon Element:** ${capitalize(weaponElement)}`);
@@ -42,39 +40,65 @@ function getFiltersUsedText({
     }
     if (levelFilterText.length) filterText.push(levelFilterText.join(', '));
 
+    if (excludeTags && excludeTags.size) {
+        filterText.push(
+            `**Excluded Tags:** ${[...excludeTags]
+                .map((tag: ItemTag) => PRETTY_TAG_NAMES[tag])
+                .join(', ')}`
+        );
+    }
+
     return filterText.join('\n');
 }
 
-function getNextAndPrevPageButtons(
+function getNavigationComponents(
     itemType: SortableItemType,
-    prevPageValueLimit: number | undefined,
-    nextPageValueLimit: number | undefined
+    prevPageValueLimit?: number | undefined,
+    nextPageValueLimit?: number | undefined,
+    excludeTags?: Set<ItemTag>
 ): MessageActionRowOptions[] {
     if (prevPageValueLimit === undefined && nextPageValueLimit === undefined) return [];
 
-    const components: MessageActionRowComponentResolvable[] = [];
+    const selectMenuComponent: MessageActionRowComponentResolvable[] = [
+        {
+            customId: 'sort-result-tags-selection',
+            placeholder: 'Tags to include in results',
+            maxValues: ITEM_TAG_FILTER_OPTION_NAMES.length,
+            type: 'SELECT_MENU',
+            options: ITEM_TAG_FILTER_OPTION_NAMES.map(
+                ({ tag }: { tag: ItemTag }): MessageSelectOptionData => ({
+                    label: PRETTY_TAG_NAMES[tag],
+                    value: tag,
+                    default: !excludeTags || !excludeTags.has(tag),
+                })
+            ),
+        },
+    ];
+
+    const buttonComponents: MessageActionRowComponentResolvable[] = [];
     if (prevPageValueLimit !== undefined) {
-        components.push({
+        buttonComponents.push({
             type: 'BUTTON',
             label: '\u276e Prev Page',
-            customId: ['prev-page-sort-results', itemType, prevPageValueLimit].join(
-                BUTTON_ID_ARG_SEPARATOR
-            ),
+            customId: 'prev-page-sort-results' + INTERACTION_ID_ARG_SEPARATOR + prevPageValueLimit,
             style: 'PRIMARY',
         });
     }
     if (nextPageValueLimit !== undefined) {
-        components.push({
+        buttonComponents.push({
             type: 'BUTTON',
             label: 'Next Page \u276f',
-            customId: ['next-page-sort-results', itemType, nextPageValueLimit].join(
-                BUTTON_ID_ARG_SEPARATOR
-            ),
+            customId: 'next-page-sort-results' + INTERACTION_ID_ARG_SEPARATOR + nextPageValueLimit,
             style: 'PRIMARY',
         });
     }
 
-    return [{ type: 'ACTION_ROW', components }];
+    if (!buttonComponents.length) return [{ type: 'ACTION_ROW', components: selectMenuComponent }];
+
+    return [
+        { type: 'ACTION_ROW', components: selectMenuComponent },
+        { type: 'ACTION_ROW', components: buttonComponents },
+    ];
 }
 
 export function multiItemDisplayMessage(
@@ -99,7 +123,7 @@ export function multiItemDisplayMessage(
                     (itemType: SortableItemType): MessageActionRowComponentResolvable => ({
                         type: 'BUTTON',
                         label: capitalize(itemType),
-                        customId: 'show-sort-results' + BUTTON_ID_ARG_SEPARATOR + itemType,
+                        customId: 'show-sort-results' + INTERACTION_ID_ARG_SEPARATOR + itemType,
                         style: 'PRIMARY',
                     })
                 ),
@@ -185,7 +209,7 @@ export default async function getSortedItemList(
             sortedList = lastResult.slice(0, lastItemIndexBeforeLimit) + ellipses;
     }
 
-    const buttonRow: MessageActionRowOptions[] = getNextAndPrevPageButtons(
+    const buttonRow: MessageActionRowOptions[] = getNavigationComponents(
         sortFilterParams.itemType,
         // Add a previous page button to the message if any of the following are true:
         // 1) The next page value limit parameter exists, implying that they clicked "next page" at least once
@@ -207,13 +231,14 @@ export default async function getSortedItemList(
                 !!itemGroup) ||
             (sortFilterParams.nextPageValueLimit !== undefined && !!itemGroup)
             ? lastGroupValue
-            : undefined
+            : undefined,
+        sortFilterParams.excludeTags
     );
 
     sortedList = sortedList || 'No results were found';
 
     // Pretty print the input item type
-    const title: string = `Sort ${prettifyType(sortFilterParams.itemType)} by ${
+    const title: string = `Sort ${PRETTY_ITEM_TYPES[sortFilterParams.itemType]} by ${
         sortFilterParams.sortExpression.pretty
     }`;
 

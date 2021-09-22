@@ -1,14 +1,14 @@
 import { Collection } from 'discord.js';
 import fs from 'fs';
 import path from 'path';
-import { ButtonInteractionData } from '../eventHandlerTypes';
+import { ActionRowInteractionData } from '../eventHandlerTypes';
 
-const buttonInteractionHandlers: Collection<string, ButtonInteractionData> = new Collection();
+const buttonInteractionHandlers: Collection<string, ActionRowInteractionData> = new Collection();
 
 for (const fileName of fs.readdirSync(path.join(__dirname, '../buttonInteractionHandlers'))) {
     if (!fileName.endsWith('.js')) continue;
 
-    const command: ButtonInteractionData = require(path.join(
+    const command: ActionRowInteractionData = require(path.join(
         __dirname,
         '../buttonInteractionHandlers/' + fileName
     )).default;

@@ -1,8 +1,8 @@
-import { ItemTypes } from '../../utils/itemTypeData';
+import { ItemTag, ItemTypes, PRETTY_TO_BASE_TAG_NAME } from '../../utils/itemTypeData';
+import { PRETTY_TO_BASE_ITEM_TYPE, QUERY_RESULT_LIMIT } from './constants';
 import { parseSortExpression } from './sortExpressionParser';
 import {
     ItemTypeMongoFilter,
-    QUERY_RESULT_LIMIT,
     SortableItemType,
     SortExpressionData,
     SortFilterParams,
@@ -21,15 +21,37 @@ function getItemTypeFilter(itemType: SortableItemType): ItemTypeMongoFilter {
 export function getFiltersFromEmbed(
     embedTitle: string,
     embedDesc: string | undefined,
-    itemType: SortableItemType
+    selectedTagsInMenu?: string[],
+    itemType?: SortableItemType
 ): SortFilterParams {
     const sortExpressionMatch: RegExpMatchArray = embedTitle.match(
-        /^Sort (?:[a-zA-Z]+?) by (.+)$/i
+        /^Sort ([a-zA-Z/]+?) by (.+)$/i
     )!;
-    const sortExpressionInput: string = sortExpressionMatch[1];
+    if (!itemType) itemType = PRETTY_TO_BASE_ITEM_TYPE[sortExpressionMatch[1]];
+    const sortExpressionInput: string = sortExpressionMatch[2];
     const sortExpression: SortExpressionData = parseSortExpression(sortExpressionInput);
+    let excludeTags: Set<ItemTag> | undefined;
+    if (selectedTagsInMenu) {
+        excludeTags = new Set(['da', 'dc', 'dm', 'se', 'so', 'fs', 'rare']);
+        for (const includedTag of selectedTagsInMenu) {
+            excludeTags.delete(includedTag as ItemTag);
+        }
+    }
 
-    if (!embedDesc) return { sortExpression, itemType };
+    if (!embedDesc) return { sortExpression, itemType, excludeTags };
+
+    if (!selectedTagsInMenu) {
+        const excludedTagsMatch: RegExpMatchArray = embedDesc.match(
+            /^\*\*Excluded Tags:\*\* ([a-z, ]+)$/i
+        )!;
+        if (excludedTagsMatch) {
+            excludeTags = new Set(
+                excludedTagsMatch[1]
+                    .split(', ')
+                    .map((prettyTagName: string) => PRETTY_TO_BASE_TAG_NAME[prettyTagName])
+            );
+        }
+    }
 
     const [, weaponElement]: RegExpMatchArray | [] =
         embedDesc.match(/\*\*Weapon Element:\*\* ([a-z0-9?]+)/i) || [];
@@ -42,6 +64,7 @@ export function getFiltersFromEmbed(
     return {
         sortExpression,
         itemType,
+        excludeTags,
         weaponElement: weaponElement ? weaponElement.toLowerCase() : undefined,
         minLevel: minLevel !== undefined ? Number(minLevel) : undefined,
         maxLevel: maxLevel !== undefined ? Number(maxLevel) : undefined,
@@ -56,20 +79,25 @@ export function getSortQueryPipeline({
     weaponElement,
     minLevel,
     maxLevel,
+    excludeTags,
     nextPageValueLimit,
     prevPageValueLimit,
 }: SortFilterParams): Object[] {
     const filter: { [filterName: string]: any } = {
         customSortValue: { $exists: true, $ne: 0 },
         ...getItemTypeFilter(itemType),
-        $nor: [
-            { 'tagSet.tags': 'ak' },
-            { 'tagSet.tags': 'alexander' },
-            { 'tagSet.tags': { $all: ['temp', 'default'] } },
-            { 'tagSet.tags': { $all: ['temp', 'rare'] } },
+        $and: [
+            { tagSet: { $elemMatch: { tags: { $ne: 'ak' } } } },
+            { tagSet: { $elemMatch: { tags: { $ne: 'alexander' } } } },
+            { tagSet: { $elemMatch: { tags: { $not: { $all: ['default', 'temp'] } } } } },
+            { tagSet: { $elemMatch: { tags: { $not: { $all: ['rare', 'temp'] } } } } },
         ],
         ...(weaponElement ? { elements: weaponElement } : {}),
     };
+
+    if (weaponElement) {
+        filter.elements = weaponElement;
+    }
     if (minLevel !== undefined || maxLevel !== undefined) {
         filter.level = {
             ...(minLevel !== undefined ? { $gte: minLevel } : {}),
@@ -82,6 +110,12 @@ export function getSortQueryPipeline({
     } else if (prevPageValueLimit !== undefined) {
         if (ascending) filter.customSortValue.$lt = prevPageValueLimit;
         else filter.customSortValue.$gt = prevPageValueLimit;
+    }
+
+    // Exclude items whose all possible tags contain any item from tagsToExclude
+    // Eg. excluding 'dc' will not filter out mogloween masks, but filtering out 'cosmetic' will
+    for (const tag of excludeTags ?? []) {
+        filter.$and.push({ tagSet: { $elemMatch: { tags: { $ne: tag } } } });
     }
 
     const sortOrder: 1 | -1 =
