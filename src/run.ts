@@ -3,7 +3,7 @@ import config from './config';
 import { SlashCommandData } from './eventHandlerTypes';
 import interactionEventHandler from './events/interaction';
 import messageEventHandler from './events/message';
-import slashCommands from './storage/slashCommands';
+import slashCommands from './handlerStorage/slashCommands';
 
 const client = new DiscordClient({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES] });
 
