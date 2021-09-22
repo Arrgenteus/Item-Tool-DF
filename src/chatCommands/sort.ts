@@ -1,5 +1,5 @@
 import { Message, MessageOptions, TextChannel, Util } from 'discord.js';
-import { allItemTypes, ItemTypes } from '../utils/itemTypeData';
+import { ALL_ITEM_TYPES, ItemTypes } from '../utils/itemTypeData';
 import config from '../config';
 import { ValidationError } from '../errors';
 import { ChatCommandData } from '../eventHandlerTypes';
@@ -28,7 +28,7 @@ const command: ChatCommandData = {
                 embed(
                     `Usage: ${CC}${commandName} \`item type\`, \`sort expression\`, \`max level (optional)\`\n` +
                         '(Yes, the commas between them matter)\n' +
-                        `\`item type\` - Valid types are: _${Array.from(allItemTypes).join(
+                        `\`item type\` - Valid types are: _${Array.from(ALL_ITEM_TYPES).join(
                             ', '
                         )}_, and _item_. ` +
                         "Abbreviations such as 'acc' and 'wep' also work.\n" +
@@ -106,11 +106,11 @@ const command: ChatCommandData = {
                 })
             );
             return;
-        } else if (!allItemTypes.has(inputItemType as ItemTypes)) {
+        } else if (!ALL_ITEM_TYPES.has(inputItemType as ItemTypes)) {
             throw new ValidationError(
                 `"${Util.escapeMarkdown(
                     unmodifiedItemTypeInput
-                )}" is not a valid item type. Valid types are: _${Array.from(allItemTypes).join(
+                )}" is not a valid item type. Valid types are: _${Array.from(ALL_ITEM_TYPES).join(
                     ', '
                 )}_. ` + '"acc" and "wep" are valid abbreviations for accessories and weapons.'
             );
