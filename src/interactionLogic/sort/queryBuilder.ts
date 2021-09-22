@@ -1,9 +1,10 @@
-import { ItemTypes } from '../../commonTypes/items';
+import { ItemTypes } from '../../utils/itemTypeData';
+import { parseSortExpression } from './sortExpressionParser';
 import {
     ItemTypeMongoFilter,
-    LONG_RESULT_LIMIT,
-    SHORT_RESULT_LIMIT,
+    QUERY_RESULT_LIMIT,
     SortableItemType,
+    SortExpressionData,
     SortFilterParams,
 } from './types';
 
@@ -17,11 +18,47 @@ function getItemTypeFilter(itemType: SortableItemType): ItemTypeMongoFilter {
     };
 }
 
-export function getSortQueryPipeline(
-    moreResults: boolean,
-    { itemType, ascending, sortExpression, weaponElement, minLevel, maxLevel }: SortFilterParams
-): Object[] {
-    const sortOrder: 1 | -1 = ascending ? 1 : -1;
+export function getFiltersFromEmbed(
+    embedTitle: string,
+    embedDesc: string | undefined,
+    itemType: SortableItemType
+): SortFilterParams {
+    const sortExpressionMatch: RegExpMatchArray = embedTitle.match(
+        /^Sort (?:[a-zA-Z]+?) by (.+)$/i
+    )!;
+    const sortExpressionInput: string = sortExpressionMatch[1];
+    const sortExpression: SortExpressionData = parseSortExpression(sortExpressionInput);
+
+    if (!embedDesc) return { sortExpression, itemType };
+
+    const [, weaponElement]: RegExpMatchArray | [] =
+        embedDesc.match(/\*\*Weapon Element:\*\* ([a-z0-9?]+)/i) || [];
+    const [, minLevel]: RegExpMatchArray | [] =
+        embedDesc.match(/\*\*Min Level:\*\* ([0-9]+)/i) || [];
+    const [, maxLevel]: RegExpMatchArray | [] =
+        embedDesc.match(/\*\*Max Level:\*\* ([0-9]+)/i) || [];
+    const ascending: boolean = !!embedDesc.match(/\*\*Order:\*\* Ascending/);
+
+    return {
+        sortExpression,
+        itemType,
+        weaponElement: weaponElement ? weaponElement.toLowerCase() : undefined,
+        minLevel: minLevel !== undefined ? Number(minLevel) : undefined,
+        maxLevel: maxLevel !== undefined ? Number(maxLevel) : undefined,
+        ascending,
+    };
+}
+
+export function getSortQueryPipeline({
+    itemType,
+    ascending,
+    sortExpression,
+    weaponElement,
+    minLevel,
+    maxLevel,
+    nextPageValueLimit,
+    prevPageValueLimit,
+}: SortFilterParams): Object[] {
     const filter: { [filterName: string]: any } = {
         customSortValue: { $exists: true, $ne: 0 },
         ...getItemTypeFilter(itemType),
@@ -39,8 +76,18 @@ export function getSortQueryPipeline(
             ...(maxLevel !== undefined ? { $lte: maxLevel } : {}),
         };
     }
+    if (nextPageValueLimit !== undefined) {
+        if (ascending) filter.customSortValue.$gt = nextPageValueLimit;
+        else filter.customSortValue.$lt = nextPageValueLimit;
+    } else if (prevPageValueLimit !== undefined) {
+        if (ascending) filter.customSortValue.$lt = prevPageValueLimit;
+        else filter.customSortValue.$gt = prevPageValueLimit;
+    }
 
-    const pipeline = [
+    const sortOrder: 1 | -1 =
+        (ascending && !prevPageValueLimit) || (!ascending && prevPageValueLimit) ? 1 : -1;
+
+    return [
         {
             $addFields: {
                 damage: { $avg: '$damage' },
@@ -63,7 +110,11 @@ export function getSortQueryPipeline(
         // Group documents
         {
             $group: {
-                _id: { customSortValue: '$customSortValue', title: '$title', tagSet: '$tagSet' },
+                _id: {
+                    customSortValue: '$customSortValue',
+                    title: '$title',
+                    tagSet: '$tagSet',
+                },
                 levels: { $push: '$level' },
             },
         },
@@ -82,8 +133,6 @@ export function getSortQueryPipeline(
         },
         { $addFields: { customSortValue: '$_id.customSortValue' } },
         { $sort: { customSortValue: sortOrder } },
-        { $limit: moreResults ? LONG_RESULT_LIMIT : SHORT_RESULT_LIMIT },
+        { $limit: QUERY_RESULT_LIMIT },
     ];
-
-    return pipeline;
 }
