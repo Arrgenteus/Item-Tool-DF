@@ -1,19 +1,17 @@
 import { AggregationCursor, Collection as MongoCollection, Db } from 'mongodb';
 import config from '../../config';
 import { dbConnection } from '../../dbConnection';
-import { capitalize, embed } from '../../utils/misc';
-import SplitEmbed from '../../utils/splitEmbed';
+import { capitalize } from '../../utils/misc';
 import { getSortQueryPipeline } from './queryBuilder';
-import { SHORT_RESULT_LIMIT, SortableItemType, SortFilterParams } from './types';
+import { QUERY_RESULT_LIMIT, SortableItemType, SortFilterParams } from './types';
 import { unaliasBonusName } from './sortExpressionParser';
 import {
     MessageActionRowComponentResolvable,
     MessageActionRowOptions,
     MessageOptions,
 } from 'discord.js';
-import { MAX_EMBED_DESC_LENGTH, MAX_SPLIT_EMBED_DESC_LENGTH } from '../../utils/constants';
-import { compressSortFilters } from './sortFilterCompression';
-import { ItemTypes } from '../../commonTypes/items';
+import { BUTTON_ID_ARG_SEPARATOR, MAX_EMBED_DESC_LENGTH } from '../../utils/constants';
+import { ItemTypes } from '../../utils/itemTypeData';
 
 const ITEM_LIST_DELIMITER = ', `';
 const itemCollection: Promise<MongoCollection> = dbConnection.then((db: Db) =>
@@ -25,43 +23,58 @@ function prettifyType(itemType: SortableItemType): string {
     return capitalize(itemType) + 's';
 }
 
-export function getFiltersUsedText({
+function getFiltersUsedText({
     ascending,
-    itemType,
     weaponElement,
     minLevel,
     maxLevel,
-    sortExpression,
 }: Partial<SortFilterParams>): string {
     const filterText: string[] = [];
-    if (itemType) filterText.push(`Item type: ${prettifyType(itemType)}`);
-    if (weaponElement) filterText.push(`Element: ${capitalize(weaponElement)}`);
-    if (minLevel !== undefined && minLevel !== 0) filterText.push(`Min level: ${minLevel}`);
-    if (maxLevel !== undefined && maxLevel !== 90) filterText.push(`Max level: ${maxLevel}`);
+    if (weaponElement) filterText.push(`**Weapon Element:** ${capitalize(weaponElement)}`);
 
-    let result: string = filterText.length ? `Filters used:\n${filterText.join(', ')}` : '';
-    if (sortExpression) result += `\nSort exp: ${sortExpression.pretty}`;
-    if (ascending) result = 'Results are in ascending order\n\n' + result;
-    return result;
+    const levelFilterText: string[] = [];
+    if (ascending) filterText.push('**Order:** Ascending');
+    if (minLevel !== undefined && minLevel !== 0) {
+        levelFilterText.push(`**Min level:** ${minLevel}`);
+    }
+    if (maxLevel !== undefined && maxLevel !== 90) {
+        levelFilterText.push(`**Max level:** ${maxLevel}`);
+    }
+    if (levelFilterText.length) filterText.push(levelFilterText.join(', '));
+
+    return filterText.join('\n');
 }
 
-function getButtonsForMoreResults(sortFilterParams: SortFilterParams): MessageActionRowOptions[] {
-    const compressedFilters: string | undefined = compressSortFilters(sortFilterParams);
-    if (!compressedFilters) return [];
+function getNextAndPrevPageButtons(
+    itemType: SortableItemType,
+    prevPageValueLimit: number | undefined,
+    nextPageValueLimit: number | undefined
+): MessageActionRowOptions[] {
+    if (prevPageValueLimit === undefined && nextPageValueLimit === undefined) return [];
 
-    return [
-        {
-            type: 'ACTION_ROW',
-            components: [
-                {
-                    type: 'BUTTON',
-                    label: 'More Results',
-                    customId: compressedFilters,
-                    style: 'PRIMARY',
-                },
-            ],
-        },
-    ];
+    const components: MessageActionRowComponentResolvable[] = [];
+    if (prevPageValueLimit !== undefined) {
+        components.push({
+            type: 'BUTTON',
+            label: '\u276e Prev Page',
+            customId: ['prev-page-sort-results', itemType, prevPageValueLimit].join(
+                BUTTON_ID_ARG_SEPARATOR
+            ),
+            style: 'PRIMARY',
+        });
+    }
+    if (nextPageValueLimit !== undefined) {
+        components.push({
+            type: 'BUTTON',
+            label: 'Next Page \u276f',
+            customId: ['next-page-sort-results', itemType, nextPageValueLimit].join(
+                BUTTON_ID_ARG_SEPARATOR
+            ),
+            style: 'PRIMARY',
+        });
+    }
+
+    return [{ type: 'ACTION_ROW', components }];
 }
 
 export function multiItemDisplayMessage(
@@ -69,15 +82,16 @@ export function multiItemDisplayMessage(
     sortFilterParams: Omit<SortFilterParams, 'itemType'>
 ): Pick<MessageOptions, 'embeds' | 'components'> {
     return {
-        embeds: embed(
-            'Click on one of the buttons below',
-            `Sort items by ${sortFilterParams.sortExpression.pretty}`,
-            getFiltersUsedText({
-                ascending: sortFilterParams.ascending,
-                maxLevel: sortFilterParams.maxLevel,
-                minLevel: sortFilterParams.minLevel,
-            })
-        ).embeds,
+        embeds: [
+            {
+                title: `Sort items by ${sortFilterParams.sortExpression.pretty}`,
+                description: `${getFiltersUsedText(
+                    sortFilterParams
+                )}\n\nClick on one of the buttons below`,
+            },
+        ],
+
+        // Display item types after the 5th in a separate action row, since a single action row can only contain 5 buttons
         components: [itemTypes.slice(0, 5), itemTypes.slice(5)].map(
             (itemTypeSubset: SortableItemType[]) => ({
                 type: 'ACTION_ROW',
@@ -85,10 +99,7 @@ export function multiItemDisplayMessage(
                     (itemType: SortableItemType): MessageActionRowComponentResolvable => ({
                         type: 'BUTTON',
                         label: capitalize(itemType),
-                        customId: compressSortFilters(
-                            Object.assign(sortFilterParams, { itemType }),
-                            true
-                        ),
+                        customId: 'show-sort-results' + BUTTON_ID_ARG_SEPARATOR + itemType,
                         style: 'PRIMARY',
                     })
                 ),
@@ -98,34 +109,33 @@ export function multiItemDisplayMessage(
 }
 
 export default async function getSortedItemList(
-    embedCount: number,
     sortFilterParams: SortFilterParams
 ): Promise<Pick<MessageOptions, 'embeds' | 'components'>> {
-    if (!Number.isInteger(embedCount) || embedCount < 1 || embedCount > 10)
-        throw new RangeError('embedCount must be an integer between 1 and 10');
-
-    if (sortFilterParams.weaponElement)
+    if (sortFilterParams.weaponElement) {
         sortFilterParams.weaponElement = unaliasBonusName(sortFilterParams.weaponElement);
+    }
 
-    const pipeline = getSortQueryPipeline(embedCount > 1, sortFilterParams);
+    const pipeline = getSortQueryPipeline(sortFilterParams);
     const sortResults: AggregationCursor = (await itemCollection).aggregate(pipeline);
 
     let itemGroup: {
         customSortValue: number;
         items: { title: string; levels: string[]; tagSet: { tags: string[] }[] }[];
-    } | null;
+    } | null = null;
     let sortedList: string = '';
     let lastResult: string = '';
     let groupCount: number = 0;
+    let firstGroupValue: number | undefined;
+    let lastGroupValue: number | undefined;
 
     itemGroup = await sortResults.next();
+    firstGroupValue = itemGroup?.customSortValue;
 
     // Keep populating results until itemGroups have been exhausted, or
-    // if the number of read groups is less than or equal to 1 less than the short result limit
-    // when a short result (1 or 2 embeds) is desired
-    // We stop at 1 less than the short result limit to prevent the 'more results' button from
-    // being redundant for short results.
-    while (itemGroup !== null && !(embedCount <= 2 && groupCount >= SHORT_RESULT_LIMIT - 1)) {
+    // if the number of read groups is less than or equal to 1 less than the query result limit
+    // We stop at 1 less than the result limit to prevent the 'more results' button from
+    // being redundant
+    while (itemGroup !== null && groupCount < QUERY_RESULT_LIMIT - 1) {
         groupCount += 1;
 
         let items: {
@@ -136,33 +146,37 @@ export default async function getSortedItemList(
 
         // Format and concatenate items in the itemGroup
         const itemDisplayList: string[] = items.map((item) => {
-            let tags: string = item.tagSet
+            let possibleTags: string = item.tagSet
                 .map(({ tags }) => (tags.length ? tags.map(capitalize).join('+') : 'None'))
                 .join(' / ');
-            tags = tags === 'None' ? '' : `[${tags}]`;
-            return `\`${item.title}\` (lv. ${item.levels.join(', ')}) ${tags}`.trim();
+            possibleTags = possibleTags === 'None' ? '' : `[${possibleTags}]`;
+            return `\`${item.title}\` (lv. ${item.levels.join(', ')}) ${possibleTags}`.trim();
         });
 
         // Store the last formatted result
         const sign: string = itemGroup.customSortValue < 0 ? '' : '+';
-        lastResult = [
-            `**${sign}${itemGroup.customSortValue}**`,
-            `${itemDisplayList.join(', ')}\n\n`,
-        ].join(embedCount === 1 ? ' ' : '\n');
+        lastResult = `**${sign}${itemGroup.customSortValue}**\n ${itemDisplayList.join(', ')}\n\n`;
 
-        // Stop populating results if including lastResult will exceed the character limit
-        if (lastResult.length + sortedList.length > MAX_SPLIT_EMBED_DESC_LENGTH * embedCount) {
+        // Stop populating results if including lastResult will exceed the embed character limit
+        if (lastResult.length + sortedList.length > MAX_EMBED_DESC_LENGTH) {
             break;
         }
 
-        sortedList += lastResult;
+        if (sortFilterParams.prevPageValueLimit) sortedList = lastResult + sortedList;
+        else sortedList += lastResult;
 
+        lastGroupValue = itemGroup.customSortValue;
         itemGroup = await sortResults.next();
     }
+    if (lastGroupValue === undefined) lastGroupValue = itemGroup?.customSortValue;
 
-    // Handle case in which embedCount is 1, but the first itemGroup fetched exceeds the embed's character limit
+    if (sortFilterParams.prevPageValueLimit) {
+        [lastGroupValue, firstGroupValue] = [firstGroupValue, lastGroupValue];
+    }
+
+    // Handle case in which the first itemGroup fetched exceeds the embed's character limit
     // In this case, display as many items as possible and append ellipses '...'
-    if (!sortedList && embedCount === 1 && lastResult) {
+    if (!sortedList && lastResult) {
         const ellipses = ' **...**';
         const lastItemIndexBeforeLimit: number = lastResult
             .slice(0, MAX_EMBED_DESC_LENGTH - ellipses.length)
@@ -171,40 +185,43 @@ export default async function getSortedItemList(
             sortedList = lastResult.slice(0, lastItemIndexBeforeLimit) + ellipses;
     }
 
-    // Add a "more results" button to the message if:
-    // 1) sort results exist
-    // 2) embedCount is 5 or less
-    // 3) we haven't exhausted all itemGroups
-    const messageButtons: MessageActionRowOptions[] | undefined =
-        embedCount <= 5 && sortedList.length && itemGroup !== null
-            ? getButtonsForMoreResults(sortFilterParams)
-            : undefined;
+    const buttonRow: MessageActionRowOptions[] = getNextAndPrevPageButtons(
+        sortFilterParams.itemType,
+        // Add a previous page button to the message if any of the following are true:
+        // 1) The next page value limit parameter exists, implying that they clicked "next page" at least once
+        // 2) The previous page value limit exists (implying that the user clicked on "prev page" at least once),
+        //    and not all itemGroups were exhausted (can be checked by seeing if itemGroup is non null)
+        sortFilterParams.nextPageValueLimit !== undefined ||
+            (sortFilterParams.prevPageValueLimit !== undefined && !!itemGroup)
+            ? firstGroupValue
+            : undefined,
+        // Add a next page button to the message if the following are true:
+        // 1) The prev page value limit parameter exists, implying that they clicked "prev page" at least once
+        // 2) Both prev and next page value limits don't exist (implying that neither "prev page" nor "next page"
+        //    were clicked), and not all itemGroups were exhausted (itemGroup is not null)
+        // 3) The next page value limit exists (implying that the user clicked on "next page" at least once),
+        //    and not all itemGroups were exhausted (can be checked by seeing if itemGroup is non null)
+        sortFilterParams.prevPageValueLimit !== undefined ||
+            (sortFilterParams.prevPageValueLimit === undefined &&
+                sortFilterParams.nextPageValueLimit === undefined &&
+                !!itemGroup) ||
+            (sortFilterParams.nextPageValueLimit !== undefined && !!itemGroup)
+            ? lastGroupValue
+            : undefined
+    );
 
     sortedList = sortedList || 'No results were found';
 
-    // Split results into one or more embeds
-    const splitEmbed: SplitEmbed = new SplitEmbed(ITEM_LIST_DELIMITER, embedCount);
-    splitEmbed.addText(sortedList);
+    // Pretty print the input item type
+    const title: string = `Sort ${prettifyType(sortFilterParams.itemType)} by ${
+        sortFilterParams.sortExpression.pretty
+    }`;
 
-    // Pretty print the input item type and weapon name, if applicable
-    const prettifiedType: string = sortFilterParams.weaponElement
-        ? `${capitalize(sortFilterParams.weaponElement)} ${prettifyType(sortFilterParams.itemType)}`
-        : prettifyType(sortFilterParams.itemType);
-    const title: string = `Sort ${prettifiedType} by ${sortFilterParams.sortExpression.pretty}`;
-    splitEmbed.setTitle(title);
+    // Display filters used in the first embed
+    const filters: string = getFiltersUsedText(sortFilterParams);
 
-    // Get footer text for embed(s)
-    // If the results are limited to a single embed, only display sort order and level filters
-    // Otherwise, display everything
-    let footer: string =
-        embedCount === 1
-            ? getFiltersUsedText({
-                  ascending: sortFilterParams.ascending,
-                  minLevel: sortFilterParams.minLevel,
-                  maxLevel: sortFilterParams.maxLevel,
-              })
-            : getFiltersUsedText(sortFilterParams);
-    splitEmbed.setFooter(footer);
-
-    return { embeds: splitEmbed.embeds, components: messageButtons };
+    return {
+        embeds: [{ title, description: filters }, { description: sortedList }],
+        components: buttonRow,
+    };
 }

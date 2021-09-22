@@ -1,5 +1,5 @@
-import { Message, TextChannel, Util } from 'discord.js';
-import { allItemTypes, ItemTypes } from '../commonTypes/items';
+import { Message, MessageOptions, TextChannel, Util } from 'discord.js';
+import { allItemTypes, ItemTypes } from '../utils/itemTypeData';
 import config from '../config';
 import { ValidationError } from '../errors';
 import { ChatCommandData } from '../eventHandlerTypes';
@@ -127,9 +127,9 @@ const command: ChatCommandData = {
             weaponElement,
             maxLevel,
         };
-        const sortedItems = await getSortedItemList(1, sortFilters);
+        const sortedItems: MessageOptions = await getSortedItemList(sortFilters);
 
-        await channel.send({ embeds: sortedItems.embeds, components: sortedItems.components });
+        await channel.send(sortedItems);
     },
 };
 

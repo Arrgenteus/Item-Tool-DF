@@ -122,7 +122,7 @@ const command: SlashCommandData = {
         if (minLevel !== undefined) minLevel = Math.min(Math.max(minLevel, 0), 90);
         if (maxLevel !== undefined) maxLevel = Math.min(Math.max(maxLevel, 0), 90);
 
-        const sortedItems = await getSortedItemList(1, {
+        const sortedItems = await getSortedItemList({
             itemType: commandUsed as SortableItemType,
             sortExpression,
             weaponElement,
