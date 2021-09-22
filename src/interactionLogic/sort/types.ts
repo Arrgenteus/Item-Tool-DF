@@ -1,24 +1,18 @@
-import { ItemTypes } from '../../utils/itemTypeData';
+import { ItemTag, ItemTypes } from '../../utils/itemTypeData';
 
-export const QUERY_RESULT_LIMIT = 7;
-
-export enum SortSubCommand {
-    WEAPON = 'weapon',
-    CAPE = 'cape',
-    HELM = 'helm',
-    BELT = 'belt',
-    NECKLACE = 'necklace',
-    RING = 'ring',
-    TRINKET = 'trinket',
-    BRACER = 'bracer',
-}
-
-export enum SortCommandParams {
-    SORT_EXPRESSION = 'sort-expression',
+export const enum SortCommandParams {
+    SORT_EXPRESSION = 'sort-expr',
     MIN_LEVEL = 'min-level',
     MAX_LEVEL = 'max-level',
     WEAPON_ELEMENT = 'weapon-element',
-    ASCENDING = 'ascending-order',
+    ASCENDING = 'asc-order',
+    DA_TAG = 'da',
+    DC_TAG = 'dc',
+    DM_TAG = 'dm',
+    FREE_STORAGE_TAG = 'free-storage',
+    SEASONAL_TAG = 'seasonal',
+    RARE_TAG = 'rare',
+    SPECIAL_OFFER_TAG = 'special-offer',
 }
 
 export type SortableItemType = Exclude<ItemTypes, ItemTypes.ACCESSORY | ItemTypes.WINGS>;
@@ -46,6 +40,12 @@ export interface SortFilterParams {
     weaponElement?: string;
     minLevel?: number;
     maxLevel?: number;
+    excludeTags?: Set<ItemTag>;
     prevPageValueLimit?: number;
     nextPageValueLimit?: number;
+}
+
+export const enum SortItemTagFilterChoices {
+    INCLUDE = 1,
+    EXCLUDE,
 }
