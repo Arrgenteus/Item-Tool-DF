@@ -1,14 +1,15 @@
-import { ButtonInteraction, CommandInteraction } from 'discord.js';
+import { ButtonInteraction, CommandInteraction, SelectMenuInteraction } from 'discord.js';
 import config from '../config';
 import { ValidationError } from '../errors';
-import { ButtonInteractionData, ClientEventHandler } from '../eventHandlerTypes';
+import { ActionRowInteractionData, ClientEventHandler } from '../eventHandlerTypes';
 import buttonInteractionHandlers from '../handlerStorage/buttonInteractionHandlers';
+import selectMenuInteractionHandlers from '../handlerStorage/selectMenuInteractionHandlers';
 import slashCommands from '../handlerStorage/slashCommands';
-import { BUTTON_ID_ARG_SEPARATOR } from '../utils/constants';
+import { INTERACTION_ID_ARG_SEPARATOR } from '../utils/constants';
 
 async function interactionErrorHandler(
     err: Error,
-    interaction: CommandInteraction | ButtonInteraction,
+    interaction: CommandInteraction | ButtonInteraction | SelectMenuInteraction,
     preferEphemeralErrorMessage: boolean
 ) {
     let errMessage: {
@@ -61,15 +62,25 @@ async function slashCommandHandler(interaction: CommandInteraction): Promise<voi
     }
 }
 
-async function buttonInteractionHandler(interaction: ButtonInteraction): Promise<void> {
-    let separatorIndex: number = interaction.customId.indexOf(BUTTON_ID_ARG_SEPARATOR);
+async function actionRowInteractionHandler(
+    interaction: ButtonInteraction | SelectMenuInteraction
+): Promise<void> {
+    let separatorIndex: number = interaction.customId.indexOf(INTERACTION_ID_ARG_SEPARATOR);
     if (separatorIndex === -1) separatorIndex = interaction.customId.length;
     let handlerName: string = interaction.customId.slice(0, separatorIndex);
-    const handler: ButtonInteractionData | undefined = buttonInteractionHandlers.get(handlerName);
+
+    const handlers =
+        interaction instanceof ButtonInteraction
+            ? buttonInteractionHandlers
+            : selectMenuInteractionHandlers;
+    const handler: ActionRowInteractionData | undefined = handlers.get(handlerName);
     if (!handler) return;
 
     try {
-        await handler.run(interaction, handlerName);
+        const args: string[] = interaction.customId
+            .slice(separatorIndex + 1)
+            .split(INTERACTION_ID_ARG_SEPARATOR);
+        await handler.run(interaction, args, handlerName);
     } catch (err) {
         await interactionErrorHandler(
             err as Error,
@@ -83,7 +94,7 @@ const interactionEventHandler: ClientEventHandler = {
     eventName: 'interactionCreate',
     async run(interaction: CommandInteraction | ButtonInteraction): Promise<void> {
         if (interaction.isCommand()) await slashCommandHandler(interaction);
-        else if (interaction.isButton()) await buttonInteractionHandler(interaction);
+        else await actionRowInteractionHandler(interaction);
     },
 };
 

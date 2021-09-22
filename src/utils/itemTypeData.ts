@@ -11,7 +11,32 @@ export const enum ItemTypes {
     BRACER = 'bracer',
 }
 
-export const allItemTypes: Set<ItemTypes> = new Set([
+export const PRETTY_TAG_NAMES = {
+    da: 'DA',
+    dc: 'DC',
+    dm: 'DM',
+    fs: 'Free Storage',
+    rare: 'Rare',
+    so: 'Special Offer',
+    se: 'Seasonal',
+    temp: 'Temporary',
+    artifact: 'Artifact',
+    default: 'Default',
+    ak: 'ArchKnight',
+    alexander: 'Alexander',
+    cosmetic: 'Cosmetic',
+    guardian: 'Guardian',
+    none: 'Untagged',
+};
+
+export type ItemTag = keyof typeof PRETTY_TAG_NAMES;
+
+export const PRETTY_TO_BASE_TAG_NAME: { [key: string]: ItemTag } = {};
+for (const itemType in PRETTY_TAG_NAMES) {
+    PRETTY_TO_BASE_TAG_NAME[PRETTY_TAG_NAMES[itemType as ItemTag]] = itemType as ItemTag;
+}
+
+export const ALL_ITEM_TYPES: Set<ItemTypes> = new Set([
     ItemTypes.WEAPON,
     ItemTypes.ACCESSORY,
     ItemTypes.CAPE,
@@ -24,7 +49,7 @@ export const allItemTypes: Set<ItemTypes> = new Set([
     ItemTypes.BRACER,
 ]);
 
-export const WeaponTypes = {
+const WeaponTypes = {
     sword: 1,
     axe: 1,
     mace: 1,
@@ -36,7 +61,7 @@ export const WeaponTypes = {
 
 export type WeaponType = keyof typeof WeaponTypes;
 
-export const BonusTypes = {
+const BonusTypes = {
     block: 1,
     dodge: 1,
     parry: 1,
