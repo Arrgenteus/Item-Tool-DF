@@ -29,6 +29,7 @@ const itemCollection: Promise<MongoCollection> = dbConnection.then((db: Db) =>
 function getFiltersUsedText({
     ascending,
     weaponElement,
+    charID,
     minLevel,
     maxLevel,
 }: Partial<SortFilterParams>): string {
@@ -37,6 +38,9 @@ function getFiltersUsedText({
 
     const levelFilterText: string[] = [];
     if (ascending) filterText.push('**Order:** Ascending');
+    if (charID) {
+        levelFilterText.push(`**Char ID:** ${charID}`);
+    }
     if (minLevel !== undefined && minLevel !== 0) {
         levelFilterText.push(`**Min level:** ${minLevel}`);
     }
@@ -139,7 +143,7 @@ export default async function getSortedItemList(
         sortFilterParams.weaponElement = unaliasBonusName(sortFilterParams.weaponElement);
     }
 
-    const pipeline = getSortQueryPipeline(sortFilterParams);
+    const pipeline = await getSortQueryPipeline(sortFilterParams);
     const sortResults: AggregationCursor = (await itemCollection).aggregate(pipeline);
 
     let itemGroup: {
