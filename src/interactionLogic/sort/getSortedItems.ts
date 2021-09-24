@@ -13,13 +13,7 @@ import {
 } from 'discord.js';
 import { INTERACTION_ID_ARG_SEPARATOR, MAX_EMBED_DESC_LENGTH } from '../../utils/constants';
 import { ItemTag, PRETTY_TAG_NAMES } from '../../utils/itemTypeData';
-import {
-    ITEM_TAG_FILTER_OPTION_NAMES,
-    PRETTY_ITEM_TYPES,
-    QUERY_RESULT_LIMIT,
-    SORTABLE_TAGS,
-    SORT_ACTIONS,
-} from './constants';
+import { PRETTY_ITEM_TYPES, QUERY_RESULT_LIMIT, SORTABLE_TAGS, SORT_ACTIONS } from './constants';
 
 const ITEM_LIST_DELIMITER = ', `';
 const itemCollection: Promise<MongoCollection> = dbConnection.then((db: Db) =>
@@ -29,6 +23,7 @@ const itemCollection: Promise<MongoCollection> = dbConnection.then((db: Db) =>
 function getFiltersUsedText({
     ascending,
     weaponElement,
+    charID,
     minLevel,
     maxLevel,
 }: Partial<SortFilterParams>): string {
@@ -37,6 +32,11 @@ function getFiltersUsedText({
 
     const levelFilterText: string[] = [];
     if (ascending) filterText.push('**Order:** Ascending');
+    if (charID) {
+        levelFilterText.push(
+            `**Char ID:** [${charID}](https://account.dragonfable.com/CharPage?id=${charID})`
+        );
+    }
     if (minLevel !== undefined && minLevel !== 0) {
         levelFilterText.push(`**Min level:** ${minLevel}`);
     }
@@ -139,7 +139,7 @@ export default async function getSortedItemList(
         sortFilterParams.weaponElement = unaliasBonusName(sortFilterParams.weaponElement);
     }
 
-    const pipeline = getSortQueryPipeline(sortFilterParams);
+    const pipeline = await getSortQueryPipeline(sortFilterParams);
     const sortResults: AggregationCursor = (await itemCollection).aggregate(pipeline);
 
     let itemGroup: {
