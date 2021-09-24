@@ -41,7 +41,8 @@ export function getFiltersFromEmbed(
 
     const [, weaponElement]: RegExpMatchArray | [] =
         embedDesc.match(/\*\*Weapon Element:\*\* ([a-z0-9?]+)/i) || [];
-    const [, charID]: RegExpMatchArray | [] = embedDesc.match(/\*\*Char ID:\*\* ([0-9]+)/i) || [];
+    const [, charID]: RegExpMatchArray | [] =
+        embedDesc.match(/\*\*Char ID:\*\* \[([0-9]+)\]/i) || [];
     const [, minLevel]: RegExpMatchArray | [] =
         embedDesc.match(/\*\*Min Level:\*\* ([0-9]+)/i) || [];
     const [, maxLevel]: RegExpMatchArray | [] =
