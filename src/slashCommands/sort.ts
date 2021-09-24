@@ -26,6 +26,7 @@ const command: SlashCommandData = {
         const sortExpression: SortExpressionData = parseSortExpression(
             interaction.options.getString(SortCommandParams.SORT_EXPRESSION, true)
         );
+
         const weaponElement: string | undefined =
             interaction.options.getString(SortCommandParams.WEAPON_ELEMENT) ?? undefined;
         if (weaponElement && weaponElement.length > 20) {
@@ -33,6 +34,9 @@ const command: SlashCommandData = {
                 `Element name \`${weaponElement}\` is too long. It should be a maximum of 20 characters.`
             );
         }
+
+        const charID: string | undefined =
+            interaction.options.getString(SortCommandParams.CHAR_ID) ?? undefined;
 
         let minLevel: number | undefined =
             interaction.options.getInteger(SortCommandParams.MIN_LEVEL) ?? undefined;
@@ -52,6 +56,7 @@ const command: SlashCommandData = {
             weaponElement,
             minLevel,
             maxLevel,
+            charID,
             excludeTags,
             ascending: interaction.options.getBoolean(SortCommandParams.ASCENDING) === true,
         });

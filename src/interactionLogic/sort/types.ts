@@ -6,6 +6,7 @@ export const enum SortCommandParams {
     MAX_LEVEL = 'max-level',
     WEAPON_ELEMENT = 'weapon-element',
     ASCENDING = 'asc-order',
+    CHAR_ID = 'char-id',
     DA_TAG = 'da',
     DC_TAG = 'dc',
     DM_TAG = 'dm',
@@ -40,6 +41,7 @@ export interface SortFilterParams {
     weaponElement?: string;
     minLevel?: number;
     maxLevel?: number;
+    charID?: string;
     excludeTags?: Set<ItemTag>;
     prevPageValueLimit?: number;
     nextPageValueLimit?: number;
@@ -48,4 +50,9 @@ export interface SortFilterParams {
 export const enum SortItemTagFilterChoices {
     INCLUDE = 1,
     EXCLUDE,
+}
+
+export interface CharLevelAndItems {
+    level: number;
+    items: string[];
 }
