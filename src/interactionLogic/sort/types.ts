@@ -1,6 +1,7 @@
-import { ItemTag, ItemTypes } from '../../utils/itemTypeData';
+import { ItemTag, ItemType } from '../../utils/itemTypeData';
 
 export const enum SortCommandParams {
+    ITEM_TYPE = 'item-type',
     SORT_EXPRESSION = 'sort-expr',
     MIN_LEVEL = 'min-level',
     MAX_LEVEL = 'max-level',
@@ -10,13 +11,12 @@ export const enum SortCommandParams {
     DA_TAG = 'da',
     DC_TAG = 'dc',
     DM_TAG = 'dm',
-    FREE_STORAGE_TAG = 'free-storage',
     SEASONAL_TAG = 'seasonal',
     RARE_TAG = 'rare',
     SPECIAL_OFFER_TAG = 'special-offer',
 }
 
-export type SortableItemType = Exclude<ItemTypes, ItemTypes.ACCESSORY | ItemTypes.WINGS>;
+export type SortItemTypeOption = ItemType | 'items';
 
 export interface MongoSortExpression {
     [operator: string]: (number | string | boolean | MongoSortExpression)[];
@@ -29,13 +29,15 @@ export interface SortExpressionData {
     mongo: MongoSortExpression;
 }
 
+type DatabaseItemType = Omit<ItemType, 'capeOrWings'> | 'cape' | 'wings';
+
 export interface ItemTypeMongoFilter {
     category?: string;
-    type?: ItemTypes | { $in: ItemTypes[] };
+    type?: DatabaseItemType | { $in: DatabaseItemType[] };
 }
 
 export interface SortFilterParams {
-    itemType: SortableItemType;
+    itemType: ItemType;
     ascending?: boolean;
     sortExpression: SortExpressionData;
     weaponElement?: string;

@@ -1,9 +1,7 @@
-import { ButtonInteraction, Message, MessageOptions } from 'discord.js';
+import { ButtonInteraction, InteractionReplyOptions, Message } from 'discord.js';
 import { ActionRowInteractionData } from '../eventHandlerTypes';
 import { SORT_ACTIONS } from '../interactionLogic/sort/constants';
-import getSortedItemList from '../interactionLogic/sort/getSortedItems';
-import { getFiltersFromEmbed } from '../interactionLogic/sort/queryBuilder';
-import { SortFilterParams } from '../interactionLogic/sort/types';
+import { getSortResultsMessageUsingMessageFilters } from '../interactionLogic/sort/getSortedItemsResponse';
 import { ItemTag } from '../utils/itemTypeData';
 
 const buttonInteration: ActionRowInteractionData = {
@@ -16,23 +14,27 @@ const buttonInteration: ActionRowInteractionData = {
         handlerName: SORT_ACTIONS
     ): Promise<void> => {
         const [valueLimit, excludedTagList]: string[] = args;
-        const excludedTags: string[] = excludedTagList.split(',');
-        const usedFilters: SortFilterParams = getFiltersFromEmbed(
-            interaction.message.embeds[0].title!,
-            interaction.message.embeds[0].description ?? undefined,
-            excludedTags as ItemTag[]
-        );
-        if (handlerName === SORT_ACTIONS.NEXT_PAGE) {
-            usedFilters.nextPageValueLimit = Number(valueLimit);
-        } else {
-            usedFilters.prevPageValueLimit = Number(valueLimit);
-        }
+        const excludedTags: string[] | undefined = excludedTagList
+            ? excludedTagList.split(',')
+            : undefined;
+        const sortedItemResponse: InteractionReplyOptions =
+            await getSortResultsMessageUsingMessageFilters(
+                interaction.message.embeds[0].title!,
+                interaction.message.embeds[0].description ?? undefined,
+                excludedTags as ItemTag[],
+                undefined,
+                {
+                    [handlerName === SORT_ACTIONS.NEXT_PAGE
+                        ? 'nextPageValueLimit'
+                        : 'prevPageValueLimit']: Number(valueLimit),
+                }
+            );
 
-        const sortedItems: MessageOptions = await getSortedItemList(usedFilters);
         if (interaction.message instanceof Message && interaction.message.flags?.has('EPHEMERAL')) {
-            await interaction.update(sortedItems);
+            await interaction.update(sortedItemResponse);
         } else {
-            await interaction.reply({ ...sortedItems, ephemeral: true });
+            sortedItemResponse.ephemeral = true;
+            await interaction.reply(sortedItemResponse);
         }
     },
 };

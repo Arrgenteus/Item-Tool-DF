@@ -1,15 +1,12 @@
-export const enum ItemTypes {
-    WEAPON = 'weapon',
-    ACCESSORY = 'accessory',
-    CAPE = 'cape',
-    WINGS = 'wings',
-    HELM = 'helm',
-    BELT = 'belt',
-    NECKLACE = 'necklace',
-    RING = 'ring',
-    TRINKET = 'trinket',
-    BRACER = 'bracer',
-}
+export type ItemType =
+    | 'weapon'
+    | 'capeOrWings'
+    | 'helm'
+    | 'belt'
+    | 'necklace'
+    | 'ring'
+    | 'trinket'
+    | 'bracer';
 
 export const PRETTY_TAG_NAMES = {
     da: 'DA',
@@ -36,17 +33,15 @@ for (const itemType in PRETTY_TAG_NAMES) {
     PRETTY_TO_BASE_TAG_NAME[PRETTY_TAG_NAMES[itemType as ItemTag]] = itemType as ItemTag;
 }
 
-export const ALL_ITEM_TYPES: Set<ItemTypes> = new Set([
-    ItemTypes.WEAPON,
-    ItemTypes.ACCESSORY,
-    ItemTypes.CAPE,
-    ItemTypes.WINGS,
-    ItemTypes.HELM,
-    ItemTypes.BELT,
-    ItemTypes.RING,
-    ItemTypes.NECKLACE,
-    ItemTypes.TRINKET,
-    ItemTypes.BRACER,
+export const ALL_ITEM_TYPES: Set<ItemType> = new Set([
+    'weapon',
+    'capeOrWings',
+    'helm',
+    'belt',
+    'necklace',
+    'ring',
+    'trinket',
+    'bracer',
 ]);
 
 const WeaponTypes = {
