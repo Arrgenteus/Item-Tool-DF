@@ -3,12 +3,12 @@ import { ValidationError } from '../errors';
 import { SlashCommandData } from '../eventHandlerTypes';
 import { ITEM_TAG_FILTER_OPTION_NAMES } from '../interactionLogic/sort/constants';
 import { getSortCommandOptions } from '../interactionLogic/sort/getCommandOptions';
-import getSortedItemList from '../interactionLogic/sort/getSortedItems';
+import { getSortResultsMessage } from '../interactionLogic/sort/getSortedItemsResponse';
 import { parseSortExpression } from '../interactionLogic/sort/sortExpressionParser';
 import {
-    SortableItemType,
     SortCommandParams,
     SortExpressionData,
+    SortItemTypeOption,
 } from '../interactionLogic/sort/types';
 import { ItemTag } from '../utils/itemTypeData';
 
@@ -21,8 +21,6 @@ const command: SlashCommandData = {
     },
 
     run: async (interaction: CommandInteraction) => {
-        const commandUsed: string = interaction.options.getSubcommand(true);
-
         const sortExpression: SortExpressionData = parseSortExpression(
             interaction.options.getString(SortCommandParams.SORT_EXPRESSION, true)
         );
@@ -37,7 +35,6 @@ const command: SlashCommandData = {
 
         const charID: string | undefined =
             interaction.options.getString(SortCommandParams.CHAR_ID) ?? undefined;
-
         let minLevel: number | undefined =
             interaction.options.getInteger(SortCommandParams.MIN_LEVEL) ?? undefined;
         let maxLevel: number | undefined =
@@ -50,8 +47,12 @@ const command: SlashCommandData = {
             if (interaction.options.getBoolean(optionName) === false) excludeTags.add(tag);
         }
 
-        const sortedItems = await getSortedItemList({
-            itemType: commandUsed as SortableItemType,
+        const itemTypeInput: SortItemTypeOption = interaction.options.getString(
+            SortCommandParams.ITEM_TYPE,
+            true
+        ) as SortItemTypeOption;
+
+        const filters = {
             sortExpression,
             weaponElement,
             minLevel,
@@ -59,9 +60,11 @@ const command: SlashCommandData = {
             charID,
             excludeTags,
             ascending: interaction.options.getBoolean(SortCommandParams.ASCENDING) === true,
-        });
+        };
 
-        await interaction.reply(sortedItems);
+        const sortedItemMessage = await getSortResultsMessage(itemTypeInput, filters);
+
+        await interaction.reply(sortedItemMessage);
     },
 };
 

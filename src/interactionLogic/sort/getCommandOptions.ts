@@ -1,11 +1,11 @@
 import {
-    ApplicationCommandChoicesData,
     ApplicationCommandNonOptionsData,
+    ApplicationCommandOptionChoice,
     ApplicationCommandOptionData,
 } from 'discord.js';
-import { ItemTag, ItemTypes, PRETTY_TAG_NAMES } from '../../utils/itemTypeData';
-import { ITEM_TAG_FILTER_OPTION_NAMES } from './constants';
-import { SortableItemType, SortCommandParams } from './types';
+import { ItemTag, PRETTY_TAG_NAMES } from '../../utils/itemTypeData';
+import { ITEM_TAG_FILTER_OPTION_NAMES, PRETTY_ITEM_TYPES } from './constants';
+import { SortCommandParams, SortItemTypeOption } from './types';
 
 function getItemTagFilterOptions(): ApplicationCommandNonOptionsData[] {
     return ITEM_TAG_FILTER_OPTION_NAMES.map(
@@ -17,77 +17,75 @@ function getItemTagFilterOptions(): ApplicationCommandNonOptionsData[] {
             tag: ItemTag;
         }): ApplicationCommandNonOptionsData => ({
             type: 'BOOLEAN',
-            description: `Include ${
-                tag === 'none' ? 'untagged items' : PRETTY_TAG_NAMES[tag] + ' tag'
-            } in results?`,
+            description: `Whether to include ${
+                tag === 'none' ? 'untagged items' : ' items with ' + PRETTY_TAG_NAMES[tag] + ' tag'
+            } in results`,
             name: optionName,
         })
     );
 }
 
-function getSubCommandOptions(itemType: SortableItemType): ApplicationCommandOptionData {
-    let formattedName: string;
-    if (itemType === ItemTypes.CAPE) formattedName = 'capes/wings';
-    else formattedName = itemType + 's';
-
-    return {
-        type: 'SUB_COMMAND',
-        name: itemType,
-        description: `Sort ${formattedName} by criteria`,
-        options: [
-            {
-                type: 'STRING',
-                name: SortCommandParams.SORT_EXPRESSION,
-                required: true,
-                description: `Eg. "${
-                    itemType === ItemTypes.WEAPON ? 'Damage' : 'Ice'
-                }", "All + Health", "INT - (DEX + STR)", etc. Can only contain + or - operators`,
-            },
-            ...((itemType === ItemTypes.WEAPON
-                ? [
-                      {
-                          type: 'STRING',
-                          name: SortCommandParams.WEAPON_ELEMENT,
-                          description: 'Specific weapon element',
-                      },
-                  ]
-                : []) as ApplicationCommandChoicesData[]),
-            {
-                type: 'INTEGER',
-                name: SortCommandParams.MAX_LEVEL,
-                description: `Max level to be shown`,
-            },
-            {
-                type: 'INTEGER',
-                name: SortCommandParams.MIN_LEVEL,
-                description: `Min level to be shown`,
-            },
-            {
-                type: 'BOOLEAN',
-                name: SortCommandParams.ASCENDING,
-                description: 'Show results in ascending order',
-            },
-            {
-                type: 'STRING',
-                name: 'char-id',
-                description: "Filter by a character's inventory",
-            },
-            ...getItemTagFilterOptions(),
-        ],
-    };
-}
-
-export function getSortCommandOptions() {
-    const itemTypeSubCommandNames: SortableItemType[] = [
-        ItemTypes.BELT,
-        ItemTypes.BRACER,
-        ItemTypes.CAPE,
-        ItemTypes.HELM,
-        ItemTypes.NECKLACE,
-        ItemTypes.RING,
-        ItemTypes.TRINKET,
-        ItemTypes.WEAPON,
+export function getSortCommandOptions(): ApplicationCommandOptionData[] {
+    const itemTypeChoiceValues: SortItemTypeOption[] = [
+        'items',
+        'belt',
+        'bracer',
+        'capeOrWings',
+        'helm',
+        'necklace',
+        'ring',
+        'trinket',
+        'weapon',
     ];
 
-    return itemTypeSubCommandNames.sort().map(getSubCommandOptions);
+    const itemTypeChoiceList: ApplicationCommandOptionChoice[] = itemTypeChoiceValues.map(
+        (itemTypeChoice: SortItemTypeOption): ApplicationCommandOptionChoice => ({
+            name: itemTypeChoice === 'items' ? 'All Items' : PRETTY_ITEM_TYPES[itemTypeChoice],
+            value: itemTypeChoice,
+        })
+    );
+
+    return [
+        {
+            type: 'STRING',
+            name: SortCommandParams.ITEM_TYPE,
+            required: true,
+            description: 'The type of item to sort',
+            choices: itemTypeChoiceList,
+        },
+        {
+            type: 'STRING',
+            name: SortCommandParams.SORT_EXPRESSION,
+            required: true,
+            description: `Eg. "Ice", "Damage", "All + Health", "INT - (DEX + STR)", etc. Can only contain + or - operators`,
+        },
+        {
+            type: 'STRING',
+            name: SortCommandParams.WEAPON_ELEMENT,
+            description:
+                "Filter by weapon element. Only applicable if the selected item type is 'Weapon'",
+        },
+        {
+            type: 'INTEGER',
+            name: SortCommandParams.MAX_LEVEL,
+            description: `Maximum level of items to be shown in results`,
+        },
+        {
+            type: 'INTEGER',
+            name: SortCommandParams.MIN_LEVEL,
+            description: `Minimum level of items to be shown in results`,
+        },
+        {
+            type: 'BOOLEAN',
+            name: SortCommandParams.ASCENDING,
+            description:
+                'Whether to results should be shown in ascending order instead of descending order',
+        },
+        {
+            type: 'STRING',
+            name: 'char-id',
+            description: "Only show items that are in a character's inventory",
+        },
+        ...getItemTagFilterOptions(),
+    ];
 }

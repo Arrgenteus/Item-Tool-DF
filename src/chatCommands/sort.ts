@@ -1,18 +1,12 @@
 import { Message, MessageOptions, TextChannel, Util } from 'discord.js';
-import { ALL_ITEM_TYPES, ItemTypes } from '../utils/itemTypeData';
+import { ALL_ITEM_TYPES, ItemType } from '../utils/itemTypeData';
 import config from '../config';
 import { ValidationError } from '../errors';
 import { ChatCommandData } from '../eventHandlerTypes';
-import getSortedItemList, {
-    multiItemDisplayMessage,
-} from '../interactionLogic/sort/getSortedItems';
 import { parseSortExpression } from '../interactionLogic/sort/sortExpressionParser';
-import {
-    SortableItemType,
-    SortExpressionData,
-    SortFilterParams,
-} from '../interactionLogic/sort/types';
+import { SortExpressionData } from '../interactionLogic/sort/types';
 import { embed } from '../utils/misc';
+import { getSortResultsMessage } from '../interactionLogic/sort/getSortedItemsResponse';
 
 const CC: string = config.COMMAND_CHAR;
 
@@ -47,7 +41,7 @@ const command: ChatCommandData = {
             return;
         }
 
-        if (maxLevelInput && maxLevelInput.match(/[^0-9]/)) {
+        if (maxLevelInput && maxLevelInput.match(/[^\d]/)) {
             throw new ValidationError(
                 `The max level should be an integer between 0 and 90 inclusive.`
             );
@@ -76,37 +70,25 @@ const command: ChatCommandData = {
                 'That element name is too long. It should be 10 characters or less'
             );
 
-        let itemType: SortableItemType;
+        let itemType: ItemType;
         let sortExpression: SortExpressionData;
-        if (inputItemType === 'wep') itemType = ItemTypes.WEAPON;
+        if (inputItemType === 'wep') itemType = 'weapon';
         // "accessorie" because the trailing s would have been removed
-        else if (inputItemType === 'helmet') itemType = ItemTypes.HELM;
-        else if (inputItemType === 'wing') itemType = ItemTypes.CAPE;
+        else if (inputItemType === 'helmet') itemType = 'helm';
+        else if (inputItemType in { wing: 1, cape: 1 }) itemType = 'capeOrWings';
         else if (
             ['accessory', 'accessorie', 'acc', 'item', 'all', 'all items'].includes(inputItemType)
         ) {
             sortExpression = parseSortExpression(inputSortExp);
-            const itemTypes: SortableItemType[] = [
-                ItemTypes.WEAPON,
-                ItemTypes.HELM,
-                ItemTypes.CAPE,
-                ItemTypes.BELT,
-                ItemTypes.NECKLACE,
-                ItemTypes.RING,
-                ItemTypes.TRINKET,
-                ItemTypes.BRACER,
-            ];
-            if (['acc', 'accessorie', 'accessory'].includes(inputItemType)) itemTypes.shift();
-            await channel.send(
-                multiItemDisplayMessage(itemTypes, {
-                    ascending: commandName === 'sortasc',
-                    sortExpression,
-                    weaponElement,
-                    maxLevel,
-                })
-            );
+            const results = await getSortResultsMessage('items', {
+                ascending: commandName === 'sortasc',
+                sortExpression,
+                weaponElement,
+                maxLevel,
+            });
+            await channel.send(results);
             return;
-        } else if (!ALL_ITEM_TYPES.has(inputItemType as ItemTypes)) {
+        } else if (!ALL_ITEM_TYPES.has(inputItemType as ItemType)) {
             throw new ValidationError(
                 `"${Util.escapeMarkdown(
                     unmodifiedItemTypeInput
@@ -115,19 +97,17 @@ const command: ChatCommandData = {
                 )}_. ` + '"acc" and "wep" are valid abbreviations for accessories and weapons.'
             );
         } else {
-            itemType = inputItemType as SortableItemType;
+            itemType = inputItemType as ItemType;
         }
 
         sortExpression = parseSortExpression(inputSortExp);
 
-        const sortFilters: SortFilterParams = {
+        const sortedItems: MessageOptions = await getSortResultsMessage(itemType, {
             ascending: commandName === 'sortasc',
-            itemType,
             sortExpression,
             weaponElement,
             maxLevel,
-        };
-        const sortedItems: MessageOptions = await getSortedItemList(sortFilters);
+        });
 
         await channel.send(sortedItems);
     },
