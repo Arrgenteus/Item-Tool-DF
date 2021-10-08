@@ -1,63 +1,15 @@
-import { ItemTag, ItemTypes } from '../../utils/itemTypeData';
+import { ItemTag, ItemType } from '../../utils/itemTypeData';
 import { getCharLevelAndItems } from './characterInventory';
-import { PRETTY_TO_BASE_ITEM_TYPE, QUERY_RESULT_LIMIT } from './constants';
-import { parseSortExpression } from './sortExpressionParser';
-import {
-    CharLevelAndItems,
-    ItemTypeMongoFilter,
-    SortableItemType,
-    SortExpressionData,
-    SortFilterParams,
-} from './types';
+import { QUERY_RESULT_LIMIT } from './constants';
+import { CharLevelAndItems, ItemTypeMongoFilter, SortFilterParams } from './types';
 
-function getItemTypeFilter(itemType: SortableItemType): ItemTypeMongoFilter {
-    if (itemType === ItemTypes.WEAPON) return { category: 'weapon' };
-    if (itemType === ItemTypes.CAPE)
-        return { category: 'accessory', type: { $in: [ItemTypes.CAPE, ItemTypes.WINGS] } };
+function getItemTypeFilter(itemType: ItemType): ItemTypeMongoFilter {
+    if (itemType === 'weapon') return { category: 'weapon' };
+    if (itemType === 'capeOrWings')
+        return { category: 'accessory', type: { $in: ['cape', 'wings'] } };
     return {
         category: 'accessory',
         type: itemType,
-    };
-}
-
-export function getFiltersFromEmbed(
-    embedTitle: string,
-    embedDesc: string | undefined,
-    selectedTagsToExclude?: ItemTag[],
-    itemType?: SortableItemType
-): SortFilterParams {
-    const sortExpressionMatch: RegExpMatchArray = embedTitle.match(
-        /^Sort ([a-zA-Z/]+?) by (.+)$/i
-    )!;
-    if (!itemType) itemType = PRETTY_TO_BASE_ITEM_TYPE[sortExpressionMatch[1]];
-    const sortExpressionInput: string = sortExpressionMatch[2];
-    const sortExpression: SortExpressionData = parseSortExpression(sortExpressionInput);
-    let excludeTags: Set<ItemTag> | undefined;
-    if (selectedTagsToExclude) {
-        excludeTags = new Set(selectedTagsToExclude as ItemTag[]);
-    }
-
-    if (!embedDesc) return { sortExpression, itemType, excludeTags };
-
-    const [, weaponElement]: RegExpMatchArray | [] =
-        embedDesc.match(/\*\*Weapon Element:\*\* ([a-z0-9?]+)/i) || [];
-    const [, charID]: RegExpMatchArray | [] =
-        embedDesc.match(/\*\*Char ID:\*\* \[([0-9]+)\]/i) || [];
-    const [, minLevel]: RegExpMatchArray | [] =
-        embedDesc.match(/\*\*Min Level:\*\* ([0-9]+)/i) || [];
-    const [, maxLevel]: RegExpMatchArray | [] =
-        embedDesc.match(/\*\*Max Level:\*\* ([0-9]+)/i) || [];
-    const ascending: boolean = !!embedDesc.match(/\*\*Order:\*\* Ascending/);
-
-    return {
-        sortExpression,
-        itemType,
-        excludeTags,
-        weaponElement: weaponElement ? weaponElement.toLowerCase() : undefined,
-        charID,
-        minLevel: minLevel !== undefined ? Number(minLevel) : undefined,
-        maxLevel: maxLevel !== undefined ? Number(maxLevel) : undefined,
-        ascending,
     };
 }
 

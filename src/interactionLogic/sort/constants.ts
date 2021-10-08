@@ -1,5 +1,5 @@
-import { ItemTag } from '../../utils/itemTypeData';
-import { SortableItemType, SortCommandParams } from './types';
+import { ItemTag, ItemType } from '../../utils/itemTypeData';
+import { SortCommandParams } from './types';
 
 export const QUERY_RESULT_LIMIT = 7;
 
@@ -35,10 +35,10 @@ export const SORTABLE_TAGS: ItemTag[] = [
     'none',
 ];
 
-export const PRETTY_ITEM_TYPES: { [key in SortableItemType]: string } = {
+export const PRETTY_ITEM_TYPES: { [key in ItemType]: string } = {
     weapon: 'Weapons',
     belt: 'Belts',
-    cape: 'Capes/Wings',
+    capeOrWings: 'Capes/Wings',
     ring: 'Rings',
     necklace: 'Necklaces',
     helm: 'Helms',
@@ -46,8 +46,7 @@ export const PRETTY_ITEM_TYPES: { [key in SortableItemType]: string } = {
     trinket: 'Trinkets',
 };
 
-export const PRETTY_TO_BASE_ITEM_TYPE: { [key: string]: SortableItemType } = {};
+export const PRETTY_TO_BASE_ITEM_TYPE: { [key: string]: ItemType } = {};
 for (const itemType in PRETTY_ITEM_TYPES) {
-    PRETTY_TO_BASE_ITEM_TYPE[PRETTY_ITEM_TYPES[itemType as SortableItemType]] =
-        itemType as SortableItemType;
+    PRETTY_TO_BASE_ITEM_TYPE[PRETTY_ITEM_TYPES[itemType as ItemType]] = itemType as ItemType;
 }
