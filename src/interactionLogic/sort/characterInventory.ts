@@ -15,10 +15,6 @@ export async function getCharPage(
     retries: number = 3,
     requestResent: boolean = false
 ): Promise<string> {
-    if (!charID.match(/^[0-9]{2,12}$/)) {
-        throw new ValidationError('Character IDs must be between 2 and 12 digits long.');
-    }
-
     try {
         return await got('https://account.dragonfable.com/CharPage?id=' + charID, {
             timeout: { request: FETCH_TIMEOUT },
@@ -45,6 +41,9 @@ export async function getCharLevelAndItems(
     if (charLevelAndItems.has(charID)) {
         return charLevelAndItems.get(charID)!;
     }
+    if (!charID.match(/^[\d]{2,12}$/)) {
+        throw new ValidationError('Character IDs must be between 2 and 12 digits long.');
+    }
 
     const body: string = await getCharPage(charID);
     const $: CheerioAPI = cheerio.load(body);
@@ -52,7 +51,7 @@ export async function getCharLevelAndItems(
     const playerInfoSection = $('.card:nth-child(1) .card-body');
     const levelMatch: RegExpMatchArray | null = playerInfoSection
         .text()
-        .match(/Level: ([0-9]{1,2})\n/);
+        .match(/Level: ([\d]{1,2})\n/);
 
     if (!levelMatch) {
         throw new ValidationError(`Character ID \`${charID}\` was not found.`);
@@ -65,7 +64,7 @@ export async function getCharLevelAndItems(
         .split('\n')
         .map((itemName: string) => itemName.trim())
         // Filter out stackable items
-        .filter((item: string) => !!item && !item.match(/\(x[0-9]+\)$/));
+        .filter((item: string) => !!item && !item.match(/\(x[\d]+\)$/));
 
     const levelAndItems: CharLevelAndItems = { level, items };
     charLevelAndItems.set(charID, levelAndItems);

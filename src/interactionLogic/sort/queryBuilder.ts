@@ -1,13 +1,7 @@
 import { ItemTag, ItemType } from '../../utils/itemTypeData';
 import { getCharLevelAndItems } from './characterInventory';
-import { PRETTY_TO_BASE_ITEM_TYPE, QUERY_RESULT_LIMIT } from './constants';
-import { parseSortExpression } from './sortExpressionParser';
-import {
-    CharLevelAndItems,
-    ItemTypeMongoFilter,
-    SortExpressionData,
-    SortFilterParams,
-} from './types';
+import { QUERY_RESULT_LIMIT } from './constants';
+import { CharLevelAndItems, ItemTypeMongoFilter, SortFilterParams } from './types';
 
 function getItemTypeFilter(itemType: ItemType): ItemTypeMongoFilter {
     if (itemType === 'weapon') return { category: 'weapon' };

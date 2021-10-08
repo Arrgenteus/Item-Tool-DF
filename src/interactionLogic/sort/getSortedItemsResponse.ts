@@ -20,6 +20,7 @@ import {
     SORTABLE_TAGS,
     SORT_ACTIONS,
 } from './constants';
+import { ValidationError } from '../../errors';
 
 const ITEM_LIST_DELIMITER = ', `';
 const itemCollection: Promise<MongoCollection> = dbConnection.then((db: Db) =>
@@ -273,6 +274,15 @@ export async function getSortResultsMessage(
     itemTypeOption: SortItemTypeOption,
     sortFilterParams: Omit<SortFilterParams, 'itemType'>
 ): Promise<Pick<MessageOptions, 'embeds' | 'components'>> {
+    if (sortFilterParams.weaponElement?.match(/^[a-z]/i)) {
+        throw new ValidationError(
+            'The weapon element name cannot include non-alphabetical characters.'
+        );
+    }
+    if (!sortFilterParams.charID?.match(/^[\d]{2,12}$/)) {
+        throw new ValidationError('Character IDs must be between 2 and 12 digits long.');
+    }
+
     if (itemTypeOption === 'items') {
         return getAllItemDisplayMessage(sortFilterParams);
     }
@@ -326,6 +336,5 @@ export async function getSortResultsMessageUsingMessageFilters(
         sortFilterParams.ascending = ascending;
     }
 
-    if (itemType === 'items') return getAllItemDisplayMessage(sortFilterParams);
-    return getSortedItemListMessage({ ...sortFilterParams, itemType });
+    return getSortResultsMessage(itemType, sortFilterParams);
 }
