@@ -9,7 +9,9 @@ const buttonInteration: ActionRowInteractionData = {
     preferEphemeralErrorMessage: true,
     run: async (interaction: ButtonInteraction, args: string[]): Promise<void> => {
         const [itemType, excludedTagList]: string[] = args;
-        const excludedTags: string[] = excludedTagList.split(',');
+        const excludedTags: string[] | undefined = excludedTagList
+            ? excludedTagList.split(',')
+            : undefined;
         const sortedItemResponse: InteractionReplyOptions =
             await getSortResultsMessageUsingMessageFilters(
                 interaction.message.embeds[0].title!,

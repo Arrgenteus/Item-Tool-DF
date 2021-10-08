@@ -14,7 +14,9 @@ const buttonInteration: ActionRowInteractionData = {
         handlerName: SORT_ACTIONS
     ): Promise<void> => {
         const [valueLimit, excludedTagList]: string[] = args;
-        const excludedTags: string[] = excludedTagList.split(',');
+        const excludedTags: string[] | undefined = excludedTagList
+            ? excludedTagList.split(',')
+            : undefined;
         const sortedItemResponse: InteractionReplyOptions =
             await getSortResultsMessageUsingMessageFilters(
                 interaction.message.embeds[0].title!,

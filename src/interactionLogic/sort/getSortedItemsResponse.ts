@@ -307,8 +307,11 @@ export async function getSortResultsMessageUsingMessageFilters(
     };
 
     if (embedDesc) {
-        const [, weaponElement]: RegExpMatchArray | [] =
-            embedDesc.match(/\*\*Weapon Element:\*\* ([a-z0-9?]+)/i) || [];
+        if (itemType === 'weapon') {
+            const [, weaponElement]: RegExpMatchArray | [] =
+                embedDesc.match(/\*\*Weapon Element:\*\* ([a-z0-9?]+)/i) || [];
+            sortFilterParams.weaponElement = weaponElement?.toLowerCase();
+        }
         const [, charID]: RegExpMatchArray | [] =
             embedDesc.match(/\*\*Char ID:\*\* \[(\d+)\]/i) || [];
         const [, minLevel]: RegExpMatchArray | [] =
@@ -317,7 +320,6 @@ export async function getSortResultsMessageUsingMessageFilters(
             embedDesc.match(/\*\*Max Level:\*\* (\d+)/i) || [];
         const ascending: boolean = !!embedDesc.match(/\*\*Order:\*\* Ascending/);
 
-        sortFilterParams.weaponElement = weaponElement;
         sortFilterParams.charID = charID;
         sortFilterParams.minLevel = minLevel !== undefined ? Number(minLevel) : undefined;
         sortFilterParams.maxLevel = maxLevel !== undefined ? Number(maxLevel) : undefined;

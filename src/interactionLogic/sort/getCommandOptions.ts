@@ -40,7 +40,7 @@ export function getSortCommandOptions(): ApplicationCommandOptionData[] {
 
     const itemTypeChoiceList: ApplicationCommandOptionChoice[] = itemTypeChoiceValues.map(
         (itemTypeChoice: SortItemTypeOption): ApplicationCommandOptionChoice => ({
-            name: itemTypeChoice === 'items' ? 'Items' : PRETTY_ITEM_TYPES[itemTypeChoice],
+            name: itemTypeChoice === 'items' ? 'All Items' : PRETTY_ITEM_TYPES[itemTypeChoice],
             value: itemTypeChoice,
         })
     );
