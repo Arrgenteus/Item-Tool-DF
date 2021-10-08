@@ -3,8 +3,8 @@ import config from '../../config';
 import { dbConnection } from '../../dbConnection';
 import { capitalize } from '../../utils/misc';
 import { getSortQueryPipeline } from './queryBuilder';
-import { SortableItemType, SortFilterParams } from './types';
-import { unaliasBonusName } from './sortExpressionParser';
+import { SortExpressionData, SortFilterParams, SortItemTypeOption } from './types';
+import { parseSortExpression, unaliasBonusName } from './sortExpressionParser';
 import {
     MessageActionRowComponentResolvable,
     MessageActionRowOptions,
@@ -12,8 +12,14 @@ import {
     MessageSelectOptionData,
 } from 'discord.js';
 import { INTERACTION_ID_ARG_SEPARATOR, MAX_EMBED_DESC_LENGTH } from '../../utils/constants';
-import { ItemTag, PRETTY_TAG_NAMES } from '../../utils/itemTypeData';
-import { PRETTY_ITEM_TYPES, QUERY_RESULT_LIMIT, SORTABLE_TAGS, SORT_ACTIONS } from './constants';
+import { ItemTag, ItemType, PRETTY_TAG_NAMES } from '../../utils/itemTypeData';
+import {
+    PRETTY_ITEM_TYPES,
+    PRETTY_TO_BASE_ITEM_TYPE,
+    QUERY_RESULT_LIMIT,
+    SORTABLE_TAGS,
+    SORT_ACTIONS,
+} from './constants';
 
 const ITEM_LIST_DELIMITER = ', `';
 const itemCollection: Promise<MongoCollection> = dbConnection.then((db: Db) =>
@@ -49,9 +55,9 @@ function getFiltersUsedText({
 }
 
 function getNavigationComponents(
+    excludeTags?: Set<ItemTag>,
     prevPageValueLimit?: number | undefined,
-    nextPageValueLimit?: number | undefined,
-    excludeTags?: Set<ItemTag>
+    nextPageValueLimit?: number | undefined
 ): MessageActionRowOptions[] {
     const excludeTagsList: string = (excludeTags ? [...excludeTags] : []).join(',');
     const selectMenuComponent: MessageActionRowComponentResolvable[] = [
@@ -101,8 +107,32 @@ function getNavigationComponents(
     ];
 }
 
-export function multiItemDisplayMessage(
-    itemTypes: SortableItemType[],
+function itemButtonList(excludeTags?: Set<ItemTag>): MessageActionRowOptions[] {
+    const excludeTagsList: string = (excludeTags ? [...excludeTags] : []).join(',');
+
+    // Display item types after the 5th in a separate action row, since a single action row can only contain 5 buttons
+    const itemTypeList: ItemType[][] = [
+        ['belt', 'bracer', 'capeOrWings', 'helm', 'necklace'],
+        ['ring', 'trinket', 'weapon'],
+    ];
+    return itemTypeList.map(
+        (itemTypeSubset: ItemType[]): MessageActionRowOptions => ({
+            type: 'ACTION_ROW',
+            components: itemTypeSubset.map(
+                (itemType: ItemType): MessageActionRowComponentResolvable => ({
+                    type: 'BUTTON',
+                    label: PRETTY_ITEM_TYPES[itemType],
+                    customId: [SORT_ACTIONS.SHOW_RESULTS, itemType, excludeTagsList].join(
+                        INTERACTION_ID_ARG_SEPARATOR
+                    ),
+                    style: 'PRIMARY',
+                })
+            ),
+        })
+    );
+}
+
+function getAllItemDisplayMessage(
     sortFilterParams: Omit<SortFilterParams, 'itemType'>
 ): Pick<MessageOptions, 'embeds' | 'components'> {
     return {
@@ -115,24 +145,13 @@ export function multiItemDisplayMessage(
             },
         ],
 
-        // Display item types after the 5th in a separate action row, since a single action row can only contain 5 buttons
-        components: [itemTypes.slice(0, 5), itemTypes.slice(5)].map(
-            (itemTypeSubset: SortableItemType[]) => ({
-                type: 'ACTION_ROW',
-                components: itemTypeSubset.map(
-                    (itemType: SortableItemType): MessageActionRowComponentResolvable => ({
-                        type: 'BUTTON',
-                        label: capitalize(itemType),
-                        customId: 'show-sort-results' + INTERACTION_ID_ARG_SEPARATOR + itemType,
-                        style: 'PRIMARY',
-                    })
-                ),
-            })
+        components: getNavigationComponents(sortFilterParams.excludeTags).concat(
+            itemButtonList(sortFilterParams.excludeTags)
         ),
     };
 }
 
-export default async function getSortedItemList(
+export async function getSortedItemListMessage(
     sortFilterParams: SortFilterParams
 ): Promise<Pick<MessageOptions, 'embeds' | 'components'>> {
     if (sortFilterParams.weaponElement) {
@@ -210,6 +229,7 @@ export default async function getSortedItemList(
     }
 
     const buttonRow: MessageActionRowOptions[] = getNavigationComponents(
+        sortFilterParams.excludeTags,
         // Add a previous page button to the message if any of the following are true:
         // 1) The next page value limit parameter exists, implying that they clicked "next page" at least once
         // 2) The previous page value limit exists (implying that the user clicked on "prev page" at least once),
@@ -230,8 +250,7 @@ export default async function getSortedItemList(
                 !!itemGroup) ||
             (sortFilterParams.nextPageValueLimit !== undefined && !!itemGroup)
             ? lastGroupValue
-            : undefined,
-        sortFilterParams.excludeTags
+            : undefined
     );
 
     sortedList = sortedList || 'No results were found';
@@ -248,4 +267,63 @@ export default async function getSortedItemList(
         embeds: [{ title, description: filters }, { description: sortedList }],
         components: buttonRow,
     };
+}
+
+export async function getSortResultsMessage(
+    itemTypeOption: SortItemTypeOption,
+    sortFilterParams: Omit<SortFilterParams, 'itemType'>
+): Promise<Pick<MessageOptions, 'embeds' | 'components'>> {
+    if (itemTypeOption === 'items') {
+        return getAllItemDisplayMessage(sortFilterParams);
+    }
+
+    return getSortedItemListMessage({ ...sortFilterParams, itemType: itemTypeOption });
+}
+
+export async function getSortResultsMessageUsingMessageFilters(
+    embedTitle: string,
+    embedDesc: string | undefined,
+    selectedTagsToExclude?: ItemTag[],
+    itemType?: SortItemTypeOption,
+    valueLimit?:
+        | Pick<SortFilterParams, 'nextPageValueLimit'>
+        | Pick<SortFilterParams, 'prevPageValueLimit'>
+): Promise<Pick<MessageOptions, 'embeds' | 'components'>> {
+    const sortExpressionMatch: RegExpMatchArray = embedTitle.match(/^Sort ([a-z/]+?) by (.+)$/i)!;
+    const itemTypeMatch: string = sortExpressionMatch[1];
+    if (!itemType) itemType = PRETTY_TO_BASE_ITEM_TYPE[itemTypeMatch] || 'items';
+
+    const sortExpressionInput: string = sortExpressionMatch[2];
+    const sortExpression: SortExpressionData = parseSortExpression(sortExpressionInput);
+    let excludeTags: Set<ItemTag> | undefined;
+    if (selectedTagsToExclude) {
+        excludeTags = new Set(selectedTagsToExclude);
+    }
+
+    const sortFilterParams: Omit<SortFilterParams, 'itemType'> = {
+        sortExpression,
+        excludeTags,
+        ...valueLimit,
+    };
+
+    if (embedDesc) {
+        const [, weaponElement]: RegExpMatchArray | [] =
+            embedDesc.match(/\*\*Weapon Element:\*\* ([a-z0-9?]+)/i) || [];
+        const [, charID]: RegExpMatchArray | [] =
+            embedDesc.match(/\*\*Char ID:\*\* \[(\d+)\]/i) || [];
+        const [, minLevel]: RegExpMatchArray | [] =
+            embedDesc.match(/\*\*Min Level:\*\* (\d+)/i) || [];
+        const [, maxLevel]: RegExpMatchArray | [] =
+            embedDesc.match(/\*\*Max Level:\*\* (\d+)/i) || [];
+        const ascending: boolean = !!embedDesc.match(/\*\*Order:\*\* Ascending/);
+
+        sortFilterParams.weaponElement = weaponElement;
+        sortFilterParams.charID = charID;
+        sortFilterParams.minLevel = minLevel !== undefined ? Number(minLevel) : undefined;
+        sortFilterParams.maxLevel = maxLevel !== undefined ? Number(maxLevel) : undefined;
+        sortFilterParams.ascending = ascending;
+    }
+
+    if (itemType === 'items') return getAllItemDisplayMessage(sortFilterParams);
+    return getSortedItemListMessage({ ...sortFilterParams, itemType });
 }
