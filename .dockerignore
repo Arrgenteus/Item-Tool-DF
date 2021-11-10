@@ -1,0 +1,7 @@
+/node_modules
+Dockerfile*
+.git
+.gitignore
+docker-compose*
+sample-config.yml
+.prettier*
