@@ -196,6 +196,7 @@ export async function getSortedItemListMessage(
             possibleTags = possibleTags === 'None' ? '' : `[${possibleTags}]`;
             return `\`${item.title}\` (lv. ${item.levels.join(', ')}) ${possibleTags}`.trim();
         });
+        console.log(items.length, itemDisplayList.join(', ').length);
 
         // Store the last formatted result
         const sign: string = itemGroup.customSortValue < 0 ? '' : '+';

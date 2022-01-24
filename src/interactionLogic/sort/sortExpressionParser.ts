@@ -14,6 +14,8 @@ const OPERATORS: {
 } = {
     '+': { precedence: 1, unary: false, mongoFunc: '$add' },
     '-': { precedence: 1, unary: false, mongoFunc: '$subtract' },
+    '*': { precedence: 2, unary: false, mongoFunc: '$multiply' },
+    '/': { precedence: 2, unary: false, mongoFunc: '$divide' },
     'u-': { precedence: 2, unary: true, mongoFunc: '$subtract' },
 };
 const ALIASES: { [alias: string]: string } = {
@@ -23,6 +25,7 @@ const ALIASES: { [alias: string]: string } = {
     dark: 'darkness',
     dmg: 'damage',
     immo: 'immobility',
+    luck: 'luk',
     magic: 'magic def',
     'magic defence': 'magic def',
     'magic defense': 'magic def',
@@ -102,12 +105,16 @@ export function unaliasBonusName(operand: string): string {
     return ALIASES[trimmedOperand] || trimmedOperand;
 }
 
-function tokenizeExpression(expression: string, isCompressed?: boolean): string[] {
+function tokenizeExpression(expression: string, isCompressed?: boolean): (string | number)[] {
     expression = expression.trim();
-    const tokenizedExpression: string[] = [];
-    let operatorCount = 0;
-    for (let i = 0; i < expression.length; ++i) {
-        const token = expression[i].toLowerCase();
+    const tokenizedExpression: (string | number)[] = [];
+    let containsOnlyConstants: boolean = true;
+    let operatorCount: number = 0;
+    let indexPosition: number = 0;
+
+    while (indexPosition < expression.length) {
+        const token = expression[indexPosition].toLowerCase();
+        // Ignore spaces
         if (token === ' ') continue;
 
         if (token in OPERATORS) {
@@ -121,44 +128,74 @@ function tokenizeExpression(expression: string, isCompressed?: boolean): string[
         } else if (token in { '(': 1, ')': 1 }) {
             tokenizedExpression.push(token);
         } else if (token.match(/[a-z?]/)) {
+            containsOnlyConstants = false;
             let operand: string = '';
-            while (i < expression.length && expression[i].toLowerCase().match(/[ a-z?]/)) {
-                operand += expression[i].toLowerCase();
+            while (
+                indexPosition < expression.length &&
+                expression[indexPosition].toLowerCase().match(/[ a-z?]/)
+            ) {
+                operand += expression[indexPosition].toLowerCase();
                 if (operand.length > MAX_OPERAND_LENGTH)
                     throw new InvalidExpressionError(
                         `Each operand can only be ${MAX_OPERAND_LENGTH} characters long.`
                     );
-                i += 1;
+                indexPosition += 1;
             }
-            i -= 1;
+            indexPosition -= 1;
             operand = unaliasBonusName(operand.trim());
             tokenizedExpression.push(operand.trim());
+        } else if (token.match(/[0-9.]+/)) {
+            let operand: string = '';
+            while (indexPosition < expression.length && !(expression[indexPosition] in OPERATORS)) {
+                operand += expression[indexPosition];
+                if (operand.length > MAX_OPERAND_LENGTH) {
+                    throw new InvalidExpressionError(
+                        `Each operand can only be ${MAX_OPERAND_LENGTH} characters long.`
+                    );
+                }
+                indexPosition += 1;
+            }
+            indexPosition -= 1;
+            const numberOperand = Number(operand);
+            if (isNaN(numberOperand)) {
+                throw new InvalidExpressionError(`'${numberOperand}' is not a valid number.`);
+            }
+            if (numberOperand === 0) {
+                throw new InvalidExpressionError(`'Sort expressions cannot use 0 as an operand.`);
+            }
+            tokenizedExpression.push(numberOperand);
         } else if (token === '#') {
             // Denotes an alias
             if (!isCompressed)
                 throw new InvalidExpressionError(`'#' is an invalid sort expression character.`);
 
-            if (expression[i + 1] === ' ')
+            if (expression[indexPosition + 1] === ' ')
                 throw new ValueError(
-                    `Invalid compressed sort operator. ${expression.slice(0, i + 1)} <-`
+                    `Invalid compressed sort operator. ${expression.slice(0, indexPosition + 1)} <-`
                 );
 
-            const compressedOperand: string = '#' + expression[i + 1];
-            i += 1;
+            const compressedOperand: string = '#' + expression[indexPosition + 1];
+            indexPosition += 1;
 
             const operand: string | undefined = uncompressedOperands[compressedOperand];
             if (!operand) throw new ValueError(`Invalid sort operator alias ${operand}`);
 
             tokenizedExpression.push(operand);
-        } else
+        } else {
             throw new InvalidExpressionError(`'${token}' is an invalid sort expression character.`);
+        }
+        indexPosition += 1;
     }
+    if (containsOnlyConstants) {
+        throw new InvalidExpressionError(`Sort expressions cannot only contain constant values.`);
+    }
+
     return tokenizedExpression;
 }
 
-function infixToPostfix(tokenizedExpression: string[]): string[] {
+function infixToPostfix(tokenizedExpression: (string | number)[]): (string | number)[] {
     const operatorStack: string[] = [];
-    const postfixExpression: string[] = [];
+    const postfixExpression: (string | number)[] = [];
     enum TokenTypes {
         OPEN,
         CLOSE,
@@ -201,13 +238,17 @@ function infixToPostfix(tokenizedExpression: string[]): string[] {
                 throw new InvalidExpressionError('Make sure your brackets are balanced correctly.');
             lastTokenType = TokenTypes.CLOSE;
         } else if (token in OPERATORS) {
-            // Operator is a unary operator if the previous token was either an open bracket or another operator
-            const modifiedToken: string =
-                !lastTokenType || [TokenTypes.OPEN, TokenTypes.OPERATOR].includes(lastTokenType)
-                    ? 'u' + token
-                    : token;
-
-            if (modifiedToken === 'u+') continue; // Unary + is redundant
+            let modifiedToken: string = token;
+            // Operator is being used as a unary operator if the previous token was either an open bracket
+            // or another operator
+            if (!lastTokenType || [TokenTypes.OPEN, TokenTypes.OPERATOR].includes(lastTokenType)) {
+                if (token === '+') continue; // Unary + is redundant
+                // Only + and - can be used as unary operators
+                if (token !== '-') {
+                    throw new InvalidExpressionError(`Usage of operator ${token} is incorrect.`);
+                }
+                modifiedToken = 'u' + token;
+            }
 
             const priority = OPERATORS[modifiedToken].precedence;
             let [top]: string[] = operatorStack.slice(-1);
@@ -243,7 +284,7 @@ function infixToPostfix(tokenizedExpression: string[]): string[] {
     return postfixExpression;
 }
 
-function cleanExpression(postfixExpression: string[], compressed?: boolean): string {
+function cleanExpression(postfixExpression: (string | number)[], compressed?: boolean): string {
     const operandStack: string[] = [];
     for (const token of postfixExpression) {
         if (token in OPERATORS) {
@@ -318,10 +359,10 @@ export function parseSortExpression(baseExpression: string): SortExpressionData 
             throw new InvalidExpressionError(
                 'Your sort expression cannot be longer than 100 characters'
             );
-        const tokenized: string[] = tokenizeExpression(baseExpression);
-        const postfix: string[] = infixToPostfix(tokenized);
-        const pretty: string = cleanExpression(postfix);
-        const compressed: string = cleanExpression(postfix, true);
+        const tokenized: (string | number)[] = tokenizeExpression(baseExpression);
+        const postfix: (string | number)[] = infixToPostfix(tokenized);
+        const pretty: string | number = cleanExpression(postfix);
+        const compressed: string | number = cleanExpression(postfix, true);
         const mongo: MongoSortExpression = mongoExpression(postfix);
         return { baseExpression, pretty, compressed, mongo };
     } catch (err) {
