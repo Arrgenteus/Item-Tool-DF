@@ -4,6 +4,11 @@ import { elasticClient } from '../../dbConnection';
 import { ItemTag, PRETTY_TAG_NAMES } from '../../utils/itemTypeData';
 import { capitalize } from '../../utils/misc';
 
+const WORD_ALIASES: { [word: string]: string } = {
+    tfs: 'rare pet tog',
+    ex: 'extreme',
+};
+
 function romanIntToInt(romanInt: string) {
     const romanPlaceValues: { [key: string]: number } = { i: 1, v: 5, x: 10 };
 
@@ -71,7 +76,7 @@ export async function getPetSearchResult(
     term: string,
     maxLevel?: number
 ): Promise<{ message: MessageEmbedOptions; noResults: boolean }> {
-    const query: { [key: string]: any } = { bool: {} };
+    const query: { [key: string]: any } = { bool: { minimum_should_match: 1 } };
     const romanNumberRegex: RegExp = /^((?:x{0,3})(ix|iv|v?i{0,3}))$/i;
     const words: string[] = term.split(/[ _\\-]+/);
 
@@ -84,7 +89,7 @@ export async function getPetSearchResult(
             break;
         }
     }
-    term = words.join(' ');
+    term = words.map((word) => WORD_ALIASES[word] || word).join(' ');
 
     query.bool.should = [
         {
@@ -148,17 +153,27 @@ export async function getPetSearchResult(
     const { body: responseBody } = await elasticClient.search({
         index: config.PET_INDEX_NAME,
         body: {
-            size: 4,
+            size: 1,
             query: {
                 function_score: {
                     query,
                     script_score: {
                         script: {
                             source: `
-                            if (doc['scaled_damage'].value) {
-                                return 10;
-                            }
-                            return (doc['level'].value / 10)`,
+                                def critOrBonus = 0;
+                                for (bonus in params._source.bonuses) {
+                                    if (bonus.name == 'crit') {
+                                        if (bonus.value instanceof int) critOrBonus += bonus.value;
+                                        else critOrBonus += 20;
+                                    } else if (bonus.name == 'bonus') {
+                                        if (bonus.value instanceof int) critOrBonus += bonus.value;
+                                        else critOrBonus += 20;
+                                    }
+                                }
+                                if (doc['scaled_damage'].value) {
+                                    return (critOrBonus / 10) + 10;
+                                }
+                                return (critOrBonus + doc['level'].value) / 10`,
                         },
                     },
                     boost_mode: 'sum',
