@@ -14,6 +14,10 @@ export interface Config {
     DB_PASS: string;
     DEV_ID?: Snowflake;
     COMMAND_CHAR: string;
+    ELASTIC_URL: string;
+    ELASTIC_USER: string;
+    ELASTIC_PASS: string;
+    PET_INDEX_NAME: string;
 }
 
 const CONFIG_DIR = path.resolve(__dirname, '../config.yml');
@@ -29,6 +33,10 @@ const requiredConfigValues: (keyof Config)[] = [
     'DB_USER',
     'DB_PASS',
     'COMMAND_CHAR',
+    'ELASTIC_URL',
+    'ELASTIC_USER',
+    'ELASTIC_PASS',
+    'PET_INDEX_NAME',
 ];
 for (const value of requiredConfigValues) {
     if (!(value in config)) throw new Error(`${value} must be defined in config.yml`);
