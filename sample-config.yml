@@ -13,5 +13,10 @@ DB_AUTH_MECHANISM: 'DEFAULT'
 DB_USER: 'username'
 DB_PASS: 'password'
 
+ELASTIC_URL: 'https://localhost:9200'
+ELASTIC_USER: 'username'
+ELASTIC_PASS: 'password'
+PET_INDEX_NAME: 'dragonfable-pets'
+
 # The ID to be pinged in case an error occurs
 DEV_ID: ''
