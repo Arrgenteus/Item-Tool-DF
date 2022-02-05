@@ -304,7 +304,7 @@ export async function getSortResultsMessageUsingMessageFilters(
     if (!itemType) itemType = PRETTY_TO_BASE_ITEM_TYPE[itemTypeMatch] || 'items';
 
     const sortExpressionInput: string = sortExpressionMatch[2];
-    const sortExpression: SortExpressionData = parseSortExpression(sortExpressionInput);
+    const sortExpression: SortExpressionData = parseSortExpression(sortExpressionInput, true);
     let excludeTags: Set<ItemTag> | undefined;
     if (selectedTagsToExclude) {
         excludeTags = new Set(selectedTagsToExclude);

@@ -103,7 +103,7 @@ export async function getSortQueryPipeline({
         // If for example, the provided char is level 90 and has NSoD, filtering by level and page limit
         // before the above grouping would not filter out lower level versions of NSoD, when it should do so
         { $match: secondaryFilter },
-        // Group documents
+        // Group documents by sort value, title, and tagSet
         {
             $group: {
                 _id: {
@@ -114,6 +114,9 @@ export async function getSortQueryPipeline({
                 levels: { $push: '$level' },
             },
         },
+        // Limit total number of documents to top/bottom 200 after applying necessary filters
+        { $sort: { '_id.customSortValue': sortOrder } },
+        { $limit: 200 },
         { $sort: { '_id.title': 1 } },
         {
             $group: {
