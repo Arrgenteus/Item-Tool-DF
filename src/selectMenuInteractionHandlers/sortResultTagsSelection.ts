@@ -1,16 +1,10 @@
-import {
-    InteractionReplyOptions,
-    Message,
-    MessageOptions,
-    SelectMenuInteraction,
-} from 'discord.js';
+import { InteractionReplyOptions, Message, SelectMenuInteraction } from 'discord.js';
 import { ActionRowInteractionData } from '../eventHandlerTypes';
 import { SORT_ACTIONS } from '../interactionLogic/sort/constants';
 import { getSortResultsMessageUsingMessageFilters } from '../interactionLogic/sort/getSortedItemsResponse';
-import { SortFilterParams } from '../interactionLogic/sort/types';
 import { ItemTag } from '../utils/itemTypeData';
 
-const buttonInteration: ActionRowInteractionData = {
+const selectMenuInteration: ActionRowInteractionData = {
     names: [SORT_ACTIONS.TAG_SELECTION],
     preferEphemeralErrorMessage: true,
     run: async (interaction: SelectMenuInteraction): Promise<void> => {
@@ -29,9 +23,4 @@ const buttonInteration: ActionRowInteractionData = {
     },
 };
 
-export default buttonInteration;
-function getSortedItemList(
-    usedFilters: SortFilterParams
-): MessageOptions | PromiseLike<MessageOptions> {
-    throw new Error('Function not implemented.');
-}
+export default selectMenuInteration;

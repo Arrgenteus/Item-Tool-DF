@@ -25,7 +25,6 @@ export interface MongoSortExpression {
 export interface SortExpressionData {
     baseExpression?: string;
     pretty: string;
-    compressed: string;
     mongo: MongoSortExpression;
 }
 
