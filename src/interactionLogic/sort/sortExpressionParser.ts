@@ -3,7 +3,7 @@ import { InvalidExpressionError, ValueError } from '../../errors';
 import { capitalize, isResist } from '../../utils/misc';
 import { MongoSortExpression, SortExpressionData } from './types';
 
-const MAX_OPERATORS: number = 6;
+const MAX_OPERATORS: number = 20;
 const MAX_OPERAND_LENGTH: number = 20;
 const OPERATORS: {
     [operator: string]: {
@@ -14,7 +14,9 @@ const OPERATORS: {
 } = {
     '+': { precedence: 1, unary: false, mongoFunc: '$add' },
     '-': { precedence: 1, unary: false, mongoFunc: '$subtract' },
-    'u-': { precedence: 2, unary: true, mongoFunc: '$subtract' },
+    '*': { precedence: 2, unary: false, mongoFunc: '$multiply' },
+    '/': { precedence: 2, unary: false, mongoFunc: '$divide' },
+    'u-': { precedence: 3, unary: true, mongoFunc: '$subtract' },
 };
 const ALIASES: { [alias: string]: string } = {
     'average damage': 'damage',
@@ -23,73 +25,55 @@ const ALIASES: { [alias: string]: string } = {
     dark: 'darkness',
     dmg: 'damage',
     immo: 'immobility',
+    luck: 'luk',
     magic: 'magic def',
+    magicdef: 'magic def',
     'magic defence': 'magic def',
+    magicdefence: 'magic def',
     'magic defense': 'magic def',
+    magicdefense: 'magic def',
     melee: 'melee def',
+    meleedef: 'melee def',
     'melee defence': 'melee def',
+    meleedefence: 'melee def',
     'melee defense': 'melee def',
+    meleedefense: 'melee def',
     pierce: 'pierce def',
+    piercedef: 'pierce def',
     'pierce defence': 'pierce def',
+    piercedefence: 'pierce def',
     'pierce defense': 'pierce def',
+    piercedefense: 'pierce def',
     void: '???',
 };
 
-const compressedOperands: { [operand: string]: string } = {
-    block: '#1',
-    dodge: '#2',
-    parry: '#3',
-    crit: '#4',
-    'magic def': '#5',
-    'melee def': '#6',
-    'pierce def': '#7',
-    wis: '#8',
-    end: '#9',
-    cha: '#A',
-    luk: '#B',
-    int: '#C',
-    dex: '#D',
-    str: '#E',
-    bonus: '#F',
-
-    // Most non-joke elements
-    all: '#G',
-    fire: '#H',
-    water: '#I',
-    darkness: '#J',
-    light: '#K',
-    ice: '#L',
-    energy: '#M',
-    wind: '#N',
-    stone: '#O',
-    nature: '#P',
-    good: '#Q',
-    evil: '#R',
-    immobility: '#S',
-    health: '#T',
-    '???': '#U',
-    metal: '#V',
-    silver: '#W',
-    bacon: '#X',
-    poison: '#Y',
-    fear: '#Z',
-    disease: '#a',
-    ebil: '#b',
-    curse: '#c',
-    null: '#d',
-    none: '#e',
-};
-
-const uncompressedOperands: { [operand: string]: string } = {};
-for (const [operand, compressed] of Object.entries(compressedOperands)) {
-    uncompressedOperands[compressed] = operand;
-}
-
-function pop(stack: string[]): string;
-function pop(stack: MongoSortExpression[]): MongoSortExpression;
-function pop(stack: string[] | MongoSortExpression[]): string | MongoSortExpression {
+function pop(stack: any[]): any {
     if (!stack.length) throw new RangeError('Attempting to pop from empty array');
     return stack.pop()!;
+}
+
+function arithmeticOperation(
+    operatorToken: keyof typeof OPERATORS,
+    operand1: number,
+    operand2?: number
+): number {
+    if (operatorToken === 'u-') return -1 * operand1;
+
+    if (!operand2) {
+        throw new ValueError('Only one operand was provided for a binary operation.');
+    }
+    switch (operatorToken) {
+        case '+':
+            return operand1 + operand2;
+        case '-':
+            return operand1 - operand2;
+        case '*':
+            return operand1 * operand2;
+        case '/':
+            return operand1 / operand2;
+    }
+
+    throw new ValueError(`Invalid binary operator ${operatorToken} provided`);
 }
 
 export function unaliasBonusName(operand: string): string {
@@ -102,63 +86,109 @@ export function unaliasBonusName(operand: string): string {
     return ALIASES[trimmedOperand] || trimmedOperand;
 }
 
-function tokenizeExpression(expression: string, isCompressed?: boolean): string[] {
+function tokenizeExpression(expression: string): (string | number)[] {
     expression = expression.trim();
-    const tokenizedExpression: string[] = [];
-    let operatorCount = 0;
-    for (let i = 0; i < expression.length; ++i) {
-        const token = expression[i].toLowerCase();
-        if (token === ' ') continue;
+    const tokenizedExpression: (string | number)[] = [];
+    let containsOnlyConstants: boolean = true;
+    let operatorCount: number = 0;
+    let indexPosition: number = 0;
+
+    const tooManyOperatorsMessage: string =
+        `You cannot have more than ${MAX_OPERATORS} operators in your sort expression ` +
+        '(MPM and BPD each count as 3 operators).';
+
+    while (indexPosition < expression.length) {
+        const token = expression[indexPosition].toLowerCase();
+
+        // Ignore spaces
+        if (token === ' ') {
+            indexPosition += 1;
+            continue;
+        }
 
         if (token in OPERATORS) {
             operatorCount += 1;
-            if (operatorCount >= MAX_OPERATORS)
-                throw new InvalidExpressionError(
-                    `You cannot have more than ${MAX_OPERATORS} operators in your sort expression.`
-                );
+            if (operatorCount > MAX_OPERATORS)
+                throw new InvalidExpressionError(tooManyOperatorsMessage);
 
             tokenizedExpression.push(token);
         } else if (token in { '(': 1, ')': 1 }) {
             tokenizedExpression.push(token);
         } else if (token.match(/[a-z?]/)) {
+            containsOnlyConstants = false;
             let operand: string = '';
-            while (i < expression.length && expression[i].toLowerCase().match(/[ a-z?]/)) {
-                operand += expression[i].toLowerCase();
+            while (
+                indexPosition < expression.length &&
+                expression[indexPosition].toLowerCase().match(/[ a-z?]/)
+            ) {
+                operand += expression[indexPosition].toLowerCase();
                 if (operand.length > MAX_OPERAND_LENGTH)
                     throw new InvalidExpressionError(
                         `Each operand can only be ${MAX_OPERAND_LENGTH} characters long.`
                     );
-                i += 1;
+                indexPosition += 1;
             }
-            i -= 1;
+            indexPosition -= 1;
             operand = unaliasBonusName(operand.trim());
-            tokenizedExpression.push(operand.trim());
-        } else if (token === '#') {
-            // Denotes an alias
-            if (!isCompressed)
-                throw new InvalidExpressionError(`'#' is an invalid sort expression character.`);
-
-            if (expression[i + 1] === ' ')
-                throw new ValueError(
-                    `Invalid compressed sort operator. ${expression.slice(0, i + 1)} <-`
+            const MPMorBPD: { [operand: string]: (string | number)[] } = {
+                mpm: ['(', 'melee def', '+', 'pierce def', '+', 'magic def', ')', '/', 3],
+                bpd: ['(', 'block', '+', 'parry', '+', 'dodge', ')', '/', 3],
+            };
+            if (operand in MPMorBPD) {
+                operatorCount += 3;
+                if (operatorCount > MAX_OPERATORS) {
+                    throw new InvalidExpressionError(tooManyOperatorsMessage);
+                }
+                tokenizedExpression.push(...MPMorBPD[operand]);
+            } else {
+                tokenizedExpression.push(operand);
+            }
+        } else if (token.match(/[0-9.]+/)) {
+            let operand: string = '';
+            while (
+                indexPosition < expression.length &&
+                !(expression[indexPosition] in OPERATORS) &&
+                !(expression[indexPosition] in { '(': 1, ')': 1 })
+            ) {
+                operand += expression[indexPosition];
+                if (operand.length > MAX_OPERAND_LENGTH) {
+                    throw new InvalidExpressionError(
+                        `Each operand can only be ${MAX_OPERAND_LENGTH} characters long.`
+                    );
+                }
+                indexPosition += 1;
+            }
+            indexPosition -= 1;
+            const numberOperand = Number(operand);
+            if (isNaN(numberOperand)) {
+                throw new InvalidExpressionError(`'${operand}' is not a valid number.`);
+            }
+            if (numberOperand === 0) {
+                throw new InvalidExpressionError('Sort expressions cannot use 0 as an operand.');
+            }
+            if (numberOperand < 0.0001 || numberOperand > 10000) {
+                throw new InvalidExpressionError(
+                    'All constant sort expression operands must be between 0.0001 and 10000.'
                 );
-
-            const compressedOperand: string = '#' + expression[i + 1];
-            i += 1;
-
-            const operand: string | undefined = uncompressedOperands[compressedOperand];
-            if (!operand) throw new ValueError(`Invalid sort operator alias ${operand}`);
-
-            tokenizedExpression.push(operand);
-        } else
-            throw new InvalidExpressionError(`'${token}' is an invalid sort expression character.`);
+            }
+            tokenizedExpression.push(numberOperand);
+        } else {
+            throw new InvalidExpressionError(
+                `'${Util.escapeMarkdown(token)}' is an invalid sort expression character.`
+            );
+        }
+        indexPosition += 1;
     }
+    if (containsOnlyConstants) {
+        throw new InvalidExpressionError(`Sort expressions cannot only contain constant values.`);
+    }
+
     return tokenizedExpression;
 }
 
-function infixToPostfix(tokenizedExpression: string[]): string[] {
+function infixToPostfix(tokenizedExpression: (string | number)[]): (string | number)[] {
     const operatorStack: string[] = [];
-    const postfixExpression: string[] = [];
+    const postfixExpression: (string | number)[] = [];
     enum TokenTypes {
         OPEN,
         CLOSE,
@@ -200,14 +230,18 @@ function infixToPostfix(tokenizedExpression: string[]): string[] {
             else
                 throw new InvalidExpressionError('Make sure your brackets are balanced correctly.');
             lastTokenType = TokenTypes.CLOSE;
-        } else if (token in OPERATORS) {
-            // Operator is a unary operator if the previous token was either an open bracket or another operator
-            const modifiedToken: string =
-                !lastTokenType || [TokenTypes.OPEN, TokenTypes.OPERATOR].includes(lastTokenType)
-                    ? 'u' + token
-                    : token;
-
-            if (modifiedToken === 'u+') continue; // Unary + is redundant
+        } else if (typeof token === 'string' && token in OPERATORS) {
+            let modifiedToken: string = token;
+            // Operator is being used as a unary operator if the previous token was either an open bracket
+            // or another operator
+            if (!lastTokenType || [TokenTypes.OPEN, TokenTypes.OPERATOR].includes(lastTokenType)) {
+                if (token === '+') continue; // Unary + is redundant
+                // Only + and - can be used as unary operators
+                if (token !== '-') {
+                    throw new InvalidExpressionError(`Usage of operator ${token} is incorrect.`);
+                }
+                modifiedToken = 'u' + token;
+            }
 
             const priority = OPERATORS[modifiedToken].precedence;
             let [top]: string[] = operatorStack.slice(-1);
@@ -233,7 +267,7 @@ function infixToPostfix(tokenizedExpression: string[]): string[] {
     }
 
     while (operatorStack.length) {
-        const operator: string = pop(operatorStack);
+        const operator: string | number = pop(operatorStack);
         if (operator in { '(': 1, ')': 1 }) {
             throw new InvalidExpressionError('The brackets in your expression are not balanced.');
         }
@@ -243,102 +277,129 @@ function infixToPostfix(tokenizedExpression: string[]): string[] {
     return postfixExpression;
 }
 
-function cleanExpression(postfixExpression: string[], compressed?: boolean): string {
-    const operandStack: string[] = [];
+function cleanExpression(postfixExpression: (string | number)[]): string {
+    const operandStack: (string | number)[] = [];
     for (const token of postfixExpression) {
-        if (token in OPERATORS) {
+        if (typeof token === 'number') {
+            operandStack.push(token);
+        } else if (token in OPERATORS) {
             let topOperand: keyof typeof OPERATORS = pop(operandStack);
 
             // Handle unary operators
             if (OPERATORS[token].unary) {
                 // Unary operators are prepended with the character 'u'
-                operandStack.push(`${token[1]}${topOperand}`);
+                if (typeof topOperand === 'number') {
+                    operandStack.push(`${token[1]}${topOperand}`);
+                } else {
+                    operandStack.push(`${token[1]}(${topOperand})`);
+                }
             }
             // Handle binary operators
             else {
                 const previousOperand = pop(operandStack);
 
                 operandStack.push(
-                    [previousOperand, token, token === '-' ? `(${topOperand})` : topOperand].join(
-                        compressed ? '' : ' '
-                    )
+                    [
+                        token !== '+' && typeof previousOperand !== 'number'
+                            ? `(${previousOperand})`
+                            : previousOperand,
+                        token,
+                        token !== '+' && typeof topOperand !== 'number'
+                            ? `(${topOperand})`
+                            : topOperand,
+                    ].join(' ')
                 );
             }
         } else {
-            if (compressed) {
-                operandStack.push(compressedOperands[token] || token);
-            } else {
-                let field: string = token;
-                if (token === 'damage') field = 'avg damage';
-                else if (isResist(token)) field = `${token} res`;
-                operandStack.push(capitalize(field));
-            }
+            let field: string = token;
+            if (token === 'damage') field = 'avg damage';
+            else if (isResist(token)) field = `${token} res`;
+            operandStack.push(capitalize(field));
         }
     }
     let result = pop(operandStack); // There should only be 1 element
-    if (result[0] === '(' && result[result.length - 1] === ')') result = result.slice(1, -1);
 
     return result;
 }
 
-function mongoExpression(postfixExpression: string[]): MongoSortExpression {
-    const mongoExp: MongoSortExpression[] = [];
+function mongoExpression(postfixExpression: (string | number)[]): MongoSortExpression {
+    const mongoExpStack: (MongoSortExpression | number)[] = [];
     for (const token of postfixExpression) {
-        if (token in OPERATORS) {
+        if (typeof token === 'string' && token in OPERATORS) {
             const operator = OPERATORS[token];
-            const topOperand: MongoSortExpression = pop(mongoExp);
+            const topOperand: MongoSortExpression | number = pop(mongoExpStack);
 
             // Handle unary operators
             if (operator.unary) {
-                mongoExp.push({ [operator.mongoFunc]: [0, topOperand] });
+                if (typeof topOperand === 'number') {
+                    mongoExpStack.push(arithmeticOperation(token, topOperand));
+                } else {
+                    mongoExpStack.push({ [operator.mongoFunc]: [0, topOperand] });
+                }
             }
             // Handle binary operators
             else {
-                const previousOperand = pop(mongoExp);
-                mongoExp.push({
-                    [operator.mongoFunc]: [previousOperand, topOperand],
-                });
+                const previousOperand: MongoSortExpression | number = pop(mongoExpStack);
+                if (token === '/') {
+                    if (typeof topOperand !== 'number') {
+                        throw new InvalidExpressionError('You may only divide by constant values.');
+                    }
+                    if (topOperand === 0) {
+                        throw new InvalidExpressionError(
+                            'You may not divide by an expression that evaluates to 0.'
+                        );
+                    }
+                }
+                if (typeof previousOperand === 'number' && typeof topOperand === 'number') {
+                    mongoExpStack.push(arithmeticOperation(token, previousOperand, topOperand));
+                } else {
+                    mongoExpStack.push({
+                        [operator.mongoFunc]: [previousOperand, topOperand],
+                    });
+                }
             }
+        } else if (typeof token === 'number') {
+            mongoExpStack.push(token);
         } else {
             let field: string = token;
             if (token === 'damage') field = '$' + field;
             else if (!isResist(token)) field = '$bonuses.' + field;
             else field = '$resists.' + field;
 
-            mongoExp.push({ $ifNull: [field, 0] });
+            mongoExpStack.push({ $ifNull: [field, 0] });
         }
     }
 
-    return pop(mongoExp);
+    const resultantExpression: MongoSortExpression | number = pop(mongoExpStack);
+    if (typeof resultantExpression === 'number') {
+        throw new InvalidExpressionError(`Sort expressions cannot only contain constant values.`);
+    }
+
+    return resultantExpression;
 }
 
-export function parseSortExpression(baseExpression: string): SortExpressionData {
+export function parseSortExpression(
+    baseExpression: string,
+    ignoreExpressionSize: boolean = false
+): SortExpressionData {
     try {
-        if (baseExpression.length > 100)
+        if (baseExpression.length > 100 && !ignoreExpressionSize) {
             throw new InvalidExpressionError(
-                'Your sort expression cannot be longer than 100 characters'
+                `Your sort expression cannot be longer than 100 characters. Your expression is ${baseExpression.length} characters long.`
             );
-        const tokenized: string[] = tokenizeExpression(baseExpression);
-        const postfix: string[] = infixToPostfix(tokenized);
-        const pretty: string = cleanExpression(postfix);
-        const compressed: string = cleanExpression(postfix, true);
+        }
+        const tokenized: (string | number)[] = tokenizeExpression(baseExpression);
+        const postfix: (string | number)[] = infixToPostfix(tokenized);
+        const pretty: string | number = cleanExpression(postfix);
         const mongo: MongoSortExpression = mongoExpression(postfix);
-        return { baseExpression, pretty, compressed, mongo };
+        return { baseExpression, pretty, mongo };
     } catch (err) {
         if (err instanceof InvalidExpressionError) {
             // Display the first 500 characters of their input expression at the max
             let trimmedExpression: string = baseExpression.slice(0, 500);
             if (baseExpression.length > 500) trimmedExpression += '...';
-            err.message += `\n\nYour expression: \`${Util.escapeMarkdown(trimmedExpression)}\``;
+            err.message += `\n\nYour expression: ${Util.escapeMarkdown(trimmedExpression)}`;
         }
         throw err;
     }
-}
-
-export function parseCompressedSortExpression(compressedExpression: string): SortExpressionData {
-    const tokenized: string[] = tokenizeExpression(compressedExpression, true);
-    const postfix: string[] = infixToPostfix(tokenized);
-    const pretty: string = cleanExpression(postfix);
-    const mongo: MongoSortExpression = mongoExpression(postfix);
-    return { pretty, compressed: compressedExpression, mongo };
 }
