@@ -3,7 +3,7 @@ import { InvalidExpressionError, ValueError } from '../../errors';
 import { capitalize, isResist } from '../../utils/misc';
 import { MongoSortExpression, SortExpressionData } from './types';
 
-const MAX_OPERATORS: number = 6;
+const MAX_OPERATORS: number = 7;
 const MAX_OPERAND_LENGTH: number = 20;
 const OPERATORS: {
     [operator: string]: {
@@ -84,6 +84,10 @@ function tokenizeExpression(expression: string): (string | number)[] {
     let operatorCount: number = 0;
     let indexPosition: number = 0;
 
+    const tooManyOperatorsMessage: string =
+        `You cannot have more than ${MAX_OPERATORS} operators in your sort expression ` +
+        '(MPM and BPD each count as 3 operators).';
+
     while (indexPosition < expression.length) {
         const token = expression[indexPosition].toLowerCase();
 
@@ -95,10 +99,8 @@ function tokenizeExpression(expression: string): (string | number)[] {
 
         if (token in OPERATORS) {
             operatorCount += 1;
-            if (operatorCount >= MAX_OPERATORS)
-                throw new InvalidExpressionError(
-                    `You cannot have more than ${MAX_OPERATORS} operators in your sort expression.`
-                );
+            if (operatorCount > MAX_OPERATORS)
+                throw new InvalidExpressionError(tooManyOperatorsMessage);
 
             tokenizedExpression.push(token);
         } else if (token in { '(': 1, ')': 1 }) {
@@ -119,7 +121,19 @@ function tokenizeExpression(expression: string): (string | number)[] {
             }
             indexPosition -= 1;
             operand = unaliasBonusName(operand.trim());
-            tokenizedExpression.push(operand.trim());
+            const MPMorBPD: { [operand: string]: (string | number)[] } = {
+                mpm: ['(', 'melee def', '+', 'pierce def', '+', 'magic def', ')', '/', 3],
+                bpd: ['(', 'block', '+', 'parry', '+', 'dodge', ')', '/', 3],
+            };
+            if (operand in MPMorBPD) {
+                operatorCount += 3;
+                if (operatorCount > MAX_OPERATORS) {
+                    throw new InvalidExpressionError(tooManyOperatorsMessage);
+                }
+                tokenizedExpression.push(...MPMorBPD[operand]);
+            } else {
+                tokenizedExpression.push(operand);
+            }
         } else if (token.match(/[0-9.]+/)) {
             let operand: string = '';
             while (
@@ -150,7 +164,9 @@ function tokenizeExpression(expression: string): (string | number)[] {
             }
             tokenizedExpression.push(numberOperand);
         } else {
-            throw new InvalidExpressionError(`'${token}' is an invalid sort expression character.`);
+            throw new InvalidExpressionError(
+                `'${Util.escapeMarkdown(token)}' is an invalid sort expression character.`
+            );
         }
         indexPosition += 1;
     }
@@ -271,7 +287,9 @@ function cleanExpression(postfixExpression: (string | number)[]): string {
 
                 operandStack.push(
                     [
-                        previousOperand,
+                        token !== '+' && typeof previousOperand !== 'number'
+                            ? `(${previousOperand})`
+                            : previousOperand,
                         token,
                         token !== '+' && typeof topOperand !== 'number'
                             ? `(${topOperand})`
@@ -287,7 +305,7 @@ function cleanExpression(postfixExpression: (string | number)[]): string {
         }
     }
     let result = pop(operandStack); // There should only be 1 element
-    if (result[0] === '(' && result[result.length - 1] === ')') result = result.slice(1, -1);
+    // if (result[0] === '(' && result[result.length - 1] === ')') result = result.slice(1, -1);
 
     return result;
 }
@@ -364,7 +382,7 @@ export function parseSortExpression(baseExpression: string): SortExpressionData 
             // Display the first 500 characters of their input expression at the max
             let trimmedExpression: string = baseExpression.slice(0, 500);
             if (baseExpression.length > 500) trimmedExpression += '...';
-            err.message += `\n\nYour expression: \`${Util.escapeMarkdown(trimmedExpression)}\``;
+            err.message += `\n\nYour expression: ${Util.escapeMarkdown(trimmedExpression)}`;
         }
         throw err;
     }

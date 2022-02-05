@@ -57,7 +57,7 @@ export function getSortCommandOptions(): ApplicationCommandOptionData[] {
             type: 'STRING',
             name: SortCommandParams.SORT_EXPRESSION,
             required: true,
-            description: `Eg. "Ice", "Damage", "All + Health", "INT - (DEX + STR)", etc. Can only contain + or - operators`,
+            description: `Eg. "Ice", "Damage", "All + Health", "INT - (DEX + STR)", etc. Supports +, -, *, / operators`,
         },
         {
             type: 'STRING',
