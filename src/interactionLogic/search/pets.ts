@@ -171,12 +171,39 @@ export async function getPetSearchResult(
                                     }
                                 }
                                 if (doc['scaled_damage'].value) {
-                                    return (critOrBonus / 10) + 10;
+                                    return _score + (critOrBonus / 10) + 10;
                                 }
-                                return (critOrBonus + doc['level'].value) / 10`,
+                                def finalScore = _score + (critOrBonus + doc['level'].value) / 10;
+                                
+                                if (params._source.tags_1.contains('rare')) {
+                                    if (params._source.tags_2 !== null && !params._source.tags_2.contains('rare')) {
+                                        return finalScore;
+                                    }
+                                    return 0.8 * finalScore;
+                                }
+                                return finalScore;`,
                         },
                     },
-                    boost_mode: 'sum',
+                    boost_mode: 'replace',
+                },
+            },
+        },
+    });
+
+    return {
+        message: formatResult(responseBody.hits.hits),
+        noResults: !responseBody.hits.hits.length,
+    };
+}
+
+export async function getRandomPet() {
+    const { body: responseBody } = await elasticClient.search({
+        index: config.PET_INDEX_NAME,
+        body: {
+            size: 1,
+            query: {
+                function_score: {
+                    random_score: {},
                 },
             },
         },
