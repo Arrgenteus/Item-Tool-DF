@@ -57,18 +57,32 @@ function formatResult(searchHits: any[]): MessageEmbedOptions {
                     (index + 1).toString() + '. ' + attack.description
             )
             .join('\n') || 'This pet has no attacks.';
+
+    const otherResults = searchHits
+        .slice(1)
+        .map((searchHit) => `[${searchHit._source.title}](${searchHit._source.link})`)
+        .join(', ');
+
     let embedBody: string =
         `**Tags:** ${tags}\n` +
         `**Level:** ${mainResult.level}\n` +
         `**Damage:** ${Util.escapeMarkdown(mainResult.damage) || '0-0'}\n` +
         `**Element:** ${mainResult.elements.map(capitalize).join(' / ') || 'N/A'}\n` +
         `**Bonuses:** ${bonuses}`;
+
+    if (mainResult.other_level_variants) {
+        embedBody += `\n**Other Level Variants: ${mainResult.other_level_variants.join(', ')}`;
+    }
+
     return {
         url: mainResult.link,
         title: mainResult.full_title,
         description: embedBody,
         image: { url: mainResult.images[0] },
-        fields: [{ name: 'Attacks', value: attacks }],
+        fields: [
+            { name: 'Attacks', value: attacks },
+            { name: 'Similar Results', value: otherResults },
+        ],
     };
 }
 
@@ -142,19 +156,22 @@ export async function getPetSearchResult(
             },
         },
     ];
+    maxLevel = 20;
     if (maxLevel !== undefined) {
         additionalFilters.push({ range: { level: { lte: maxLevel } } });
     }
 
-    if (additionalFilters.length) {
-        query.bool.filter = additionalFilters;
-    }
+    // if (additionalFilters.length) {
+    //     query.bool.filter = additionalFilters;
+    // }
 
     const { body: responseBody } = await elasticClient.search({
         index: config.PET_INDEX_NAME,
         body: {
-            size: 1,
+            track_scores: true,
+            size: 0, // Set size to 0 to only return aggregation results and not query results
             query: {
+                // Filter documents and modify search score based on item level/stats
                 function_score: {
                     query,
                     script_score: {
@@ -170,11 +187,13 @@ export async function getPetSearchResult(
                                         else critOrBonus += 20;
                                     }
                                 }
-                                if (doc['scaled_damage'].value) {
-                                    return _score + (critOrBonus / 10) + 10;
-                                }
                                 def finalScore = _score + (critOrBonus + doc['level'].value) / 10;
-                                
+                                if (doc['scaled_damage'].value) {
+                                    finalScore = _score + (critOrBonus / 10) + ${
+                                        maxLevel ? maxLevel / 10 : 9
+                                    };
+                                }
+
                                 if (params._source.tags_1.contains('rare')) {
                                     if (params._source.tags_2 !== null && !params._source.tags_2.contains('rare')) {
                                         return finalScore;
@@ -187,12 +206,85 @@ export async function getPetSearchResult(
                     boost_mode: 'replace',
                 },
             },
+            aggs: {
+                results: {
+                    // Place documents with the same family into buckets
+                    terms: {
+                        field: 'family',
+                        order: {
+                            // Sort buckets by those with the max score
+                            max_score: 'desc',
+                        },
+                        size: 4, // Limit result to top 4 buckets
+                    },
+                    aggs: {
+                        pets: {
+                            // Within each bucket, get details of pet with max score
+                            filter: additionalFilters[0],
+                            aggs: {
+                                filtered_pets: {
+                                    top_hits: {
+                                        sort: [
+                                            {
+                                                _score: {
+                                                    order: 'desc',
+                                                },
+                                            },
+                                        ],
+                                        size: 1, // There shouldn't be more than 30 variants of the same item
+                                    },
+                                },
+                            },
+                        },
+                        // filtered_pets_exist: {
+                        //     bucket_script: {
+                        //         buckets_path: {
+                        //             filtered_pets: 'pets>filtered_pets',
+                        //         },
+                        //         script: 'params.filtered_pets',
+                        //     },
+                        // },
+                        max_score: {
+                            max: {
+                                script: '_score',
+                            },
+                        },
+                    },
+                },
+            },
         },
     });
 
+    // const results = responseBody.aggregatios.results.buckets
+    //     .map((bucket: any) => bucket.pet.hits.hits)
+    //     .filter((hits: any) => !!hits.length);
+
+    // if (!result.length) {
+    //     return {
+    //         message: formatResult([]),
+    //         noResults: !results.length,
+    //     };
+    // }
+
+    const results = responseBody.aggregations.results.buckets
+        .map((bucket: any) => bucket.pet.hits.hits)
+        .filter((petResults: any[]) => !!petResults.length)
+        .map((petResults: any[]) => {
+            petResults[0].other_level_variants = petResults
+                .slice(1)
+                .sort(
+                    (
+                        pet1: { level: number; [key: string]: any },
+                        pet2: { level: number; [key: string]: any }
+                    ) => pet2.level - pet1.level
+                );
+            return petResults[0];
+        })
+        .filter((result: any) => !!result);
+
     return {
-        message: formatResult(responseBody.hits.hits),
-        noResults: !responseBody.hits.hits.length,
+        message: formatResult(results),
+        noResults: !results.length,
     };
 }
 
