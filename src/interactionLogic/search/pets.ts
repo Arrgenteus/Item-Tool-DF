@@ -146,7 +146,8 @@ function formatQueryResponse(responseBody: any): {
 
 export async function getPetSearchResult(
     term: string,
-    maxLevel?: number
+    maxLevel?: number,
+    minLevel?: number
 ): Promise<{ message: MessageEmbedOptions; noResults: boolean }> {
     const query: { [key: string]: any } = { bool: { minimum_should_match: 1 } };
     const romanNumberRegex: RegExp = /^((?:x{0,3})(ix|iv|v?i{0,3}))$/i;
@@ -165,6 +166,10 @@ export async function getPetSearchResult(
     let levelFilter: { range: { level: { lte?: number; gte?: number } } } | undefined;
     if (maxLevel !== undefined) {
         levelFilter = { range: { level: { lte: maxLevel } } };
+    }
+    if (minLevel !== undefined) {
+        if (levelFilter) levelFilter.range.level.gte = minLevel;
+        else levelFilter = { range: { level: { gte: minLevel } } };
     }
 
     term = words.map((word) => WORD_ALIASES[word] || word).join(' ');

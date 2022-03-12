@@ -19,6 +19,11 @@ const command: SlashCommandData = {
                 name: 'max-level',
                 description: 'The maximum pet level to return in results. Is 90 by default.',
             },
+            {
+                type: 'INTEGER',
+                name: 'min-level',
+                description: 'The minimum pet level to return in results. Is 0 by default.',
+            },
         ],
     },
 
@@ -26,9 +31,11 @@ const command: SlashCommandData = {
         const searchQuery: string = interaction.options.getString('name', true);
         const maxLevel: number | undefined =
             interaction.options.getInteger('max-level') ?? undefined;
+        const minLevel: number | undefined =
+            interaction.options.getInteger('min-level') ?? undefined;
 
         const petSearchResult: { message: MessageEmbedOptions; noResults: boolean } =
-            await getPetSearchResult(searchQuery, maxLevel);
+            await getPetSearchResult(searchQuery, maxLevel, minLevel);
 
         await interaction.reply({
             embeds: [petSearchResult.message],
