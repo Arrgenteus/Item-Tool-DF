@@ -26,65 +26,6 @@ function romanIntToInt(romanInt: string) {
     return integer;
 }
 
-// function formatResult(result: any, similarResults: any[]): MessageEmbedOptions {
-//     if (!result) return { description: 'No pet was found.' };
-
-//     const tags: string =
-//         [result.tags_1, result.tags_2, result.tags_3]
-//             .filter((tagList?: ItemTag[]) => !!tagList)
-//             .map(
-//                 (tagList: ItemTag[]) =>
-//                     '`' +
-//                     (tagList.map((tag: ItemTag): string => PRETTY_TAG_NAMES[tag]).join(', ') ||
-//                         'Untagged') +
-//                     '`'
-//             )
-//             .join(' or ') || '`None`';
-//     const bonuses: string =
-//         (result.bonuses || [])
-//             .map((stat: { name: string; value: string | number }) => {
-//                 if (typeof stat.value === 'string')
-//                     return `${capitalize(stat.name)} +[${stat.value}]`;
-//                 if (stat.value < 0) return `${capitalize(stat.name)} ${stat.value}`;
-//                 return `${capitalize(stat.name)} +${stat.value}`;
-//             })
-//             .join(', ') || 'None';
-//     const attacks: string =
-//         result.attacks
-//             .map(
-//                 (attack: { appearance: string | string[]; description: string }, index: number) =>
-//                     (index + 1).toString() + '. ' + attack.description
-//             )
-//             .join('\n') || 'This pet has no attacks.';
-
-//     // const otherResults = searchHits
-//     //     .slice(1)
-//     //     .map((searchHit) => `[${searchHit._source.title}](${searchHit._source.link})`)
-//     //     .join(', ');
-
-//     let embedBody: string =
-//         `**Tags:** ${tags}\n` +
-//         `**Level:** ${result.level}\n` +
-//         `**Damage:** ${Util.escapeMarkdown(result.damage) || '0-0'}\n` +
-//         `**Element:** ${result.elements.map(capitalize).join(' / ') || 'N/A'}\n` +
-//         `**Bonuses:** ${bonuses}`;
-
-//     if (result.other_level_variants) {
-//         embedBody += `\n**Other Level Variants: ${result.other_level_variants.join(', ')}`;
-//     }
-
-//     return {
-//         url: result.link,
-//         title: result.full_title,
-//         description: embedBody,
-//         image: { url: result.images[0] },
-//         fields: [
-//             { name: 'Attacks', value: attacks },
-//             // { name: 'Similar Results', value: otherResults },
-//         ],
-//     };
-// }
-
 function getFormattedOtherLevelVariants(
     responseBody: any,
     searchResult: { [key: string]: any; full_title: string }
@@ -203,8 +144,6 @@ function formatQueryResponse(responseBody: any): {
     return { message: messageEmbed, noResults: false };
 }
 
-function get
-
 export async function getPetSearchResult(
     term: string,
     maxLevel?: number
@@ -228,16 +167,12 @@ export async function getPetSearchResult(
         levelFilter = { range: { level: { lte: maxLevel } } };
     }
 
-    const postFilters: (typeof levelFilter | typeof variantFilter)[] = [
-        levelFilter,
-        variantFilter,
-    ].filter((filterType) => !!filterType);
-
     term = words.map((word) => WORD_ALIASES[word] || word).join(' ');
 
     query.bool.should = [
         {
             match_phrase: {
+                // Greatly boost exact matches
                 'title.exact': {
                     query: term,
                     boost: 10,
@@ -285,50 +220,135 @@ export async function getPetSearchResult(
                 },
             },
         },
+
+        // Search for family titles, ie other variant names of items within the same family
+        // De-prioritize these results; They should not take predecence over normal matches
+        {
+            match: {
+                'family_titles.forward_autocomplete': {
+                    query: term,
+                    minimum_should_match: '2<75%',
+                    fuzziness: 'AUTO:4,7',
+                    prefix_length: 1,
+                    boost: 0.1,
+                },
+            },
+        },
+        {
+            match: {
+                'family_titles.autocomplete': {
+                    query: term,
+                    minimum_should_match: '2<75%',
+                    fuzziness: 'AUTO:5,8',
+                    prefix_length: 1,
+                    boost: 0.1,
+                },
+            },
+        },
+        {
+            match: {
+                'family_titles.shingles': {
+                    query: term,
+                    minimum_should_match: '2<75%',
+                    fuzziness: 'AUTO:4,7',
+                    prefix_length: 1,
+                    analyzer: 'input_shingle_analyzer',
+                    boost: 0.1,
+                },
+            },
+        },
+        {
+            match: {
+                'family_titles.shingles': {
+                    query: term,
+                    minimum_should_match: '2<75%',
+                    fuzziness: 'AUTO:4,7',
+                    prefix_length: 1,
+                    boost: 0.1,
+                },
+            },
+        },
     ];
 
     const { body: responseBody } = await elasticClient.search({
         index: config.PET_INDEX_NAME,
         body: {
             track_scores: true,
-            size: 1, // Set size to 0 to only return aggregation results and not query results
+            size: 1, // Set size to 1 to return only the top result
             query: {
                 // Filter documents and modify search score based on item level/stats
                 function_score: {
-                    query,
-                    script_score: {
-                        script: {
-                            source: `
-                                def critOrBonus = 0;
-                                for (bonus in params._source.bonuses) {
-                                    if (bonus.name == 'crit') {
-                                        if (bonus.value instanceof int) critOrBonus += bonus.value;
-                                        else critOrBonus += 20;
-                                    } else if (bonus.name == 'bonus') {
-                                        if (bonus.value instanceof int) critOrBonus += bonus.value;
-                                        else critOrBonus += 20;
-                                    }
-                                }
-                                def finalScore = _score + (critOrBonus + doc['level'].value) / 10;
-                                if (doc['scaled_damage'].value) {
-                                    finalScore = _score + (critOrBonus / 10) + ${
-                                        maxLevel ? maxLevel / 10 : 9
-                                    };
-                                }
-
-                                if (params._source.tags_1.contains('rare')) {
-                                    if (params._source.tags_2 !== null && !params._source.tags_2.contains('rare')) {
-                                        return finalScore;
-                                    }
-                                    return 0.8 * finalScore;
-                                }
-                                return finalScore;`,
+                    query: {
+                        function_score: {
+                            query: query,
+                            script_score: {
+                                script: {
+                                    source: `
+                                        def critOrBonus = 0;
+                                        for (bonus in params._source.bonuses) {
+                                            if (bonus.name == 'crit') {
+                                                if (bonus.value instanceof int) critOrBonus += bonus.value;
+                                                else critOrBonus += 20;
+                                            } else if (bonus.name == 'bonus') {
+                                                if (bonus.value instanceof int) critOrBonus += bonus.value;
+                                                else critOrBonus += 20;
+                                            }
+                                        }
+                                        def finalScore = _score + (critOrBonus + doc['level'].value) / 10;
+                                        if (doc['scaled_damage'].value) {
+                                            finalScore = _score + (critOrBonus / 10) + ${
+                                                maxLevel ? maxLevel / 10 : 9
+                                            };
+                                        }
+                                        if (params._source.tags_1.contains('rare')) {
+                                            if (params._source.tags_2 !== null && !params._source.tags_2.contains('rare')) {
+                                                return finalScore;
+                                            }
+                                            return 0.8 * finalScore;
+                                        }
+                                        return finalScore;`,
+                                },
+                            },
+                            boost_mode: 'replace',
                         },
                     },
-                    boost_mode: 'replace',
+                    // Place results on top that match provided level/variant filters
+                    // Prevents mismatches with other_level_variants aggregation after
+                    // post filters are applied
+                    functions: [
+                        ...(levelFilter
+                            ? [
+                                  {
+                                      filter: levelFilter,
+                                      weight: 1000,
+                                  },
+                              ]
+                            : []),
+                        ...(variantFilter
+                            ? [
+                                  {
+                                      filter: variantFilter,
+                                      weight: 1000,
+                                  },
+                              ]
+                            : []),
+                    ],
+                    boost_mode: 'sum',
+                    score_mode: 'sum',
                 },
             },
-            post_filter: postFilters.length ? { bool: { filter: postFilters } } : undefined,
+            // Add level or variant filters as post filters so they do not appear
+            // in search results, but are still usable by aggregations
+            post_filter:
+                levelFilter || variantFilter
+                    ? {
+                          bool: {
+                              filter: [levelFilter, variantFilter].filter(
+                                  (filterType) => !!filterType
+                              ),
+                          },
+                      }
+                    : undefined,
             aggs: {
                 other_level_variants: {
                     terms: {
@@ -390,38 +410,7 @@ export async function getPetSearchResult(
         },
     });
 
-    // const results = responseBody.aggregatios.results.buckets
-    //     .map((bucket: any) => bucket.pet.hits.hits)
-    //     .filter((hits: any) => !!hits.length);
-
-    // if (!result.length) {
-    //     return {
-    //         message: formatResult([]),
-    //         noResults: !results.length,
-    //     };
-    // }
-
-    // const results = responseBody.aggregations.results.buckets
-    //     .map((bucket: any) => bucket.pet.hits.hits)
-    //     .filter((petResults: any[]) => !!petResults.length)
-    //     .map((petResults: any[]) => {
-    //         petResults[0].other_level_variants = petResults
-    //             .slice(1)
-    //             .sort(
-    //                 (
-    //                     pet1: { level: number; [key: string]: any },
-    //                     pet2: { level: number; [key: string]: any }
-    //                 ) => pet2.level - pet1.level
-    //             );
-    //         return petResults[0];
-    //     })
-    //     .filter((result: any) => !!result);
-
     return formatQueryResponse(responseBody);
-    // return {
-    //     message: formatResult([]),
-    //     noResults: ![].length,
-    // };
 }
 
 export async function getRandomPet() {
