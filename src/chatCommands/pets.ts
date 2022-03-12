@@ -13,29 +13,62 @@ const command: ChatCommandData = {
             await channel.send(
                 embed(
                     `Usage: ${config.COMMAND_CHAR}${commandName} \`[name]\` _or_ ` +
-                        `${config.COMMAND_CHAR}${commandName} \`[name]\` / \`[max level]\` - ` +
-                        'Search for a pet with an optional `max level` filter'
+                        `${config.COMMAND_CHAR}${commandName} \`[name]\` \`(operator)\` \`[level]\` - ` +
+                        'Search for a pet with an optional level filter\n' +
+                        '`(operator)` can be one of the following: ' +
+                        '`=`, `<`, `>`, `<=`, `>=`'
                 )
             );
             return;
         }
 
-        const slashPosition: number = searchQuery.lastIndexOf('/');
+        const operatorList: string[] = [
+            '=',
+            '==',
+            '===',
+            '<',
+            '>',
+            '<=',
+            '/',
+            '=<',
+            '>=',
+            '=>',
+        ].sort((a: string, b: string) => b.length - a.length);
+
+        const operatorRegexp: RegExp = new RegExp(
+            operatorList.map((op: string) => `(?:${op})`).join('|')
+        );
+        const operatorMatch: RegExpMatchArray | null = searchQuery.match(operatorRegexp);
         let maxLevel: number | undefined;
-        if (slashPosition > -1) {
-            maxLevel = Number(searchQuery.slice(slashPosition + 1).trim());
-            if (!Number.isInteger(maxLevel)) {
-                await channel.send('The max level must be an integer.');
+        let minLevel: number | undefined;
+        if (operatorMatch) {
+            const usedOperator: string = operatorMatch[0];
+            const inputLevel: number = Number(
+                searchQuery.slice(operatorMatch.index! + usedOperator.length).trim()
+            );
+            if (!Number.isInteger(inputLevel)) {
+                await channel.send(
+                    'Either the number you entered is not a valid integer, or the operator you used is invalid.'
+                );
                 return;
             }
-            searchQuery = searchQuery.slice(0, slashPosition).trim();
+            if (['=', '==', '===', '<', '<=', '=<', '/'].includes(usedOperator)) {
+                maxLevel = inputLevel;
+                if (usedOperator === '<') maxLevel -= 1;
+            }
+            if (['=', '==', '===', '>', '>=', '=>'].includes(usedOperator)) {
+                minLevel = inputLevel;
+                if (usedOperator === '>') minLevel += 1;
+            }
+            searchQuery = searchQuery.slice(0, operatorMatch.index).trim();
         }
+
         if (!searchQuery) {
             await channel.send('The search query cannot be blank');
             return;
         }
         const { message: petSearchResult }: { message: MessageEmbedOptions } =
-            await getPetSearchResult(searchQuery, maxLevel);
+            await getPetSearchResult(searchQuery, maxLevel, minLevel);
 
         await channel.send({ embeds: [petSearchResult] });
     },
