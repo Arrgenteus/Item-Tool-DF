@@ -39,8 +39,8 @@ function getFormattedOtherLevelVariants(
                 searchHit._source
         )
         .filter(
-            ({ full_title }: { level: number; full_title: string }) =>
-                full_title !== searchResult.full_title
+            ({ full_title, level }: { level: number; full_title: string }) =>
+                !(full_title === searchResult.full_title && level === searchResult.level)
         );
     // Get all levels that are repeated more than once
     const repeatedVariantLevels: Set<number> = new Set();
@@ -77,16 +77,32 @@ function formatQueryResponse(responseBody: any): {
     }
 
     const tags: string =
-        [searchResult.tags_1, searchResult.tags_2, searchResult.tags_3]
-            .filter((tagList?: ItemTag[]) => !!tagList)
+        (searchResult.variant_info || [])
             .map(
-                (tagList: ItemTag[]) =>
+                ({ tags: tagList }: { tags: ItemTag[] }) =>
                     '`' +
                     (tagList.map((tag: ItemTag): string => PRETTY_TAG_NAMES[tag]).join(', ') ||
                         'Untagged') +
                     '`'
             )
-            .join(' or ') || '`None`';
+            .join(' or ') || '`Untagged`';
+
+    const moreThanOneLocation: boolean =
+        searchResult.variant_info
+            .map(
+                (variantInfo: { locations: { name: string; link?: string }[] }) =>
+                    variantInfo.locations
+            )
+            .flat().length > 1;
+
+    const locationSet: Set<string> = new Set();
+    for (const variantInfo of searchResult.variant_info || []) {
+        for (const location of variantInfo.locations) {
+            locationSet.add(location.link ? `[${location.name}](${location.link})` : location.name);
+        }
+    }
+    const locations: string = [...locationSet].join(', ') || 'N/A';
+
     const bonuses: string =
         (searchResult.bonuses || [])
             .map((stat: { name: string; value: string | number }) => {
@@ -121,6 +137,7 @@ function formatQueryResponse(responseBody: any): {
 
     let embedBody: string =
         `**Tags:** ${tags}\n` +
+        `**Location${moreThanOneLocation ? 's' : ''}:** ${locations}\n` +
         `**Level:** ${searchResult.level}\n` +
         `**Damage:** ${Util.escapeMarkdown(searchResult.damage) || '0-0'}\n` +
         `**Element:** ${searchResult.elements.map(capitalize).join(' / ') || 'N/A'}\n` +
@@ -153,11 +170,11 @@ export async function getPetSearchResult(
     const romanNumberRegex: RegExp = /^((?:x{0,3})(ix|iv|v?i{0,3}))$/i;
     const words: string[] = term.split(/[ _\\-]+/);
 
-    let variantFilter: { match: { variant: number } } | undefined;
+    let variantFilter: { match: { variant_number: number } } | undefined;
 
     for (const index of [words.length - 1, words.length - 2].filter((i: number) => i > 0)) {
         if (words[index].match(romanNumberRegex)) {
-            variantFilter = { match: { variant: romanIntToInt(words[index]) } };
+            variantFilter = { match: { variant_number: romanIntToInt(words[index]) } };
             words.splice(index, 1);
             break;
         }
@@ -305,10 +322,7 @@ export async function getPetSearchResult(
                                                 maxLevel ? maxLevel / 10 : 9
                                             };
                                         }
-                                        if (params._source.tags_1.contains('rare')) {
-                                            if (params._source.tags_2 !== null && !params._source.tags_2.contains('rare')) {
-                                                return finalScore;
-                                            }
+                                        if (params._source.common_tags.contains('rare')) {
                                             return 0.8 * finalScore;
                                         }
                                         return finalScore;`,
@@ -317,7 +331,7 @@ export async function getPetSearchResult(
                             boost_mode: 'replace',
                         },
                     },
-                    // Place results on top that match provided level/variant filters
+                    // Place on top results that match provided level/variant filters
                     // Prevents mismatches with other_level_variants aggregation after
                     // post filters are applied
                     functions: [
