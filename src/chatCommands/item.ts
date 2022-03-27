@@ -1,12 +1,34 @@
 import { Message, MessageEmbedOptions, TextChannel } from 'discord.js';
 import config from '../config';
 import { ChatCommandData } from '../eventHandlerTypes';
-import { getPetSearchResult } from '../interactionLogic/search/pets';
+import { getItemSearchResult } from '../interactionLogic/search/search';
+import { SearchableItemCategory } from '../interactionLogic/search/types';
+import { unaliasItemType } from '../interactionLogic/search/utils';
 import { embed } from '../utils/misc';
 
+const commandNames: (SearchableItemCategory | 'acc' | 'helmet')[] = [
+    'acc',
+    'accessory',
+    'cape',
+    'helm',
+    'helmet',
+    'belt',
+    'necklace',
+    'ring',
+    'trinket',
+    'bracer',
+    'pet',
+];
+
 const command: ChatCommandData = {
-    names: ['pet', 'pets'],
-    run: async (message: Message, searchQuery: string, commandName: string): Promise<void> => {
+    names: commandNames,
+    run: async (
+        message: Message,
+        searchQuery: string,
+        commandName: SearchableItemCategory | 'acc' | 'helmet'
+    ): Promise<void> => {
+        const searchableItemCategory: SearchableItemCategory = unaliasItemType(commandName);
+
         const channel: TextChannel = message.channel as TextChannel;
 
         if (!searchQuery) {
@@ -14,7 +36,7 @@ const command: ChatCommandData = {
                 embed(
                     `Usage: ${config.COMMAND_CHAR}${commandName} \`[name]\` _or_ ` +
                         `${config.COMMAND_CHAR}${commandName} \`[name]\` \`(operator)\` \`[level]\` - ` +
-                        'Search for a pet with an optional level filter\n' +
+                        `Search for a ${commandName} with an optional level filter\n` +
                         '`(operator)` can be one of the following: ' +
                         '`=`, `<`, `>`, `<=`, `>=`'
                 )
@@ -68,7 +90,7 @@ const command: ChatCommandData = {
             return;
         }
         const { message: petSearchResult }: { message: MessageEmbedOptions } =
-            await getPetSearchResult(searchQuery, maxLevel, minLevel);
+            await getItemSearchResult(searchQuery, searchableItemCategory, maxLevel, minLevel);
 
         await channel.send({ embeds: [petSearchResult] });
     },

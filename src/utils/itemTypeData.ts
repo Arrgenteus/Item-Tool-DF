@@ -44,7 +44,20 @@ export const ALL_ITEM_TYPES: Set<ItemType> = new Set([
     'bracer',
 ]);
 
-const WeaponTypes = {
+export const ACCESSORY_TYPES = {
+    cape: 1,
+    wings: 1,
+    helm: 1,
+    belt: 1,
+    necklace: 1,
+    ring: 1,
+    trinket: 1,
+    bracer: 1,
+};
+
+export type AccessoryType = keyof typeof ACCESSORY_TYPES;
+
+export const WEAPON_TYPES = {
     sword: 1,
     axe: 1,
     mace: 1,
@@ -54,7 +67,7 @@ const WeaponTypes = {
     scythe: 1,
 };
 
-export type WeaponType = keyof typeof WeaponTypes;
+export type WeaponType = keyof typeof WEAPON_TYPES;
 
 const BonusTypes = {
     block: 1,
