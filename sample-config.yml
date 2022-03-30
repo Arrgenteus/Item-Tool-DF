@@ -17,6 +17,7 @@ ELASTIC_URL: 'https://localhost:9200'
 ELASTIC_USER: 'username'
 ELASTIC_PASS: 'password'
 PET_INDEX_NAME: 'dragonfable-pets'
+ACCESSORY_INDEX_NAME: 'dragonfable-accessories'
 
 # The ID to be pinged in case an error occurs
 DEV_ID: ''
