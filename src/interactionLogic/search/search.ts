@@ -1,8 +1,7 @@
 import { MessageEmbedOptions } from 'discord.js';
 import { elasticClient } from '../../dbConnection';
-import { ACCESSORY_TYPES } from '../../utils/itemTypeData';
 import { SearchableItemCategory } from './types';
-import { formatQueryResponse, getIndexName, romanIntToInt } from './utils';
+import { formatQueryResponse, getIndexNameAndCategoryFilterQuery, romanIntToInt } from './utils';
 
 const PET_ALIASES: { [word: string]: string } = {
     tfs: 'rare pet tog',
@@ -66,8 +65,11 @@ export async function getItemSearchResult(
     const query: { [key: string]: any } = { bool: { minimum_should_match: 1 } };
 
     // Narrow search based on specific item type
-    if (itemSearchCategory in ACCESSORY_TYPES) {
-        query.bool.filter = { match: { item_type: itemSearchCategory } };
+    const { index: itemIndex, query: itemCategoryFilterQuery } =
+        getIndexNameAndCategoryFilterQuery(itemSearchCategory);
+
+    if (itemCategoryFilterQuery) {
+        query.bool.filter = itemCategoryFilterQuery;
     }
 
     const { unaliasedTerm, variantNumber } = getVariantAndUnaliasTerm(term, itemSearchCategory);
@@ -101,17 +103,17 @@ export async function getItemSearchResult(
                 },
             },
         },
-        {
-            match: {
-                'title.forward_autocomplete': {
-                    query: unaliasedTerm,
-                    minimum_should_match: minimumShouldMatch,
-                    fuzziness: defaultFuzziness,
-                    prefix_length: 1,
-                    boost: 0.25,
-                },
-            },
-        },
+        // {
+        //     match: {
+        //         'title.forward_autocomplete': {
+        //             query: unaliasedTerm,
+        //             minimum_should_match: minimumShouldMatch,
+        //             fuzziness: defaultFuzziness,
+        //             prefix_length: 1,
+        //             boost: 0.25,
+        //         },
+        //     },
+        // },
         {
             match: {
                 'title.autocomplete': {
@@ -119,7 +121,17 @@ export async function getItemSearchResult(
                     minimum_should_match: minimumShouldMatch,
                     fuzziness: isPet ? 'AUTO:5,8' : 'AUTO:4,7',
                     prefix_length: 1,
-                    boost: 1.5,
+                },
+            },
+        },
+        {
+            match: {
+                'title.words': {
+                    query: unaliasedTerm,
+                    minimum_should_match: isPet ? '3<75%' : '4<80%',
+                    fuzziness: defaultFuzziness,
+                    prefix_length: 1,
+                    boost: 2,
                 },
             },
         },
@@ -131,6 +143,7 @@ export async function getItemSearchResult(
                     fuzziness: defaultFuzziness,
                     prefix_length: 1,
                     analyzer: 'input_shingle_analyzer',
+                    boost: 1.5,
                 },
             },
         },
@@ -155,7 +168,7 @@ export async function getItemSearchResult(
                     minimum_should_match: minimumShouldMatch,
                     fuzziness: defaultFuzziness,
                     prefix_length: 1,
-                    boost: 0.1,
+                    boost: 0.05,
                 },
             },
         },
@@ -166,7 +179,18 @@ export async function getItemSearchResult(
                     minimum_should_match: minimumShouldMatch,
                     fuzziness: isPet ? 'AUTO:5,8' : 'AUTO:4,7',
                     prefix_length: 1,
-                    boost: 0.1,
+                    boost: 0.05,
+                },
+            },
+        },
+        {
+            match: {
+                'family_titles.words': {
+                    query: unaliasedTerm,
+                    minimum_should_match: minimumShouldMatch,
+                    fuzziness: defaultFuzziness,
+                    prefix_length: 1,
+                    boost: 0.05,
                 },
             },
         },
@@ -178,7 +202,7 @@ export async function getItemSearchResult(
                     fuzziness: defaultFuzziness,
                     prefix_length: 1,
                     analyzer: 'input_shingle_analyzer',
-                    boost: 0.1,
+                    boost: 0.05,
                 },
             },
         },
@@ -189,7 +213,7 @@ export async function getItemSearchResult(
                     minimum_should_match: isPet ? '3<75%' : '4<80%',
                     fuzziness: defaultFuzziness,
                     prefix_length: 1,
-                    boost: 0.1,
+                    boost: 0.05,
                 },
             },
         },
@@ -216,23 +240,36 @@ export async function getItemSearchResult(
         return finalScore;`;
 
     const itemScoringScript: string = `
-        def statTotal = 0;
+        def bonusTotal = 0;
         for (bonus in params._source.bonuses) {
             if (bonus.value > 0) {
-                statTotal += bonus.value;
-            }
-        }
-        for (resist in params._source.resists) {
-            if (resist.name == 'health') {
-                if (resist.value < 0) {
-                    statTotal += -resist.value;
-                }
-            } else if (resist.value > 0) {
-                statTotal += resist.value;
+                bonusTotal += bonus.value;
             }
         }
 
-        def finalScore = _score + statTotal / 10;
+        def resistAverage = 0;
+        def allResist = 0;
+        def resistCount = params._source.resists.length;
+        for (resist in params._source.resists) {
+            if (resist.name == 'health') {
+                if (resist.value < 0) {
+                    resistAverage += -resist.value / params._source.resists.length;
+                }
+            } else if (resist.value > 0) {
+                if (resist.name == 'all') {
+                    allResist = resist.value;
+                    resistCount -= 1;
+                } else {
+                    resistAverage += resist.value;
+                }
+            }
+        }
+        if (resistCount > 0) {
+            resistAverage /= resistCount;
+        }
+        resistAverage += allResist;
+
+        def finalScore = _score + bonusTotal / 10 + resistAverage;
         if (params._source.common_tags.contains('rare')) {
             finalScore = 0.8 * finalScore;
         }
@@ -245,10 +282,10 @@ export async function getItemSearchResult(
         return finalScore;`;
 
     const { body: responseBody } = await elasticClient.search({
-        index: getIndexName(itemSearchCategory),
+        index: itemIndex,
         body: {
             track_scores: true,
-            size: 1, // Set size to 1 to return only the top result
+            size: 3, // Set size to 1 to return only the top result
             query: {
                 // Filter documents and modify search score based on item level/stats
                 function_score: {
@@ -257,7 +294,8 @@ export async function getItemSearchResult(
                             query: query,
                             script_score: {
                                 script: {
-                                    source: isPet ? petScoringScript : itemScoringScript,
+                                    // source: isPet ? petScoringScript : itemScoringScript,
+                                    source: 'return _score',
                                 },
                             },
                             boost_mode: 'replace',
@@ -283,7 +321,16 @@ export async function getItemSearchResult(
                                   },
                               ]
                             : []),
-                        { filter: { match: { item_type: 'trinket' } }, weight: 50 },
+                        // If the user is searching for wings, prioritize wings over capes and vice versa
+                        ...(itemSearchCategory === 'wings'
+                            ? [
+                                  {
+                                      filter: { term: { item_type: 'wings' } },
+                                      weight: 1000,
+                                  },
+                              ]
+                            : []),
+                        { filter: { term: { item_type: 'trinket' } }, weight: 20 },
                     ],
                     boost_mode: 'sum',
                     score_mode: 'sum',
@@ -314,9 +361,9 @@ export async function getItemSearchResult(
                     aggs: {
                         items: {
                             top_hits: {
-                                _source: { includes: ['level', 'full_title'] },
+                                _source: { includes: ['level', 'full_title', 'title'] },
                                 sort: [{ level: { order: 'asc' } }, { _score: { order: 'asc' } }],
-                                size: 30,
+                                size: 40,
                             },
                         },
                         max_score: {
@@ -361,6 +408,8 @@ export async function getItemSearchResult(
             },
         },
     });
+
+    console.log(responseBody.hits.hits);
 
     return formatQueryResponse(responseBody, itemSearchCategory);
 }

@@ -1,7 +1,11 @@
 import { Message, MessageEmbedOptions, TextChannel } from 'discord.js';
 import { ChatCommandData } from '../eventHandlerTypes';
 import { getRandomItem } from '../interactionLogic/search/random';
-import { SearchableItemCategory } from '../interactionLogic/search/types';
+import {
+    SearchableItemCategory,
+    SearchableItemCategoryAlias,
+} from '../interactionLogic/search/types';
+import { unaliasItemType } from '../interactionLogic/search/utils';
 import { ACCESSORY_TYPES } from '../utils/itemTypeData';
 
 const command: ChatCommandData = {
@@ -25,16 +29,15 @@ const command: ChatCommandData = {
         'randombracer',
         'random-bracer',
     ],
-    run: async (message: Message, commandName: string): Promise<void> => {
+    run: async (message: Message, args: string, commandName: string): Promise<void> => {
         const channel: TextChannel = message.channel as TextChannel;
 
-        const itemTypeInput: string = commandName.replace(/random\-?/, '');
-        let itemType: SearchableItemCategory | undefined;
-        if (itemTypeInput in ACCESSORY_TYPES || itemTypeInput === 'pet') {
-            itemType = itemTypeInput as SearchableItemCategory;
-        } else {
-            itemType = 'accessory';
-        }
+        const itemTypeInput: SearchableItemCategory | SearchableItemCategoryAlias =
+            commandName.replace(/random\-?/, '') as
+                | SearchableItemCategory
+                | SearchableItemCategoryAlias;
+
+        const itemType: SearchableItemCategory = unaliasItemType(itemTypeInput);
 
         const { message: randomPetSearchResult }: { message: MessageEmbedOptions } =
             await getRandomItem(itemType);

@@ -2,18 +2,25 @@ import { Message, MessageEmbedOptions, TextChannel } from 'discord.js';
 import config from '../config';
 import { ChatCommandData } from '../eventHandlerTypes';
 import { getItemSearchResult } from '../interactionLogic/search/search';
-import { SearchableItemCategory } from '../interactionLogic/search/types';
+import {
+    SearchableItemCategory,
+    SearchableItemCategoryAlias,
+} from '../interactionLogic/search/types';
 import { unaliasItemType } from '../interactionLogic/search/utils';
 import { embed } from '../utils/misc';
 
-const commandNames: (SearchableItemCategory | 'acc' | 'helmet')[] = [
+const commandNames: (SearchableItemCategory | SearchableItemCategoryAlias)[] = [
     'acc',
     'accessory',
     'cape',
+    'cloak',
+    'wings',
+    'wing',
     'helm',
     'helmet',
     'belt',
     'necklace',
+    'neck',
     'ring',
     'trinket',
     'bracer',
@@ -25,7 +32,7 @@ const command: ChatCommandData = {
     run: async (
         message: Message,
         searchQuery: string,
-        commandName: SearchableItemCategory | 'acc' | 'helmet'
+        commandName: SearchableItemCategory | SearchableItemCategoryAlias
     ): Promise<void> => {
         const searchableItemCategory: SearchableItemCategory = unaliasItemType(commandName);
 
@@ -36,7 +43,7 @@ const command: ChatCommandData = {
                 embed(
                     `Usage: ${config.COMMAND_CHAR}${commandName} \`[name]\` _or_ ` +
                         `${config.COMMAND_CHAR}${commandName} \`[name]\` \`(operator)\` \`[level]\` - ` +
-                        `Search for a ${commandName} with an optional level filter\n` +
+                        `Search for a ${searchableItemCategory} with an optional level filter\n` +
                         '`(operator)` can be one of the following: ' +
                         '`=`, `<`, `>`, `<=`, `>=`'
                 )

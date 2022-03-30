@@ -1,28 +1,40 @@
 import { EmbedFieldData, MessageEmbedOptions, Util } from 'discord.js';
 import config from '../../config';
 import { ACCESSORY_TYPES, ItemTag, PRETTY_TAG_NAMES } from '../../utils/itemTypeData';
-import { capitalize, embed } from '../../utils/misc';
-import { Location, PetAttack, SearchableItemCategory, Stat } from './types';
+import { capitalize } from '../../utils/misc';
+import {
+    categoryAliasMapping,
+    Location,
+    PetAttack,
+    SearchableItemCategory,
+    SearchableItemCategoryAlias,
+    SearchableItemCategoryFilter,
+    Stat,
+} from './types';
 
-export function getIndexName(searchableItemCategory: SearchableItemCategory): string | string[] {
-    let indexName: string | string[] = [config.ACCESSORY_INDEX_NAME];
-    if (searchableItemCategory === 'pet') {
-        indexName = config.PET_INDEX_NAME;
+export function getIndexNameAndCategoryFilterQuery(itemSearchCategory: SearchableItemCategory): {
+    index: string[];
+    query: SearchableItemCategoryFilter | undefined;
+} {
+    let index: string[] = [config.ACCESSORY_INDEX_NAME];
+    if (itemSearchCategory === 'pet') {
+        index = [config.PET_INDEX_NAME];
     }
-    return indexName;
+
+    if (itemSearchCategory in ACCESSORY_TYPES) {
+        if (itemSearchCategory in { cape: 1, wings: 1 }) {
+            return { index, query: { terms: { item_type: ['cape', 'wings'] } } };
+        }
+        return { index, query: { terms: { item_type: [itemSearchCategory] } } };
+    }
+
+    return { index, query: undefined };
 }
 
 export function unaliasItemType(
-    commandName: SearchableItemCategory | 'acc' | 'helmet' | 'weap' | 'wep' | 'neck'
+    commandName: SearchableItemCategory | SearchableItemCategoryAlias
 ): SearchableItemCategory {
-    const aliasMapping: { [key: string]: SearchableItemCategory } = {
-        acc: 'accessory',
-        helmet: 'helm',
-        wep: 'weapon',
-        weap: 'weapon',
-        neck: 'necklace',
-    };
-    return aliasMapping[commandName] ?? commandName;
+    return categoryAliasMapping[commandName as SearchableItemCategoryAlias] ?? commandName;
 }
 
 export function romanIntToInt(romanInt: string) {
@@ -47,12 +59,14 @@ function getFormattedOtherLevelVariants(
     searchResult: { [key: string]: any; full_title: string }
 ): string {
     // Get the source document of every other level variant and filter out the main result
-    const otherLevelVariantList: { level: number; full_title: string }[] = (
+    const otherLevelVariantList: { level: number; full_title: string; title: string }[] = (
         responseBody.aggregations?.other_level_variants?.buckets[0]?.items?.hits?.hits || []
     )
         .map(
-            (searchHit: { [key: string]: any; _source: { level: number; full_title: string } }) =>
-                searchHit._source
+            (searchHit: {
+                [key: string]: any;
+                _source: { level: number; full_title: string; title: string };
+            }) => searchHit._source
         )
         .filter(
             ({ full_title, level }: { level: number; full_title: string }) =>
@@ -69,13 +83,15 @@ function getFormattedOtherLevelVariants(
     }
 
     return otherLevelVariantList
-        .map(({ level, full_title }: { level: number; full_title: string }) =>
+        .map(({ level, full_title, title }: { level: number; full_title: string; title: string }) =>
             // To differentiate variants, display the item name next to the level if
             // there are multiple variants at the same level, or if the variant is
             // at the same level as the main result
-            level === searchResult.level || repeatedVariantLevels.has(level)
-                ? `${level} _(${full_title})_`
-                : level.toString()
+            level === searchResult.level ||
+            repeatedVariantLevels.has(level) ||
+            title !== searchResult.title
+                ? `\`${level}\` _(${full_title})_`
+                : '`' + level + '`'
         )
         .join(', ');
 }
@@ -176,9 +192,7 @@ export function formatQueryResponse(
     } else {
         embedBody =
             `**Tags:** ${tags}\n` +
-            `**Location${locations.length > 1 ? 's' : ''}:** ${
-                (locations || []).join(', ') || 'N/A'
-            }\n` +
+            `**Location${locations.length > 1 ? 's' : ''}:** ${locations.join(', ') || 'N/A'}\n` +
             `**Level:** ${searchResult.level}\n` +
             `**Type:** ${capitalize(searchResult.item_type)}`;
 
@@ -238,7 +252,8 @@ export function formatQueryResponse(
             name: 'Other Appearances',
             value: searchResult.images
                 .slice(1)
-                .map((imageUrl: string, index: number) => `[Appearance ${index + 1}]${imageUrl}`),
+                .map((imageUrl: string, index: number) => `[Appearance ${index + 2}](${imageUrl})`)
+                .join(', '),
         });
     }
 
