@@ -24,12 +24,15 @@ const ACCESSORY_ALIASES: { [word: string]: string } = {
     fdl: 'fierce dragonlord',
     dlc: 'dragonlord captain',
     gt: 'grove tender',
+    ngt: 'neo grove tender',
     nstb: 'not so tiny bubbles',
     pdl: "dragon's patience",
     rdl: "dragon's rage",
     bdl: "dragon's bulwark",
     wdl: "dragon's wrath",
     sf: 'soulforged',
+    ttv: 'tytanvisage',
+    df: 'dragonfable',
 };
 
 function getVariantAndUnaliasTerm(
@@ -103,17 +106,17 @@ export async function getItemSearchResult(
                 },
             },
         },
-        // {
-        //     match: {
-        //         'title.forward_autocomplete': {
-        //             query: unaliasedTerm,
-        //             minimum_should_match: minimumShouldMatch,
-        //             fuzziness: defaultFuzziness,
-        //             prefix_length: 1,
-        //             boost: 0.25,
-        //         },
-        //     },
-        // },
+        {
+            match: {
+                'title.forward_autocomplete': {
+                    query: unaliasedTerm,
+                    minimum_should_match: minimumShouldMatch,
+                    fuzziness: defaultFuzziness,
+                    prefix_length: 1,
+                    boost: 0.2,
+                },
+            },
+        },
         {
             match: {
                 'title.autocomplete': {
@@ -121,6 +124,18 @@ export async function getItemSearchResult(
                     minimum_should_match: minimumShouldMatch,
                     fuzziness: isPet ? 'AUTO:5,8' : 'AUTO:4,7',
                     prefix_length: 1,
+                    boost: 0.5,
+                },
+            },
+        },
+        {
+            match: {
+                'title.autocomplete': {
+                    query: unaliasedTerm,
+                    minimum_should_match: '100%',
+                    fuzziness: isPet ? 'AUTO:5,8' : 'AUTO:4,7',
+                    prefix_length: 1,
+                    boost: 0.5,
                 },
             },
         },
@@ -131,7 +146,7 @@ export async function getItemSearchResult(
                     minimum_should_match: isPet ? '3<75%' : '4<80%',
                     fuzziness: defaultFuzziness,
                     prefix_length: 1,
-                    boost: 2,
+                    boost: isPet ? 2 : 4,
                 },
             },
         },
@@ -151,7 +166,7 @@ export async function getItemSearchResult(
             match: {
                 'title.shingles': {
                     query: unaliasedTerm,
-                    minimum_should_match: isPet ? '3<75%' : '4<80%',
+                    minimum_should_match: minimumShouldMatch,
                     fuzziness: defaultFuzziness,
                     prefix_length: 1,
                     boost: 0.5,
@@ -185,9 +200,20 @@ export async function getItemSearchResult(
         },
         {
             match: {
+                'family_titles.autocomplete': {
+                    query: unaliasedTerm,
+                    minimum_should_match: '100%',
+                    fuzziness: isPet ? 'AUTO:5,8' : 'AUTO:4,7',
+                    prefix_length: 1,
+                    boost: 0.05,
+                },
+            },
+        },
+        {
+            match: {
                 'family_titles.words': {
                     query: unaliasedTerm,
-                    minimum_should_match: minimumShouldMatch,
+                    minimum_should_match: isPet ? '3<75%' : '4<80%',
                     fuzziness: defaultFuzziness,
                     prefix_length: 1,
                     boost: 0.05,
@@ -210,7 +236,7 @@ export async function getItemSearchResult(
             match: {
                 'family_titles.shingles': {
                     query: unaliasedTerm,
-                    minimum_should_match: isPet ? '3<75%' : '4<80%',
+                    minimum_should_match: minimumShouldMatch,
                     fuzziness: defaultFuzziness,
                     prefix_length: 1,
                     boost: 0.05,
@@ -285,7 +311,7 @@ export async function getItemSearchResult(
         index: itemIndex,
         body: {
             track_scores: true,
-            size: 3, // Set size to 1 to return only the top result
+            size: 1, // Set size to 1 to return only the top result
             query: {
                 // Filter documents and modify search score based on item level/stats
                 function_score: {
@@ -294,8 +320,7 @@ export async function getItemSearchResult(
                             query: query,
                             script_score: {
                                 script: {
-                                    // source: isPet ? petScoringScript : itemScoringScript,
-                                    source: 'return _score',
+                                    source: isPet ? petScoringScript : itemScoringScript,
                                 },
                             },
                             boost_mode: 'replace',
@@ -330,7 +355,7 @@ export async function getItemSearchResult(
                                   },
                               ]
                             : []),
-                        { filter: { term: { item_type: 'trinket' } }, weight: 20 },
+                        { filter: { exists: { field: 'trinket_skill' } }, weight: 30 },
                     ],
                     boost_mode: 'sum',
                     score_mode: 'sum',
@@ -408,8 +433,6 @@ export async function getItemSearchResult(
             },
         },
     });
-
-    console.log(responseBody.hits.hits);
 
     return formatQueryResponse(responseBody, itemSearchCategory);
 }

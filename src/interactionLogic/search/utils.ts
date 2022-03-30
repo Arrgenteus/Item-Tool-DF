@@ -146,9 +146,6 @@ export function formatQueryResponse(
         };
     }
 
-    // Use only first title if there are multiple
-    if (searchResult.title instanceof Array) searchResult.title = searchResult.title[0];
-
     const tags: string =
         (searchResult.variant_info || [])
             .map(
@@ -221,7 +218,7 @@ export function formatQueryResponse(
 
         if (searchResult.trinket_skill) {
             embedFields.push({
-                name: 'Trinket Skill',
+                name: `Trinket Skill`,
                 value:
                     `**Effect:** ${Util.escapeMarkdown(searchResult.trinket_skill.effect)}\n` +
                     `**Mana Cost:** ${searchResult.trinket_skill.mana_cost}\n` +

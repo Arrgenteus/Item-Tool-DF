@@ -53,7 +53,7 @@ function createSearchSlashCommand(commandName: SearchableItemCategory | 'acc'): 
 }
 
 const categories: (SearchableItemCategory | 'acc')[] = [
-    'accessory',
+    'acc',
     'cape',
     'helm',
     'belt',
