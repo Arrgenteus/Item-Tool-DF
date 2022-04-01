@@ -54,7 +54,9 @@ function getVariantAndUnaliasTerm(
     let aliasDict = ACCESSORY_ALIASES;
     if (itemSearchCategory === 'pet') aliasDict = PET_ALIASES;
 
-    const unaliasedTerm: string = words.map((word: string) => aliasDict[word] || word).join(' ');
+    const unaliasedTerm: string = words
+        .map((word: string) => aliasDict[word.toLowerCase()] || word)
+        .join(' ');
 
     return { unaliasedTerm, variantNumber };
 }
