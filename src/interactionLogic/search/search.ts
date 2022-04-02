@@ -150,7 +150,7 @@ export async function getItemSearchResult(
                     minimum_should_match: '100%',
                     fuzziness: isPet ? 'AUTO:5,8' : 'AUTO:5,7',
                     prefix_length: 1,
-                    boost: 1,
+                    boost: 0.5,
                 },
             },
         },
@@ -400,8 +400,8 @@ export async function getItemSearchResult(
         index: itemIndex,
         body: {
             track_scores: true,
-            size: 3, // Set size to 1 to return only the top result
-            sort: ['_score', { 'title.keyword': 'asc' }],
+            size: 5, // Set size to 1 to return only the top result
+            sort: ['_score', { 'full_title.keyword': 'asc' }],
             query: {
                 // Filter documents and modify search score based on item level/stats
                 function_score: {
