@@ -35,10 +35,10 @@ const ACCESSORY_ALIASES: { [word: string]: string } = {
     df: 'dragonfable',
 };
 
-function getVariantAndUnaliasTerm(
+function getVariantAndUnaliasTokens(
     searchTerm: string,
     itemSearchCategory: SearchableItemCategory
-): { unaliasedTerm: string; variantNumber?: number } {
+): { unaliasedTokens: string[]; variantNumber?: number } {
     const words: string[] = searchTerm.split(/[ _\\-]+/);
 
     const romanNumberRegex: RegExp = /^((?:x{0,3})(ix|iv|v?i{0,3}))$/i;
@@ -54,11 +54,157 @@ function getVariantAndUnaliasTerm(
     let aliasDict = ACCESSORY_ALIASES;
     if (itemSearchCategory === 'pet') aliasDict = PET_ALIASES;
 
-    const unaliasedTerm: string = words
-        .map((word: string) => aliasDict[word.toLowerCase()] || word)
-        .join(' ');
+    const unaliasedTokens: string[] = words.map(
+        (word: string) => aliasDict[word.toLowerCase()] || word
+    );
+    return { unaliasedTokens, variantNumber };
+}
 
-    return { unaliasedTerm, variantNumber };
+function getMatchQueryBody(
+    tokens: string[],
+    itemSearchCategory: SearchableItemCategory,
+    familyTitles: boolean = false
+) {
+    const isPet = itemSearchCategory === 'pet';
+    const term = tokens.join(' ');
+
+    const minimumShouldMatch: string = isPet ? '2<75%' : '3<75%';
+    const defaultFuzziness: string = isPet ? 'AUTO:4,7' : 'AUTO:4,6';
+
+    // De-prioritize family title results; They should not take predecence over normal matches
+    const scoreMultiplier = familyTitles ? 0.001 : 1;
+    const fieldName = familyTitles ? 'family_titles' : 'title';
+
+    return [
+        {
+            match_phrase: {
+                // Greatly boost exact matches
+                [`${fieldName}.exact`]: {
+                    query: term,
+                    boost: 10 * scoreMultiplier,
+                },
+            },
+        },
+        {
+            match: {
+                [`${fieldName}.exact`]: {
+                    query: term,
+                    prefix_length: 1,
+                    minimum_should_match: '100%',
+                    analyzer: 'exact',
+                    fuzziness: 'AUTO:8,9999',
+                    boost: 2 * scoreMultiplier,
+                },
+            },
+        },
+        {
+            match: {
+                [`${fieldName}.exact`]: {
+                    query: term,
+                    prefix_length: 1,
+                    minimum_should_match: '100%',
+                    analyzer: 'exact',
+                    fuzziness: 'AUTO:8,10',
+                    boost: 1 * scoreMultiplier,
+                },
+            },
+        },
+        {
+            match: {
+                [`${fieldName}.forward_autocomplete`]: {
+                    query: term,
+                    minimum_should_match: minimumShouldMatch,
+                    fuzziness: isPet ? 'AUTO:5,8' : 'AUTO:5,7',
+                    prefix_length: 1,
+                    boost: 0.05 * scoreMultiplier,
+                },
+            },
+        },
+        {
+            match: {
+                [`${fieldName}.forward_autocomplete`]: {
+                    query: term,
+                    minimum_should_match: '100%',
+                    fuzziness: isPet ? 'AUTO:5,8' : 'AUTO:5,7',
+                    prefix_length: 1,
+                    boost: 0.5 * scoreMultiplier,
+                },
+            },
+        },
+        ...(tokens.length > 1
+            ? [
+                  {
+                      match: {
+                          'title.words': {
+                              query: term,
+                              minimum_should_match: minimumShouldMatch,
+                              fuzziness: defaultFuzziness,
+                              prefix_length: 1,
+                              boost: 0.01 * scoreMultiplier,
+                          },
+                      },
+                  },
+                  {
+                      match: {
+                          [`${fieldName}.words`]: {
+                              query: term,
+                              minimum_should_match: '100%',
+                              fuzziness: defaultFuzziness,
+                              prefix_length: 1,
+                              boost: 0.5 * scoreMultiplier,
+                          },
+                      },
+                  },
+                  {
+                      match: {
+                          [`${fieldName}.shingles`]: {
+                              query: term,
+                              minimum_should_match: '100%',
+                              fuzziness: 'AUTO:8,10',
+                              prefix_length: 1,
+                              analyzer: 'exact',
+                              boost: 1 * scoreMultiplier,
+                          },
+                      },
+                  },
+                  {
+                      match: {
+                          [`${fieldName}.forward_autocomplete`]: {
+                              query: term,
+                              minimum_should_match: '100%',
+                              analyzer: 'exact',
+                              boost: 0.5 * scoreMultiplier,
+                          },
+                      },
+                  },
+              ]
+            : []),
+        {
+            match: {
+                [`${fieldName}.shingles`]: {
+                    query: term,
+                    minimum_should_match: minimumShouldMatch,
+                    fuzziness: 'AUTO:7,9',
+                    prefix_length: 1,
+                    analyzer: 'input_shingle_analyzer',
+                    boost: 0.05 * scoreMultiplier,
+                },
+            },
+        },
+
+        // match words that are joined together in the input, but are separate tokens in the document
+        {
+            match: {
+                [`${fieldName}.shingles`]: {
+                    query: term,
+                    minimum_should_match: minimumShouldMatch,
+                    fuzziness: 'AUTO:7,9',
+                    prefix_length: 1,
+                    boost: 0.01 * scoreMultiplier,
+                },
+            },
+        },
+    ];
 }
 
 export async function getItemSearchResult(
@@ -77,7 +223,7 @@ export async function getItemSearchResult(
         query.bool.filter = itemCategoryFilterQuery;
     }
 
-    const { unaliasedTerm, variantNumber } = getVariantAndUnaliasTerm(term, itemSearchCategory);
+    const { unaliasedTokens, variantNumber } = getVariantAndUnaliasTokens(term, itemSearchCategory);
 
     let variantFilter: { match: { variant_number: number } } | undefined;
     if (variantNumber) {
@@ -95,157 +241,11 @@ export async function getItemSearchResult(
 
     const isPet = itemSearchCategory === 'pet';
 
-    const minimumShouldMatch: string = isPet ? '2<75%' : '3<75%';
-    const defaultFuzziness: string = isPet ? 'AUTO:4,7' : 'AUTO:4,6';
-
-    query.bool.should = [
-        {
-            match_phrase: {
-                // Greatly boost exact matches
-                'title.exact': {
-                    query: unaliasedTerm,
-                    boost: 10,
-                },
-            },
-        },
-        {
-            match: {
-                'title.forward_autocomplete': {
-                    query: unaliasedTerm,
-                    minimum_should_match: minimumShouldMatch,
-                    fuzziness: defaultFuzziness,
-                    prefix_length: 1,
-                    boost: 0.2,
-                },
-            },
-        },
-        {
-            match: {
-                'title.autocomplete': {
-                    query: unaliasedTerm,
-                    minimum_should_match: minimumShouldMatch,
-                    fuzziness: isPet ? 'AUTO:5,8' : 'AUTO:4,7',
-                    prefix_length: 1,
-                    boost: 0.5,
-                },
-            },
-        },
-        {
-            match: {
-                'title.autocomplete': {
-                    query: unaliasedTerm,
-                    minimum_should_match: '100%',
-                    fuzziness: isPet ? 'AUTO:5,8' : 'AUTO:4,7',
-                    prefix_length: 1,
-                    boost: 0.5,
-                },
-            },
-        },
-        {
-            match: {
-                'title.words': {
-                    query: unaliasedTerm,
-                    minimum_should_match: isPet ? '3<75%' : '4<80%',
-                    fuzziness: defaultFuzziness,
-                    prefix_length: 1,
-                    boost: isPet ? 2 : 4,
-                },
-            },
-        },
-        {
-            match: {
-                'title.shingles': {
-                    query: unaliasedTerm,
-                    minimum_should_match: minimumShouldMatch,
-                    fuzziness: 'AUTO:6,8',
-                    prefix_length: 1,
-                    analyzer: 'input_shingle_analyzer',
-                    boost: 1.5,
-                },
-            },
-        },
-        {
-            match: {
-                'title.shingles': {
-                    query: unaliasedTerm,
-                    minimum_should_match: minimumShouldMatch,
-                    fuzziness: 'AUTO:6,8',
-                    prefix_length: 1,
-                    boost: 0.5,
-                },
-            },
-        },
-
+    // match words that are joined together in the input, but are separate tokens in the document
+    query.bool.should = getMatchQueryBody(unaliasedTokens, itemSearchCategory).concat(
         // Search for family titles, ie other variant names of items within the same family
-        // De-prioritize these results; They should not take predecence over normal matches
-        {
-            match: {
-                'family_titles.forward_autocomplete': {
-                    query: unaliasedTerm,
-                    minimum_should_match: minimumShouldMatch,
-                    fuzziness: defaultFuzziness,
-                    prefix_length: 1,
-                    boost: 0.05,
-                },
-            },
-        },
-        {
-            match: {
-                'family_titles.autocomplete': {
-                    query: unaliasedTerm,
-                    minimum_should_match: minimumShouldMatch,
-                    fuzziness: isPet ? 'AUTO:5,8' : 'AUTO:4,7',
-                    prefix_length: 1,
-                    boost: 0.05,
-                },
-            },
-        },
-        {
-            match: {
-                'family_titles.autocomplete': {
-                    query: unaliasedTerm,
-                    minimum_should_match: '100%',
-                    fuzziness: isPet ? 'AUTO:5,8' : 'AUTO:4,7',
-                    prefix_length: 1,
-                    boost: 0.05,
-                },
-            },
-        },
-        {
-            match: {
-                'family_titles.words': {
-                    query: unaliasedTerm,
-                    minimum_should_match: isPet ? '3<75%' : '4<80%',
-                    fuzziness: defaultFuzziness,
-                    prefix_length: 1,
-                    boost: 0.05,
-                },
-            },
-        },
-        {
-            match: {
-                'family_titles.shingles': {
-                    query: unaliasedTerm,
-                    minimum_should_match: minimumShouldMatch,
-                    fuzziness: 'AUTO:6,8',
-                    prefix_length: 1,
-                    analyzer: 'input_shingle_analyzer',
-                    boost: 0.05,
-                },
-            },
-        },
-        {
-            match: {
-                'family_titles.shingles': {
-                    query: unaliasedTerm,
-                    minimum_should_match: minimumShouldMatch,
-                    fuzziness: 'AUTO:6,8',
-                    prefix_length: 1,
-                    boost: 0.05,
-                },
-            },
-        },
-    ];
+        getMatchQueryBody(unaliasedTokens, itemSearchCategory, true)
+    );
 
     const petScoringScript: string = `
         def critOrBonus = 0;
@@ -275,29 +275,26 @@ export async function getItemSearchResult(
             }
         }
 
-        def resistAverage = 0;
+        def resistTotal = 0;
         def allResist = 0;
-        def resistCount = params._source.resists.length;
         for (resist in params._source.resists) {
+            if (resist.value > 50) {
+                continue;
+            }
             if (resist.name == 'health') {
                 if (resist.value < 0) {
-                    resistAverage += -resist.value / params._source.resists.length;
+                    resistTotal += -resist.value;
                 }
             } else if (resist.value > 0) {
                 if (resist.name == 'all') {
                     allResist = resist.value;
-                    resistCount -= 1;
                 } else {
-                    resistAverage += resist.value;
+                    resistTotal += resist.value;
                 }
             }
         }
-        if (resistCount > 0) {
-            resistAverage /= resistCount;
-        }
-        resistAverage += allResist;
 
-        def finalScore = _score + bonusTotal / 10 + resistAverage;
+        def finalScore = _score + bonusTotal / 10 + resistTotal / 12 + allResist / 6;
         if (params._source.common_tags.contains('rare')) {
             finalScore = 0.8 * finalScore;
         }
@@ -314,6 +311,7 @@ export async function getItemSearchResult(
         body: {
             track_scores: true,
             size: 1, // Set size to 1 to return only the top result
+            sort: ['_score', { 'title.keyword': 'asc' }, { level: 'desc' }],
             query: {
                 // Filter documents and modify search score based on item level/stats
                 function_score: {
