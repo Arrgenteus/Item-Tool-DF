@@ -110,60 +110,112 @@ export async function getItemSearchResult(
         },
         {
             match: {
+                'title.exact': {
+                    query: unaliasedTerm,
+                    prefix_length: 1,
+                    minimum_should_match: '100%',
+                    analyzer: 'exact',
+                    fuzziness: 'AUTO:8,9999',
+                    boost: 2,
+                },
+            },
+        },
+        {
+            match: {
+                'title.exact': {
+                    query: unaliasedTerm,
+                    prefix_length: 1,
+                    minimum_should_match: '100%',
+                    analyzer: 'exact',
+                    fuzziness: 'AUTO:8,10',
+                    boost: 1,
+                },
+            },
+        },
+        {
+            match: {
                 'title.forward_autocomplete': {
                     query: unaliasedTerm,
                     minimum_should_match: minimumShouldMatch,
-                    fuzziness: defaultFuzziness,
+                    fuzziness: isPet ? 'AUTO:5,8' : 'AUTO:5,7',
                     prefix_length: 1,
-                    boost: 0.2,
+                    boost: 0.05,
                 },
             },
         },
         {
             match: {
-                'title.autocomplete': {
-                    query: unaliasedTerm,
-                    minimum_should_match: minimumShouldMatch,
-                    fuzziness: isPet ? 'AUTO:5,8' : 'AUTO:4,7',
-                    prefix_length: 1,
-                    boost: 0.5,
-                },
-            },
-        },
-        {
-            match: {
-                'title.autocomplete': {
+                'title.forward_autocomplete': {
                     query: unaliasedTerm,
                     minimum_should_match: '100%',
-                    fuzziness: isPet ? 'AUTO:5,8' : 'AUTO:4,7',
+                    fuzziness: isPet ? 'AUTO:5,8' : 'AUTO:5,7',
                     prefix_length: 1,
-                    boost: 0.5,
+                    boost: 1,
                 },
             },
         },
-        {
-            match: {
-                'title.words': {
-                    query: unaliasedTerm,
-                    minimum_should_match: isPet ? '3<75%' : '4<80%',
-                    fuzziness: defaultFuzziness,
-                    prefix_length: 1,
-                    boost: isPet ? 2 : 4,
-                },
-            },
-        },
+        ...(unaliasedTerm.split(' ').length > 1
+            ? [
+                  {
+                      match: {
+                          'title.words': {
+                              query: unaliasedTerm,
+                              minimum_should_match: minimumShouldMatch,
+                              fuzziness: defaultFuzziness,
+                              prefix_length: 1,
+                              boost: 0.01,
+                          },
+                      },
+                  },
+                  {
+                      match: {
+                          'title.words': {
+                              query: unaliasedTerm,
+                              minimum_should_match: '100%',
+                              fuzziness: defaultFuzziness,
+                              prefix_length: 1,
+                              boost: 0.5,
+                          },
+                      },
+                  },
+                  {
+                      match: {
+                          'title.shingles': {
+                              query: unaliasedTerm,
+                              minimum_should_match: '100%',
+                              fuzziness: 'AUTO:8,10',
+                              prefix_length: 1,
+                              analyzer: 'exact',
+                              boost: 1,
+                          },
+                      },
+                  },
+                  {
+                      match: {
+                          'title.forward_autocomplete': {
+                              query: unaliasedTerm,
+                              minimum_should_match: '100%',
+                              analyzer: 'exact',
+                              boost: 0.5,
+                          },
+                      },
+                  },
+              ]
+            : []),
         {
             match: {
                 'title.shingles': {
                     query: unaliasedTerm,
                     minimum_should_match: minimumShouldMatch,
-                    fuzziness: 'AUTO:6,8',
+                    fuzziness: 'AUTO:7,9',
                     prefix_length: 1,
                     analyzer: 'input_shingle_analyzer',
-                    boost: 1.5,
+                    boost: 0.05,
                 },
             },
         },
+
+        // // match words that are joined together in the input, but are separate tokens in the document
         {
             match: {
                 'title.shingles': {
@@ -171,80 +223,118 @@ export async function getItemSearchResult(
                     minimum_should_match: minimumShouldMatch,
                     fuzziness: 'AUTO:6,8',
                     prefix_length: 1,
-                    boost: 0.5,
+                    boost: 0.05,
                 },
             },
         },
 
         // Search for family titles, ie other variant names of items within the same family
         // De-prioritize these results; They should not take predecence over normal matches
-        {
-            match: {
-                'family_titles.forward_autocomplete': {
-                    query: unaliasedTerm,
-                    minimum_should_match: minimumShouldMatch,
-                    fuzziness: defaultFuzziness,
-                    prefix_length: 1,
-                    boost: 0.05,
-                },
-            },
-        },
-        {
-            match: {
-                'family_titles.autocomplete': {
-                    query: unaliasedTerm,
-                    minimum_should_match: minimumShouldMatch,
-                    fuzziness: isPet ? 'AUTO:5,8' : 'AUTO:4,7',
-                    prefix_length: 1,
-                    boost: 0.05,
-                },
-            },
-        },
-        {
-            match: {
-                'family_titles.autocomplete': {
-                    query: unaliasedTerm,
-                    minimum_should_match: '100%',
-                    fuzziness: isPet ? 'AUTO:5,8' : 'AUTO:4,7',
-                    prefix_length: 1,
-                    boost: 0.05,
-                },
-            },
-        },
-        {
-            match: {
-                'family_titles.words': {
-                    query: unaliasedTerm,
-                    minimum_should_match: isPet ? '3<75%' : '4<80%',
-                    fuzziness: defaultFuzziness,
-                    prefix_length: 1,
-                    boost: 0.05,
-                },
-            },
-        },
-        {
-            match: {
-                'family_titles.shingles': {
-                    query: unaliasedTerm,
-                    minimum_should_match: minimumShouldMatch,
-                    fuzziness: 'AUTO:6,8',
-                    prefix_length: 1,
-                    analyzer: 'input_shingle_analyzer',
-                    boost: 0.05,
-                },
-            },
-        },
-        {
-            match: {
-                'family_titles.shingles': {
-                    query: unaliasedTerm,
-                    minimum_should_match: minimumShouldMatch,
-                    fuzziness: 'AUTO:6,8',
-                    prefix_length: 1,
-                    boost: 0.05,
-                },
-            },
-        },
+        // {
+        //     match_phrase: {
+        //         // Greatly boost exact matches
+        //         'title.exact': {
+        //             query: unaliasedTerm,
+        //             boost: 10,
+        //         },
+        //     },
+        // },
+        // {
+        //     match: {
+        //         'title.forward_autocomplete': {
+        //             query: unaliasedTerm,
+        //             minimum_should_match: minimumShouldMatch,
+        //             fuzziness: isPet ? 'AUTO:5,8' : 'AUTO:5,7',
+        //             prefix_length: 1,
+        //             boost: 0.05,
+        //         },
+        //     },
+        // },
+        // {
+        //     match: {
+        //         'title.forward_autocomplete': {
+        //             query: unaliasedTerm,
+        //             minimum_should_match: '100%',
+        //             fuzziness: isPet ? 'AUTO:5,8' : 'AUTO:5,7',
+        //             prefix_length: 1,
+        //             boost: 1,
+        //         },
+        //     },
+        // },
+        // ...(unaliasedTerm.split(' ').length > 1
+        //     ? [
+        //           {
+        //               match: {
+        //                   'title.words': {
+        //                       query: unaliasedTerm,
+        //                       minimum_should_match: minimumShouldMatch,
+        //                       fuzziness: defaultFuzziness,
+        //                       prefix_length: 1,
+        //                       boost: 0.01,
+        //                   },
+        //               },
+        //           },
+        //           {
+        //               match: {
+        //                   'title.words': {
+        //                       query: unaliasedTerm,
+        //                       minimum_should_match: '100%',
+        //                       fuzziness: defaultFuzziness,
+        //                       prefix_length: 1,
+        //                       boost: 0.5,
+        //                   },
+        //               },
+        //           },
+        //           {
+        //               match: {
+        //                   'title.shingles': {
+        //                       query: unaliasedTerm,
+        //                       minimum_should_match: '100%',
+        //                       fuzziness: 'AUTO:8,10',
+        //                       prefix_length: 1,
+        //                       analyzer: 'exact',
+        //                       boost: 1,
+        //                   },
+        //               },
+        //           },
+        //           {
+        //               match: {
+        //                   'title.forward_autocomplete': {
+        //                       query: unaliasedTerm,
+        //                       minimum_should_match: '100%',
+        //                       prefix_length: 1,
+        //                       analyzer: 'exact',
+        //                       boost: 0.5,
+        //                   },
+        //               },
+        //           },
+        //       ]
+        //     : []),
+        // {
+        //     match: {
+        //         'title.shingles': {
+        //             query: unaliasedTerm,
+        //             minimum_should_match: minimumShouldMatch,
+        //             fuzziness: 'AUTO:7,9',
+        //             prefix_length: 1,
+        //             analyzer: 'input_shingle_analyzer',
+        //             boost: 0.05,
+        //         },
+        //     },
+        // },
+
+        // // match words that are joined together in the input, but are separate tokens in the document
+        // {
+        //     match: {
+        //         'title.shingles': {
+        //             query: unaliasedTerm,
+        //             minimum_should_match: minimumShouldMatch,
+        //             fuzziness: 'AUTO:6,8',
+        //             prefix_length: 1,
+        //             boost: 0.05,
+        //         },
+        //     },
+        // },
     ];
 
     const petScoringScript: string = `
@@ -275,29 +365,26 @@ export async function getItemSearchResult(
             }
         }
 
-        def resistAverage = 0;
+        def resistTotal = 0;
         def allResist = 0;
-        def resistCount = params._source.resists.length;
         for (resist in params._source.resists) {
+            if (resist.value > 50) {
+                continue;
+            }
             if (resist.name == 'health') {
                 if (resist.value < 0) {
-                    resistAverage += -resist.value / params._source.resists.length;
+                    resistTotal += -resist.value;
                 }
             } else if (resist.value > 0) {
                 if (resist.name == 'all') {
                     allResist = resist.value;
-                    resistCount -= 1;
                 } else {
-                    resistAverage += resist.value;
+                    resistTotal += resist.value;
                 }
             }
         }
-        if (resistCount > 0) {
-            resistAverage /= resistCount;
-        }
-        resistAverage += allResist;
 
-        def finalScore = _score + bonusTotal / 10 + resistAverage;
+        def finalScore = _score + bonusTotal / 10 + resistTotal / 12 + allResist / 6;
         if (params._source.common_tags.contains('rare')) {
             finalScore = 0.8 * finalScore;
         }
@@ -313,7 +400,8 @@ export async function getItemSearchResult(
         index: itemIndex,
         body: {
             track_scores: true,
-            size: 1, // Set size to 1 to return only the top result
+            size: 3, // Set size to 1 to return only the top result
+            sort: ['_score', { 'title.keyword': 'asc' }],
             query: {
                 // Filter documents and modify search score based on item level/stats
                 function_score: {
@@ -435,6 +523,8 @@ export async function getItemSearchResult(
             },
         },
     });
+
+    console.log(responseBody.hits.hits);
 
     return formatQueryResponse(responseBody, itemSearchCategory);
 }
