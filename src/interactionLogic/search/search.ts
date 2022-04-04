@@ -294,7 +294,7 @@ export async function getItemSearchResult(
             }
         }
 
-        def finalScore = _score + bonusTotal / 10 + resistTotal / 12 + allResist / 6;
+        def finalScore = _score + bonusTotal / 10 + resistTotal / 15 + allResist;
         if (params._source.common_tags.contains('rare')) {
             finalScore = 0.8 * finalScore;
         }
