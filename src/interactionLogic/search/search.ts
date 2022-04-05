@@ -69,7 +69,6 @@ function getMatchQueryBody(
     const term = tokens.join(' ');
 
     const minimumShouldMatch: string = isPet ? '2<75%' : '3<75%';
-    const defaultFuzziness: string = isPet ? 'AUTO:4,7' : 'AUTO:4,6';
 
     // De-prioritize family title results; They should not take predecence over normal matches
     const scoreMultiplier = familyTitles ? 0.001 : 1;
@@ -114,7 +113,7 @@ function getMatchQueryBody(
                 [`${fieldName}.forward_autocomplete`]: {
                     query: term,
                     minimum_should_match: minimumShouldMatch,
-                    fuzziness: isPet ? 'AUTO:5,8' : 'AUTO:5,7',
+                    fuzziness: 'AUTO:5,7',
                     prefix_length: 1,
                     boost: 0.05 * scoreMultiplier,
                 },
@@ -125,7 +124,7 @@ function getMatchQueryBody(
                 [`${fieldName}.forward_autocomplete`]: {
                     query: term,
                     minimum_should_match: '100%',
-                    fuzziness: isPet ? 'AUTO:5,8' : 'AUTO:5,7',
+                    fuzziness: 'AUTO:5,7',
                     prefix_length: 1,
                     boost: 0.5 * scoreMultiplier,
                 },
@@ -135,10 +134,10 @@ function getMatchQueryBody(
             ? [
                   {
                       match: {
-                          'title.words': {
+                          [`${fieldName}.words`]: {
                               query: term,
                               minimum_should_match: minimumShouldMatch,
-                              fuzziness: defaultFuzziness,
+                              fuzziness: 'AUTO:4,7',
                               prefix_length: 1,
                               boost: 0.01 * scoreMultiplier,
                           },
@@ -149,7 +148,7 @@ function getMatchQueryBody(
                           [`${fieldName}.words`]: {
                               query: term,
                               minimum_should_match: '100%',
-                              fuzziness: defaultFuzziness,
+                              fuzziness: 'AUTO:4,7',
                               prefix_length: 1,
                               boost: 0.5 * scoreMultiplier,
                           },
