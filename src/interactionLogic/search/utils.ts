@@ -38,6 +38,7 @@ export function unaliasItemType(
 }
 
 export function romanIntToInt(romanInt: string) {
+    romanInt = romanInt.toLowerCase();
     const romanPlaceValues: { [key: string]: number } = { i: 1, v: 5, x: 10 };
 
     let integer: number = romanPlaceValues[romanInt[0]];

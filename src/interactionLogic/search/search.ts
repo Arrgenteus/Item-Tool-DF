@@ -69,7 +69,6 @@ function getMatchQueryBody(
     const term = tokens.join(' ');
 
     const minimumShouldMatch: string = isPet ? '2<75%' : '3<75%';
-    const defaultFuzziness: string = isPet ? 'AUTO:4,7' : 'AUTO:4,6';
 
     // De-prioritize family title results; They should not take predecence over normal matches
     const scoreMultiplier = familyTitles ? 0.001 : 1;
@@ -114,7 +113,7 @@ function getMatchQueryBody(
                 [`${fieldName}.forward_autocomplete`]: {
                     query: term,
                     minimum_should_match: minimumShouldMatch,
-                    fuzziness: isPet ? 'AUTO:5,8' : 'AUTO:5,7',
+                    fuzziness: 'AUTO:5,8',
                     prefix_length: 1,
                     boost: 0.05 * scoreMultiplier,
                 },
@@ -125,8 +124,18 @@ function getMatchQueryBody(
                 [`${fieldName}.forward_autocomplete`]: {
                     query: term,
                     minimum_should_match: '100%',
-                    fuzziness: isPet ? 'AUTO:5,8' : 'AUTO:5,7',
+                    fuzziness: 'AUTO:5,8',
                     prefix_length: 1,
+                    boost: 0.5 * scoreMultiplier,
+                },
+            },
+        },
+        {
+            match: {
+                [`${fieldName}.forward_autocomplete`]: {
+                    query: term,
+                    minimum_should_match: '100%',
+                    analyzer: 'exact',
                     boost: 0.5 * scoreMultiplier,
                 },
             },
@@ -135,10 +144,10 @@ function getMatchQueryBody(
             ? [
                   {
                       match: {
-                          'title.words': {
+                          [`${fieldName}.words`]: {
                               query: term,
                               minimum_should_match: minimumShouldMatch,
-                              fuzziness: defaultFuzziness,
+                              fuzziness: 'AUTO:4,7',
                               prefix_length: 1,
                               boost: 0.01 * scoreMultiplier,
                           },
@@ -149,7 +158,7 @@ function getMatchQueryBody(
                           [`${fieldName}.words`]: {
                               query: term,
                               minimum_should_match: '100%',
-                              fuzziness: defaultFuzziness,
+                              fuzziness: 'AUTO:4,7',
                               prefix_length: 1,
                               boost: 0.5 * scoreMultiplier,
                           },
@@ -164,16 +173,6 @@ function getMatchQueryBody(
                               prefix_length: 1,
                               analyzer: 'exact',
                               boost: 1 * scoreMultiplier,
-                          },
-                      },
-                  },
-                  {
-                      match: {
-                          [`${fieldName}.forward_autocomplete`]: {
-                              query: term,
-                              minimum_should_match: '100%',
-                              analyzer: 'exact',
-                              boost: 0.5 * scoreMultiplier,
                           },
                       },
                   },
@@ -294,17 +293,20 @@ export async function getItemSearchResult(
             }
         }
 
-        def finalScore = _score + bonusTotal / 10 + resistTotal / 15 + allResist;
+        def modifiedScore = _score;
         if (params._source.common_tags.contains('rare')) {
-            finalScore = 0.8 * finalScore;
+            modifiedScore = 0.8 * modifiedScore;
         }
         if (params._source.common_tags.contains('temp')) {
-            finalScore = 0.7 * finalScore;
+            modifiedScore = 0.7 * modifiedScore;
         }
+
+        modifiedScore = modifiedScore + bonusTotal / 10 + resistTotal / 15 + allResist;
         if (params._source.common_tags.contains('dc')) {
-            finalScore = finalScore - 0.0001;
+            modifiedScore = modifiedScore - 0.0001;
         }
-        return finalScore;`;
+
+        return modifiedScore;`;
 
     const { body: responseBody } = await elasticClient.search({
         index: itemIndex,
