@@ -112,31 +112,31 @@ function getMatchQueryBody(
             match: {
                 [`${fieldName}.forward_autocomplete`]: {
                     query: term,
+                    minimum_should_match: '100%',
+                    analyzer: 'exact',
+                    boost: 5 * scoreMultiplier,
+                },
+            },
+        },
+        {
+            match: {
+                [`${fieldName}.forward_autocomplete`]: {
+                    query: term,
+                    minimum_should_match: '100%',
+                    fuzziness: 'AUTO:5,8',
+                    prefix_length: 1,
+                    boost: 0.5 * scoreMultiplier,
+                },
+            },
+        },
+        {
+            match: {
+                [`${fieldName}.forward_autocomplete`]: {
+                    query: term,
                     minimum_should_match: minimumShouldMatch,
                     fuzziness: 'AUTO:5,8',
                     prefix_length: 1,
                     boost: 0.05 * scoreMultiplier,
-                },
-            },
-        },
-        {
-            match: {
-                [`${fieldName}.forward_autocomplete`]: {
-                    query: term,
-                    minimum_should_match: '100%',
-                    fuzziness: 'AUTO:5,8',
-                    prefix_length: 1,
-                    boost: 0.5 * scoreMultiplier,
-                },
-            },
-        },
-        {
-            match: {
-                [`${fieldName}.forward_autocomplete`]: {
-                    query: term,
-                    minimum_should_match: '100%',
-                    analyzer: 'exact',
-                    boost: 0.5 * scoreMultiplier,
                 },
             },
         },
@@ -161,6 +161,15 @@ function getMatchQueryBody(
                               fuzziness: 'AUTO:4,7',
                               prefix_length: 1,
                               boost: 0.5 * scoreMultiplier,
+                          },
+                      },
+                  },
+                  {
+                      match: {
+                          [`${fieldName}.words`]: {
+                              query: term,
+                              minimum_should_match: '100%',
+                              boost: 5 * scoreMultiplier,
                           },
                       },
                   },
@@ -294,15 +303,19 @@ export async function getItemSearchResult(
         }
 
         def modifiedScore = _score;
-        if (params._source.common_tags.contains('rare')) {
-            modifiedScore = 0.8 * modifiedScore;
-        }
-        if (params._source.common_tags.contains('temp')) {
-            modifiedScore = 0.7 * modifiedScore;
-        }
 
         modifiedScore = modifiedScore + bonusTotal / 10 + resistTotal / 15 + allResist;
         if (params._source.common_tags.contains('dc')) {
+            modifiedScore = modifiedScore - 0.0001;
+        }
+        def isRare = params._source.common_tags.contains('rare');
+        def isTemp = params._source.common_tags.contains('temp');
+        if (!isRare || !isTemp) {
+            modifiedScore += 20;
+        }
+        if (isRare) {
+            modifiedScore = modifiedScore - 0.0001;
+        } else if (isTemp) {
             modifiedScore = modifiedScore - 0.0001;
         }
 
