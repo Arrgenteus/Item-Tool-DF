@@ -112,9 +112,10 @@ function getMatchQueryBody(
             match: {
                 [`${fieldName}.forward_autocomplete`]: {
                     query: term,
-                    minimum_should_match: '100%',
-                    analyzer: 'exact',
-                    boost: 5 * scoreMultiplier,
+                    minimum_should_match: minimumShouldMatch,
+                    fuzziness: 'AUTO:5,8',
+                    prefix_length: 1,
+                    boost: 0.05 * scoreMultiplier,
                 },
             },
         },
@@ -133,10 +134,9 @@ function getMatchQueryBody(
             match: {
                 [`${fieldName}.forward_autocomplete`]: {
                     query: term,
-                    minimum_should_match: minimumShouldMatch,
-                    fuzziness: 'AUTO:5,8',
-                    prefix_length: 1,
-                    boost: 0.05 * scoreMultiplier,
+                    minimum_should_match: '100%',
+                    analyzer: 'exact',
+                    boost: 1 * scoreMultiplier,
                 },
             },
         },
@@ -161,15 +161,6 @@ function getMatchQueryBody(
                               fuzziness: 'AUTO:4,7',
                               prefix_length: 1,
                               boost: 0.5 * scoreMultiplier,
-                          },
-                      },
-                  },
-                  {
-                      match: {
-                          [`${fieldName}.words`]: {
-                              query: term,
-                              minimum_should_match: '100%',
-                              boost: 5 * scoreMultiplier,
                           },
                       },
                   },
