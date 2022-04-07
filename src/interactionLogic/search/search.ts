@@ -299,15 +299,17 @@ export async function getItemSearchResult(
         if (params._source.common_tags.contains('dc')) {
             modifiedScore = modifiedScore - 0.0001;
         }
+
         def isRare = params._source.common_tags.contains('rare');
         def isTemp = params._source.common_tags.contains('temp');
-        if (!isRare || !isTemp) {
-            modifiedScore += 20;
-        }
-        if (isRare) {
-            modifiedScore = modifiedScore - 0.0001;
-        } else if (isTemp) {
-            modifiedScore = modifiedScore - 0.0001;
+        
+        if (!(isRare && isTemp)) {
+            modifiedScore += 10;
+            if (isRare) {
+                modifiedScore -= 1.5;
+            } else if (isTemp) {
+                modifiedScore -= 1.5;
+            }
         }
 
         return modifiedScore;`;
