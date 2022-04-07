@@ -140,6 +140,17 @@ function getMatchQueryBody(
                 },
             },
         },
+        {
+            match: {
+                [`${fieldName}.autocomplete`]: {
+                    query: term,
+                    fuzziness: 'AUTO:5,8',
+                    prefix_length: 1,
+                    minimum_should_match: '100%',
+                    boost: 0.01 * scoreMultiplier,
+                },
+            },
+        },
         ...(tokens.length > 1
             ? [
                   {
@@ -306,9 +317,9 @@ export async function getItemSearchResult(
         if (!(isRare && isTemp)) {
             modifiedScore += 10;
             if (isRare) {
-                modifiedScore -= 1.5;
+                modifiedScore -= 3;
             } else if (isTemp) {
-                modifiedScore -= 1.5;
+                modifiedScore -= 3;
             }
         }
 
