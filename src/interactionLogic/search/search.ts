@@ -70,8 +70,6 @@ function getMatchQueryBody(
 
     const minimumShouldMatch: string = isPet ? '2<75%' : '3<75%';
 
-    // De-prioritize family title results; They should not take predecence over normal matches
-    const scoreMultiplier = familyTitles ? 0.001 : 1;
     const fieldName = familyTitles ? 'family_titles' : 'title';
 
     return [
@@ -80,7 +78,7 @@ function getMatchQueryBody(
                 // Greatly boost exact matches
                 [`${fieldName}.exact`]: {
                     query: term,
-                    boost: 10 * scoreMultiplier,
+                    boost: 10,
                 },
             },
         },
@@ -92,7 +90,7 @@ function getMatchQueryBody(
                     minimum_should_match: '100%',
                     analyzer: 'exact',
                     fuzziness: 'AUTO:8,9999',
-                    boost: 2 * scoreMultiplier,
+                    boost: 2,
                 },
             },
         },
@@ -104,7 +102,7 @@ function getMatchQueryBody(
                     minimum_should_match: '100%',
                     analyzer: 'exact',
                     fuzziness: 'AUTO:8,10',
-                    boost: 1 * scoreMultiplier,
+                    boost: 1,
                 },
             },
         },
@@ -115,7 +113,7 @@ function getMatchQueryBody(
                     minimum_should_match: minimumShouldMatch,
                     fuzziness: 'AUTO:5,8',
                     prefix_length: 1,
-                    boost: 0.05 * scoreMultiplier,
+                    boost: 0.05,
                 },
             },
         },
@@ -126,7 +124,7 @@ function getMatchQueryBody(
                     minimum_should_match: '100%',
                     fuzziness: 'AUTO:5,8',
                     prefix_length: 1,
-                    boost: 0.5 * scoreMultiplier,
+                    boost: 0.5,
                 },
             },
         },
@@ -136,7 +134,18 @@ function getMatchQueryBody(
                     query: term,
                     minimum_should_match: '100%',
                     analyzer: 'exact',
-                    boost: 0.5 * scoreMultiplier,
+                    boost: 0.5,
+                },
+            },
+        },
+        {
+            match: {
+                [`${fieldName}.autocomplete`]: {
+                    query: term,
+                    fuzziness: 'AUTO:6,9',
+                    prefix_length: 1,
+                    minimum_should_match: '100%',
+                    boost: 0.01,
                 },
             },
         },
@@ -149,7 +158,7 @@ function getMatchQueryBody(
                               minimum_should_match: minimumShouldMatch,
                               fuzziness: 'AUTO:4,7',
                               prefix_length: 1,
-                              boost: 0.01 * scoreMultiplier,
+                              boost: 0.01,
                           },
                       },
                   },
@@ -160,7 +169,7 @@ function getMatchQueryBody(
                               minimum_should_match: '100%',
                               fuzziness: 'AUTO:4,7',
                               prefix_length: 1,
-                              boost: 0.5 * scoreMultiplier,
+                              boost: 0.5,
                           },
                       },
                   },
@@ -172,7 +181,7 @@ function getMatchQueryBody(
                               fuzziness: 'AUTO:8,10',
                               prefix_length: 1,
                               analyzer: 'exact',
-                              boost: 1 * scoreMultiplier,
+                              boost: 1,
                           },
                       },
                   },
@@ -186,7 +195,7 @@ function getMatchQueryBody(
                     fuzziness: 'AUTO:7,9',
                     prefix_length: 1,
                     analyzer: 'input_shingle_analyzer',
-                    boost: 0.05 * scoreMultiplier,
+                    boost: 0.05,
                 },
             },
         },
@@ -199,7 +208,7 @@ function getMatchQueryBody(
                     minimum_should_match: minimumShouldMatch,
                     fuzziness: 'AUTO:7,9',
                     prefix_length: 1,
-                    boost: 0.01 * scoreMultiplier,
+                    boost: 0.01,
                 },
             },
         },
@@ -240,11 +249,8 @@ export async function getItemSearchResult(
 
     const isPet = itemSearchCategory === 'pet';
 
-    // match words that are joined together in the input, but are separate tokens in the document
-    query.bool.should = getMatchQueryBody(unaliasedTokens, itemSearchCategory).concat(
-        // Search for family titles, ie other variant names of items within the same family
-        getMatchQueryBody(unaliasedTokens, itemSearchCategory, true)
-    );
+    // Match words that are joined together in the input, but are separate tokens in the document
+    query.bool.should = getMatchQueryBody(unaliasedTokens, itemSearchCategory);
 
     const petScoringScript: string = `
         def critOrBonus = 0;
@@ -259,10 +265,10 @@ export async function getItemSearchResult(
         }
         def finalScore = _score + (critOrBonus + doc['level'].value) / 10;
         if (doc['scaled_damage'].value) {
-            finalScore = _score + (critOrBonus / 10) + ${maxLevel ? maxLevel / 10 : 9};
+            finalScore = _score + (critOrBonus / 10) + (params.containsKey('maxLevel') ? params['maxLevel'] / 10 : 9);
         }
-        if (params._source.common_tags.contains('rare')) {
-            return 0.8 * finalScore;
+        if (!params._source.common_tags.contains('rare')) {
+            finalScore += 5;
         }
         return finalScore;`;
 
@@ -294,25 +300,23 @@ export async function getItemSearchResult(
         }
 
         def modifiedScore = _score;
-        if (params._source.common_tags.contains('rare')) {
-            modifiedScore = 0.8 * modifiedScore;
-        }
-        if (params._source.common_tags.contains('temp')) {
-            modifiedScore = 0.7 * modifiedScore;
-        }
 
         modifiedScore = modifiedScore + bonusTotal / 10 + resistTotal / 15 + allResist;
         if (params._source.common_tags.contains('dc')) {
             modifiedScore = modifiedScore - 0.0001;
         }
 
+        if (!params._source.common_tags.contains('rare')) {
+            modifiedScore += 5;
+        }
+
         return modifiedScore;`;
 
-    const { body: responseBody } = await elasticClient.search({
+    const searchQuery = {
         index: itemIndex,
         body: {
             track_scores: true,
-            size: 1, // Set size to 1 to return only the top result
+            size: 6, // Set size to 1 to return only the top result
             sort: ['_score', { 'title.keyword': 'asc' }, { level: 'desc' }],
             query: {
                 // Filter documents and modify search score based on item level/stats
@@ -322,6 +326,9 @@ export async function getItemSearchResult(
                             query: query,
                             script_score: {
                                 script: {
+                                    params: {
+                                        maxLevel: maxLevel,
+                                    },
                                     source: isPet ? petScoringScript : itemScoringScript,
                                 },
                             },
@@ -434,7 +441,16 @@ export async function getItemSearchResult(
                 },
             },
         },
-    });
+    };
+
+    let { body: responseBody } = await elasticClient.search(searchQuery);
+
+    // If the result was empty, check if the search query matches the family names
+    // of other items
+    if (!responseBody.hits?.hits?.length) {
+        query.bool.should = getMatchQueryBody(unaliasedTokens, itemSearchCategory, true);
+        responseBody = (await elasticClient.search(searchQuery)).body;
+    }
 
     return formatQueryResponse(responseBody, itemSearchCategory);
 }
