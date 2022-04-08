@@ -138,17 +138,21 @@ function getMatchQueryBody(
                 },
             },
         },
-        {
-            match: {
-                [`${fieldName}.autocomplete`]: {
-                    query: term,
-                    fuzziness: 'AUTO:6,9',
-                    prefix_length: 1,
-                    minimum_should_match: '100%',
-                    boost: 0.01,
-                },
-            },
-        },
+        ...(term.length > 3
+            ? [
+                  {
+                      match: {
+                          [`${fieldName}.autocomplete`]: {
+                              query: term,
+                              fuzziness: 'AUTO:6,9',
+                              prefix_length: 1,
+                              minimum_should_match: '100%',
+                              boost: 0.01,
+                          },
+                      },
+                  },
+              ]
+            : []),
         ...(tokens.length > 1
             ? [
                   {
@@ -316,7 +320,7 @@ export async function getItemSearchResult(
         index: itemIndex,
         body: {
             track_scores: true,
-            size: 6, // Set size to 1 to return only the top result
+            size: 1, // Set size to 1 to return only the top result
             sort: ['_score', { 'title.keyword': 'asc' }, { level: 'desc' }],
             query: {
                 // Filter documents and modify search score based on item level/stats
