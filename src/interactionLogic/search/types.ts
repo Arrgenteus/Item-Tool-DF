@@ -1,10 +1,12 @@
-import { AccessoryType, WeaponType } from '../../utils/itemTypeData';
+import { AccessoryType, ItemTag, WeaponType } from '../../utils/itemTypeData';
 
 export type SearchableItemCategory = AccessoryType | WeaponType | 'weapon' | 'accessory' | 'pet';
 
 export type SearchableItemCategoryFilter = { terms: { item_type: SearchableItemCategory[] } };
 
 export type Location = { name: string; link?: string };
+
+export type ItemVariantInfo = { tags: ItemTag[]; locations: Location[] };
 
 export type Stat = { name: string; value: string | number };
 
