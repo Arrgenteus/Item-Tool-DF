@@ -19,5 +19,9 @@ ELASTIC_PASS: 'password'
 PET_INDEX_NAME: 'dragonfable-pets'
 ACCESSORY_INDEX_NAME: 'dragonfable-accessories'
 
+# Channel IDs in which long sort results will be posted (such as a dedicated bot spam channel)
+# In all other channels, only short results will be displayed (<= top 3 items) when the command is used
+LONG_RESULT_CHANNELS: []
+
 # The ID to be pinged in case an error occurs
 DEV_ID: ''
