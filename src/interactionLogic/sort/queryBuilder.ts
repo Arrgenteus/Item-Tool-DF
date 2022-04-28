@@ -1,6 +1,6 @@
 import { ItemTag, ItemType } from '../../utils/itemTypeData';
 import { getCharLevelAndItems } from './characterInventory';
-import { QUERY_RESULT_LIMIT } from './constants';
+import { QUERY_RESULT_LIMIT, QUERY_SHORT_RESULT_LIMIT } from './constants';
 import { CharLevelAndItems, ItemTypeMongoFilter, SortFilterParams } from './types';
 
 function getItemTypeFilter(itemType: ItemType): ItemTypeMongoFilter {
@@ -13,18 +13,21 @@ function getItemTypeFilter(itemType: ItemType): ItemTypeMongoFilter {
     };
 }
 
-export async function getSortQueryPipeline({
-    itemType,
-    ascending,
-    sortExpression,
-    weaponElement,
-    minLevel,
-    maxLevel,
-    charID,
-    excludeTags,
-    nextPageValueLimit,
-    prevPageValueLimit,
-}: SortFilterParams): Promise<Object[]> {
+export async function getSortQueryPipeline(
+    {
+        itemType,
+        ascending,
+        sortExpression,
+        weaponElement,
+        minLevel,
+        maxLevel,
+        charID,
+        excludeTags,
+        nextPageValueLimit,
+        prevPageValueLimit,
+    }: SortFilterParams,
+    returnShortResult: boolean = false
+): Promise<Object[]> {
     const primaryFilter: { [filterName: string]: any } = {
         customSortValue: { $exists: true, $ne: 0 },
         ...getItemTypeFilter(itemType),
@@ -132,6 +135,6 @@ export async function getSortQueryPipeline({
         },
         { $addFields: { customSortValue: '$_id.customSortValue' } },
         { $sort: { customSortValue: sortOrder } },
-        { $limit: QUERY_RESULT_LIMIT },
+        { $limit: returnShortResult ? QUERY_SHORT_RESULT_LIMIT : QUERY_RESULT_LIMIT },
     ];
 }
