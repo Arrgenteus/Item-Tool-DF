@@ -319,7 +319,7 @@ export async function getSortResultsMessage(
     sortFilterParams: Omit<SortFilterParams, 'itemType'>,
     returnShortResult: boolean = false
 ): Promise<Pick<MessageOptions, 'embeds' | 'components'>> {
-    if (sortFilterParams.weaponElement?.match(/[^a-z?]/i)) {
+    if (sortFilterParams.weaponElement?.match(/[^a-z\?]/i)) {
         throw new ValidationError('The weapon element name cannot include special characters.');
     }
     if (sortFilterParams.charID && !sortFilterParams.charID.match(/^[\d]{2,12}$/)) {
