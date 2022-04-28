@@ -1,4 +1,5 @@
 import { CommandInteraction } from 'discord.js';
+import config from '../config';
 import { ValidationError } from '../errors';
 import { SlashCommandData } from '../eventHandlerTypes';
 import { ITEM_TAG_FILTER_OPTION_NAMES } from '../interactionLogic/sort/constants';
@@ -62,7 +63,15 @@ const command: SlashCommandData = {
             ascending: interaction.options.getBoolean(SortCommandParams.ASCENDING) === true,
         };
 
-        const sortedItemMessage = await getSortResultsMessage(itemTypeInput, filters);
+        const shouldDisplayShortResult: boolean =
+            !interaction.channel ||
+            !(config.LONG_RESULT_CHANNELS || []).includes(interaction.channel.id);
+
+        const sortedItemMessage = await getSortResultsMessage(
+            itemTypeInput,
+            filters,
+            shouldDisplayShortResult
+        );
 
         await interaction.reply(sortedItemMessage);
     },
