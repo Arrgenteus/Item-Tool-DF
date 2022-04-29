@@ -2,6 +2,7 @@ import { ItemTag, ItemType } from '../../utils/itemTypeData';
 import { SortCommandParams } from './types';
 
 export const QUERY_RESULT_LIMIT = 7;
+export const QUERY_SHORT_RESULT_LIMIT = 4;
 
 export const enum SORT_ACTIONS {
     NEXT_PAGE = 'npsr', // Next page sort results

@@ -6,6 +6,7 @@ import { getSortQueryPipeline } from './queryBuilder';
 import { SortExpressionData, SortFilterParams, SortItemTypeOption } from './types';
 import { parseSortExpression, unaliasBonusName } from './sortExpressionParser';
 import {
+    MessageActionRowComponentOptions,
     MessageActionRowComponentResolvable,
     MessageActionRowOptions,
     MessageOptions,
@@ -17,6 +18,7 @@ import {
     PRETTY_ITEM_TYPES,
     PRETTY_TO_BASE_ITEM_TYPE,
     QUERY_RESULT_LIMIT,
+    QUERY_SHORT_RESULT_LIMIT,
     SORTABLE_TAGS,
     SORT_ACTIONS,
 } from './constants';
@@ -55,28 +57,58 @@ function getFiltersUsedText({
     return filterText.join('\n');
 }
 
-function getNavigationComponents(
+function getTagFilterDropDownComponent(excludeTags?: Set<ItemTag>): [MessageActionRowOptions] {
+    return [
+        {
+            type: 'ACTION_ROW',
+            components: [
+                {
+                    customId: SORT_ACTIONS.TAG_SELECTION,
+                    placeholder: 'All tags included',
+                    minValues: 0,
+                    maxValues: SORTABLE_TAGS.length - 1,
+                    type: 'SELECT_MENU',
+                    options: SORTABLE_TAGS.map(
+                        (tag: ItemTag): MessageSelectOptionData => ({
+                            label: 'Exclude ' + PRETTY_TAG_NAMES[tag],
+                            value: tag,
+                            default: excludeTags && excludeTags.has(tag),
+                        })
+                    ),
+                },
+            ],
+        },
+    ];
+}
+
+function getFullResultsButtonComponent(
+    itemType: ItemType,
+    excludeTags?: Set<ItemTag>
+): [MessageActionRowOptions] {
+    const excludeTagsList: string = (excludeTags ? [...excludeTags] : []).join(',');
+    return [
+        {
+            type: 'ACTION_ROW',
+            components: [
+                {
+                    type: 'BUTTON',
+                    label: 'View full results',
+                    customId: [SORT_ACTIONS.SHOW_RESULTS, itemType, excludeTagsList].join(
+                        INTERACTION_ID_ARG_SEPARATOR
+                    ),
+                    style: 'PRIMARY',
+                },
+            ],
+        },
+    ];
+}
+
+function getPrevAndNextSortPageNavigationComponents(
     excludeTags?: Set<ItemTag>,
     prevPageValueLimit?: number | undefined,
     nextPageValueLimit?: number | undefined
-): MessageActionRowOptions[] {
+): [MessageActionRowOptions] | [] {
     const excludeTagsList: string = (excludeTags ? [...excludeTags] : []).join(',');
-    const selectMenuComponent: MessageActionRowComponentResolvable[] = [
-        {
-            customId: SORT_ACTIONS.TAG_SELECTION,
-            placeholder: 'All tags included',
-            minValues: 0,
-            maxValues: SORTABLE_TAGS.length - 1,
-            type: 'SELECT_MENU',
-            options: SORTABLE_TAGS.map(
-                (tag: ItemTag): MessageSelectOptionData => ({
-                    label: 'Exclude ' + PRETTY_TAG_NAMES[tag],
-                    value: tag,
-                    default: excludeTags && excludeTags.has(tag),
-                })
-            ),
-        },
-    ];
 
     const buttonComponents: MessageActionRowComponentResolvable[] = [];
     if (prevPageValueLimit !== undefined) {
@@ -100,12 +132,9 @@ function getNavigationComponents(
         });
     }
 
-    if (!buttonComponents.length) return [{ type: 'ACTION_ROW', components: selectMenuComponent }];
+    if (!buttonComponents.length) return [];
 
-    return [
-        { type: 'ACTION_ROW', components: selectMenuComponent },
-        { type: 'ACTION_ROW', components: buttonComponents },
-    ];
+    return [{ type: 'ACTION_ROW', components: buttonComponents }];
 }
 
 function itemButtonList(excludeTags?: Set<ItemTag>): MessageActionRowOptions[] {
@@ -146,20 +175,21 @@ function getAllItemDisplayMessage(
             },
         ],
 
-        components: getNavigationComponents(sortFilterParams.excludeTags).concat(
+        components: getTagFilterDropDownComponent(sortFilterParams.excludeTags).concat(
             itemButtonList(sortFilterParams.excludeTags)
         ),
     };
 }
 
 export async function getSortedItemListMessage(
-    sortFilterParams: SortFilterParams
+    sortFilterParams: SortFilterParams,
+    returnShortResult: boolean
 ): Promise<Pick<MessageOptions, 'embeds' | 'components'>> {
     if (sortFilterParams.weaponElement) {
         sortFilterParams.weaponElement = unaliasBonusName(sortFilterParams.weaponElement);
     }
 
-    const pipeline = await getSortQueryPipeline(sortFilterParams);
+    const pipeline = await getSortQueryPipeline(sortFilterParams, returnShortResult);
     const sortResults: AggregationCursor = (await itemCollection).aggregate(pipeline);
 
     let itemGroup: {
@@ -179,7 +209,12 @@ export async function getSortedItemListMessage(
     // if the number of read groups is less than or equal to 1 less than the query result limit
     // We stop at 1 less than the result limit to prevent the 'more results' button from
     // being redundant
-    while (itemGroup !== null && groupCount < QUERY_RESULT_LIMIT - 1) {
+    const queryResultLimit: number = returnShortResult
+        ? QUERY_SHORT_RESULT_LIMIT
+        : QUERY_RESULT_LIMIT;
+    const maxEmbedLength = returnShortResult ? MAX_EMBED_DESC_LENGTH / 3 : MAX_EMBED_DESC_LENGTH;
+
+    while (itemGroup !== null && groupCount < queryResultLimit - 1) {
         groupCount += 1;
 
         let items: {
@@ -202,7 +237,7 @@ export async function getSortedItemListMessage(
         lastResult = `**${sign}${itemGroup.customSortValue}**\n ${itemDisplayList.join(', ')}\n\n`;
 
         // Stop populating results if including lastResult will exceed the embed character limit
-        if (lastResult.length + sortedList.length > MAX_EMBED_DESC_LENGTH) {
+        if (lastResult.length + sortedList.length > maxEmbedLength) {
             break;
         }
 
@@ -223,36 +258,45 @@ export async function getSortedItemListMessage(
     if (!sortedList && lastResult) {
         const ellipses = ' **...**';
         const lastItemIndexBeforeLimit: number = lastResult
-            .slice(0, MAX_EMBED_DESC_LENGTH - ellipses.length)
+            .slice(0, maxEmbedLength - ellipses.length)
             .lastIndexOf(ITEM_LIST_DELIMITER);
         if (lastItemIndexBeforeLimit !== -1)
             sortedList = lastResult.slice(0, lastItemIndexBeforeLimit) + ellipses;
     }
 
-    const buttonRow: MessageActionRowOptions[] = getNavigationComponents(
-        sortFilterParams.excludeTags,
-        // Add a previous page button to the message if any of the following are true:
-        // 1) The next page value limit parameter exists, implying that they clicked "next page" at least once
-        // 2) The previous page value limit exists (implying that the user clicked on "prev page" at least once),
-        //    and not all itemGroups were exhausted (can be checked by seeing if itemGroup is non null)
-        sortFilterParams.nextPageValueLimit !== undefined ||
-            (sortFilterParams.prevPageValueLimit !== undefined && !!itemGroup)
-            ? firstGroupValue
-            : undefined,
-        // Add a next page button to the message if the following are true:
-        // 1) The prev page value limit parameter exists, implying that they clicked "prev page" at least once
-        // 2) Both prev and next page value limits don't exist (implying that neither "prev page" nor "next page"
-        //    were clicked), and not all itemGroups were exhausted (itemGroup is not null)
-        // 3) The next page value limit exists (implying that the user clicked on "next page" at least once),
-        //    and not all itemGroups were exhausted (can be checked by seeing if itemGroup is non null)
-        sortFilterParams.prevPageValueLimit !== undefined ||
-            (sortFilterParams.prevPageValueLimit === undefined &&
-                sortFilterParams.nextPageValueLimit === undefined &&
-                !!itemGroup) ||
-            (sortFilterParams.nextPageValueLimit !== undefined && !!itemGroup)
-            ? lastGroupValue
-            : undefined
-    );
+    let buttonRow: MessageActionRowOptions[];
+
+    if (returnShortResult) {
+        buttonRow = getFullResultsButtonComponent(
+            sortFilterParams.itemType,
+            sortFilterParams.excludeTags
+        );
+    } else {
+        buttonRow = getPrevAndNextSortPageNavigationComponents(
+            sortFilterParams.excludeTags,
+            // Add a previous page button to the message if any of the following are true:
+            // 1) The next page value limit parameter exists, implying that they clicked "next page" at least once
+            // 2) The previous page value limit exists (implying that the user clicked on "prev page" at least once),
+            //    and not all itemGroups were exhausted (can be checked by seeing if itemGroup is non null)
+            sortFilterParams.nextPageValueLimit !== undefined ||
+                (sortFilterParams.prevPageValueLimit !== undefined && !!itemGroup)
+                ? firstGroupValue
+                : undefined,
+            // Add a next page button to the message if the following are true:
+            // 1) The prev page value limit parameter exists, implying that they clicked "prev page" at least once
+            // 2) Both prev and next page value limits don't exist (implying that neither "prev page" nor "next page"
+            //    were clicked), and not all itemGroups were exhausted (itemGroup is not null)
+            // 3) The next page value limit exists (implying that the user clicked on "next page" at least once),
+            //    and not all itemGroups were exhausted (can be checked by seeing if itemGroup is non null)
+            sortFilterParams.prevPageValueLimit !== undefined ||
+                (sortFilterParams.prevPageValueLimit === undefined &&
+                    sortFilterParams.nextPageValueLimit === undefined &&
+                    !!itemGroup) ||
+                (sortFilterParams.nextPageValueLimit !== undefined && !!itemGroup)
+                ? lastGroupValue
+                : undefined
+        );
+    }
 
     sortedList = sortedList || 'No results were found';
 
@@ -266,18 +310,17 @@ export async function getSortedItemListMessage(
 
     return {
         embeds: [{ title, description: filters }, { description: sortedList }],
-        components: buttonRow,
+        components: getTagFilterDropDownComponent(sortFilterParams.excludeTags).concat(buttonRow),
     };
 }
 
 export async function getSortResultsMessage(
     itemTypeOption: SortItemTypeOption,
-    sortFilterParams: Omit<SortFilterParams, 'itemType'>
+    sortFilterParams: Omit<SortFilterParams, 'itemType'>,
+    returnShortResult: boolean = false
 ): Promise<Pick<MessageOptions, 'embeds' | 'components'>> {
-    if (sortFilterParams.weaponElement?.match(/[^a-z]/i)) {
-        throw new ValidationError(
-            'The weapon element name cannot include non-alphabetical characters.'
-        );
+    if (sortFilterParams.weaponElement?.match(/[^a-z\?]/i)) {
+        throw new ValidationError('The weapon element name cannot include special characters.');
     }
     if (sortFilterParams.charID && !sortFilterParams.charID.match(/^[\d]{2,12}$/)) {
         throw new ValidationError('Character IDs must be between 2 and 12 digits long.');
@@ -287,7 +330,10 @@ export async function getSortResultsMessage(
         return getAllItemDisplayMessage(sortFilterParams);
     }
 
-    return getSortedItemListMessage({ ...sortFilterParams, itemType: itemTypeOption });
+    return getSortedItemListMessage(
+        { ...sortFilterParams, itemType: itemTypeOption },
+        returnShortResult
+    );
 }
 
 export async function getSortResultsMessageUsingMessageFilters(
