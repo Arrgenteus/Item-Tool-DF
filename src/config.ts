@@ -19,6 +19,7 @@ export interface Config {
     ELASTIC_PASS: string;
     PET_INDEX_NAME: string;
     ACCESSORY_INDEX_NAME: string;
+    WEAPON_INDEX_NAME: string;
     LONG_RESULT_CHANNELS?: string[];
 }
 
@@ -40,6 +41,7 @@ const requiredConfigValues: (keyof Config)[] = [
     'ELASTIC_PASS',
     'PET_INDEX_NAME',
     'ACCESSORY_INDEX_NAME',
+    'WEAPON_INDEX_NAME',
 ];
 for (const value of requiredConfigValues) {
     if (!(value in config)) throw new Error(`${value} must be defined in config.yml`);

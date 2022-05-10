@@ -31,6 +31,21 @@ export function getIndexNameAndCategoryFilterQuery(itemSearchCategory: Searchabl
     return { index, query: undefined };
 }
 
+export function getIndexNames(itemSearchCategory: SearchableItemCategory): string[] {
+    if (itemSearchCategory === 'pet') return [config.PET_INDEX_NAME];
+    if (itemSearchCategory === 'weapon') return [config.WEAPON_INDEX_NAME];
+    return [config.ACCESSORY_INDEX_NAME];
+}
+
+export function getCategoryFilterQuery() {
+    if (itemSearchCategory in ACCESSORY_TYPES) {
+        if (itemSearchCategory in { cape: 1, wings: 1 }) {
+            return { terms: { item_type: ['cape', 'wings'] } };
+        }
+        return { terms: { item_type: [itemSearchCategory] } };
+    }
+}
+
 export function unaliasItemType(
     commandName: SearchableItemCategory | SearchableItemCategoryAlias
 ): SearchableItemCategory {
@@ -111,163 +126,4 @@ function formatBonusesOrResists(stats?: Stat[]): string {
             })
             .join(', ') || 'None'
     );
-}
-
-function getSimilarResults(responseBody: any): string | undefined {
-    const similarResultList = responseBody.aggregations?.similar_results?.filtered?.buckets;
-    if (!similarResultList) return;
-
-    const similarResults: string = similarResultList
-        .slice(1)
-        .map(
-            (bucket: {
-                items: { top: [{ metrics: { 'title.keyword': string; link: string } }] };
-            }) => bucket.items.top[0].metrics
-        )
-        .map(
-            (similarResult: { 'title.keyword': string; link: string }) =>
-                `[${similarResult['title.keyword']}](${similarResult.link})`
-        )
-        .join(', ');
-    return similarResults;
-}
-
-export function formatQueryResponse(
-    responseBody: any,
-    itemSearchCategory: SearchableItemCategory
-): {
-    message: MessageEmbedOptions;
-    noResults: boolean;
-} {
-    const searchResult: any | undefined = responseBody.hits.hits[0]?._source;
-    if (!searchResult) {
-        return {
-            message: { description: `No ${itemSearchCategory} was found.` },
-            noResults: true,
-        };
-    }
-
-    const tags: string =
-        (searchResult.variant_info || [])
-            .map(
-                ({ tags: tagList }: { tags: ItemTag[] }) =>
-                    '`' +
-                    (tagList.map((tag: ItemTag): string => PRETTY_TAG_NAMES[tag]).join(', ') ||
-                        'Untagged') +
-                    '`'
-            )
-            .join(' or ') || '`Untagged`';
-
-    const locationList: Location[] = (searchResult.variant_info || [])
-        .map((variantInfo: { locations: Location[] }) => variantInfo.locations)
-        .flat()
-        .map((location: Location) =>
-            location.link ? `[${location.name}](${location.link})` : location.name
-        );
-    const locations: Location[] = [...new Set(locationList)];
-
-    const bonuses: string = formatBonusesOrResists(searchResult.bonuses);
-
-    let embedBody: string;
-    const embedFields: EmbedFieldData[] = [];
-    if (itemSearchCategory === 'pet') {
-        embedBody =
-            `**Tags:** ${tags}\n` +
-            `**Location${locations.length > 1 ? 's' : ''}:** ${locations.join(', ') || 'N/A'}\n` +
-            `**Level:** ${searchResult.level}\n` +
-            `**Damage:** ${Util.escapeMarkdown(searchResult.damage) || '0-0'}\n` +
-            `**Element:** ${searchResult.elements.map(capitalize).join(' / ') || 'N/A'}\n` +
-            `**Bonuses:** ${bonuses}`;
-
-        const attacks: string =
-            searchResult.attacks
-                .map(
-                    (attack: PetAttack, index: number) =>
-                        (index + 1).toString() + '. ' + attack.description
-                )
-                .join('\n') || 'This pet has no attacks.';
-        embedFields.push({ name: 'Attacks', value: attacks });
-    } else {
-        embedBody =
-            `**Tags:** ${tags}\n` +
-            `**Location${locations.length > 1 ? 's' : ''}:** ${locations.join(', ') || 'N/A'}\n` +
-            `**Level:** ${searchResult.level}\n` +
-            `**Type:** ${capitalize(searchResult.item_type)}`;
-
-        const isAccessory: boolean =
-            itemSearchCategory in ACCESSORY_TYPES || itemSearchCategory === 'accessory';
-
-        const isCosmetic: boolean = searchResult.common_tags.includes('cosmetic');
-
-        if (!isAccessory) {
-            if (!isCosmetic) {
-                embedBody += `\n**Damage:** ${Util.escapeMarkdown(searchResult.damage) || '0-0'}`;
-            }
-            embedBody += `\n**Element:** ${
-                (searchResult.elements || []).map(capitalize).join(' / ') || 'N/A'
-            }`;
-        }
-        if (!isCosmetic) {
-            embedBody += `\n**Bonuses:** ${bonuses}`;
-            const resists: string = formatBonusesOrResists(searchResult.resists);
-            embedBody += `\n**Resists:** ${resists}`;
-        }
-
-        if (searchResult.artifact_modifiers?.length) {
-            embedBody += `\n**Modifies:** ${searchResult.artifact_modifiers.join(', ')}`;
-        }
-
-        if (searchResult.trinket_skill) {
-            embedFields.push({
-                name: `Trinket Skill`,
-                value:
-                    `**Effect:** ${Util.escapeMarkdown(searchResult.trinket_skill.effect)}\n` +
-                    `**Mana Cost:** ${searchResult.trinket_skill.mana_cost}\n` +
-                    `**Cooldown:** ${searchResult.trinket_skill.cooldown}\n` +
-                    `**Damage Type:** ${
-                        capitalize(searchResult.trinket_skill.damage_type) || 'N/A'
-                    }\n` +
-                    `**Element:** ${
-                        (searchResult.trinket_skill.element || []).map(capitalize).join(' / ') ||
-                        'N/A'
-                    }`,
-            });
-        }
-    }
-
-    const otherLevelVariants: string = getFormattedOtherLevelVariants(responseBody, searchResult);
-    if (otherLevelVariants) {
-        embedBody += `\n**Other Level Variants:** ${otherLevelVariants}`;
-    }
-
-    const similarResults: string | undefined = getSimilarResults(responseBody);
-    if (similarResults) {
-        embedFields.push({ name: 'Similar Results', value: similarResults });
-    }
-
-    if (searchResult.images && searchResult.images.length > 1) {
-        embedFields.push({
-            name: 'Other Appearances',
-            value: searchResult.images
-                .slice(1)
-                .map((imageUrl: string, index: number) => `[Appearance ${index + 2}](${imageUrl})`)
-                .join(', '),
-        });
-    }
-
-    const messageEmbed: MessageEmbedOptions = {
-        url: searchResult.link,
-        title: searchResult.full_title,
-        description: embedBody,
-        image: { url: (searchResult.images || [])[0] },
-        fields: embedFields,
-    };
-
-    if (searchResult.color_custom?.length) {
-        messageEmbed.footer = {
-            text: `This item is color-custom to your ${searchResult.color_custom.join(', ')} color`,
-        };
-    }
-
-    return { message: messageEmbed, noResults: false };
 }
