@@ -117,26 +117,44 @@ function getFormattedOtherLevelVariants(
             }) => searchHit._source
         )
         .filter(
-            ({ full_title, level }: { level: number; full_title: string }) =>
-                !(full_title === searchResult.full_title && level === searchResult.level)
+            ({
+                full_title: variantFullTitle,
+                level: variantLevel,
+            }: {
+                level: number;
+                full_title: string;
+            }) =>
+                !(
+                    variantFullTitle === searchResult.full_title &&
+                    variantLevel === searchResult.level
+                )
         );
 
     const repeatedVariantLevels: Set<number> = new Set();
     for (let index = 1; index < otherLevelVariantList.length; ++index) {
-        const level: number = otherLevelVariantList[index].level;
-        // Levels should be in sorted order already
-        if (level === otherLevelVariantList[index - 1].level) {
-            repeatedVariantLevels.add(level);
+        const currentVariantLevel: number = otherLevelVariantList[index].level;
+        const previousVariantLevel: number = otherLevelVariantList[index - 1].level;
+        if (currentVariantLevel === previousVariantLevel) {
+            repeatedVariantLevels.add(currentVariantLevel);
         }
     }
 
     return otherLevelVariantList
-        .map((otherLevelVariant: { level: number; full_title: string; title: string }) =>
-            otherLevelVariant.level === searchResult.level ||
-            repeatedVariantLevels.has(otherLevelVariant.level) ||
-            otherLevelVariant.title !== searchResult.title
-                ? `\`${otherLevelVariant.level}\` _(${otherLevelVariant.full_title})_`
-                : '`' + otherLevelVariant.level + '`'
+        .map(
+            ({
+                level: variantLevel,
+                full_title: variantFullTitle,
+                title: variantTitle,
+            }: {
+                level: number;
+                full_title: string;
+                title: string;
+            }) =>
+                variantLevel === searchResult.level ||
+                repeatedVariantLevels.has(variantLevel) ||
+                variantTitle !== searchResult.title
+                    ? `\`${variantLevel}\` _(${variantFullTitle})_`
+                    : '`' + variantLevel + '`'
         )
         .join(', ');
 }
@@ -257,20 +275,9 @@ export function formatQueryResponse(
             noResults: true,
         };
     }
-    const isAccessory: boolean =
-        itemSearchCategory in ACCESSORY_TYPES || itemSearchCategory === 'accessory';
-
-    const formattedTagList: string = getFormattedListOfItemTags(searchResult.variant_info);
-    const formattedLocationList: string = getFormattedListOfLocations(searchResult.variant_info);
-    const bonuses: string = getFormattedBonusesOrResists(searchResult.bonuses);
-
-    let embedBody: string =
-        `**Tags:** ${formattedTagList}\n` +
-        `**Locations:** ${formattedLocationList}\n` +
-        `**Level:** ${searchResult.level}\n`;
 
     if (itemSearchCategory === 'pet') {
-        embedBody += `**`;
+        // embedBody += `**`;
     }
 
     const embedFields: EmbedFieldData[] = [];

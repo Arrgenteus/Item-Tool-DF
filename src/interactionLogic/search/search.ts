@@ -1,7 +1,13 @@
 import { MessageEmbedOptions } from 'discord.js';
 import { elasticClient } from '../../dbConnection';
+import { ACCESSORY_TYPES, WEAPON_TYPES } from '../../utils/itemTypeData';
 import { SearchableItemCategory } from './types';
-import { formatQueryResponse, getIndexNameAndCategoryFilterQuery, romanIntToInt } from './utils';
+import {
+    getCategoryFilterQuery,
+    getIndexNameAndCategoryFilterQuery,
+    getIndexNames,
+    romanIntToInt,
+} from './utils';
 
 const PET_ALIASES: { [word: string]: string } = {
     tfs: 'rare pet tog',
@@ -58,6 +64,36 @@ function getVariantAndUnaliasTokens(
         (word: string) => aliasDict[word.toLowerCase()] || word
     );
     return { unaliasedTokens, variantNumber };
+}
+
+export function getCategoryFilterQuery(
+    itemSearchCategory: SearchableItemCategory
+): { terms: { item_type: SearchableItemCategory[] } } | undefined {
+    if (itemSearchCategory in { cape: 1, wings: 1 }) {
+        return { terms: { item_type: ['cape', 'wings'] } };
+    }
+    if (itemSearchCategory in ACCESSORY_TYPES || itemSearchCategory in WEAPON_TYPES) {
+        return { terms: { item_type: [itemSearchCategory] } };
+    }
+    return undefined;
+}
+
+function getMaxAndMinLevelFilter({
+    maxLevel,
+    minLevel,
+}: {
+    maxLevel?: number;
+    minLevel?: number;
+}): { range: { level: { lte?: number; gte?: number } } } | undefined {
+    let levelFilter: { range: { level: { lte?: number; gte?: number } } } | undefined;
+    if (maxLevel !== undefined) {
+        levelFilter = { range: { level: { lte: maxLevel } } };
+    }
+    if (minLevel !== undefined) {
+        if (levelFilter) levelFilter.range.level.gte = minLevel;
+        else levelFilter = { range: { level: { gte: minLevel } } };
+    }
+    return levelFilter;
 }
 
 function getMatchQueryBody(
@@ -234,15 +270,11 @@ export async function getItemSearchResult(
     maxLevel?: number,
     minLevel?: number
 ): Promise<{ message: MessageEmbedOptions; noResults: boolean }> {
-    const query: { [key: string]: any } = { bool: { minimum_should_match: 1 } };
+    const query: { [key: string]: any } = {
+        bool: { filter: getCategoryFilterQuery(itemSearchCategory), minimum_should_match: 1 },
+    };
 
-    // Narrow search based on specific item type
-    const { index: itemIndex, query: itemCategoryFilterQuery } =
-        getIndexNameAndCategoryFilterQuery(itemSearchCategory);
-
-    if (itemCategoryFilterQuery) {
-        query.bool.filter = itemCategoryFilterQuery;
-    }
+    const itemIndexes: string[] = getIndexNames(itemSearchCategory);
 
     const { unaliasedTokens, variantNumber } = getVariantAndUnaliasTokens(term, itemSearchCategory);
 
@@ -251,14 +283,8 @@ export async function getItemSearchResult(
         variantFilter = { match: { variant_number: variantNumber } };
     }
 
-    let levelFilter: { range: { level: { lte?: number; gte?: number } } } | undefined;
-    if (maxLevel !== undefined) {
-        levelFilter = { range: { level: { lte: maxLevel } } };
-    }
-    if (minLevel !== undefined) {
-        if (levelFilter) levelFilter.range.level.gte = minLevel;
-        else levelFilter = { range: { level: { gte: minLevel } } };
-    }
+    const levelFilter: { range: { level: { lte?: number; gte?: number } } } | undefined =
+        getMaxAndMinLevelFilter({ maxLevel, minLevel });
 
     const isPet = itemSearchCategory === 'pet';
 
@@ -326,7 +352,7 @@ export async function getItemSearchResult(
         return modifiedScore;`;
 
     const searchQuery = {
-        index: itemIndex,
+        index: itemIndexes,
         body: {
             track_scores: true,
             size: 1, // Set size to 1 to return only the top result
