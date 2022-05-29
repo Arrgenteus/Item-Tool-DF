@@ -1,81 +1,29 @@
-import { MessageEmbedOptions } from 'discord.js';
+import { MessageActionRowOptions, MessageEmbedOptions } from 'discord.js';
 import { elasticClient } from '../../dbConnection';
 import { ACCESSORY_TYPES, WEAPON_TYPES } from '../../utils/itemTypeData';
+import { ACCESSORY_ALIASES } from './aliases';
+import { formatQueryResponse } from './formattedResults';
 import { SearchableItemCategory } from './types';
-import {
-    getCategoryFilterQuery,
-    getIndexNameAndCategoryFilterQuery,
-    getIndexNames,
-    romanIntToInt,
-} from './utils';
+import { getIndexNames, getVariantAndUnaliasTokens, romanIntToInt } from './utils';
 
-const PET_ALIASES: { [word: string]: string } = {
-    tfs: 'rare pet tog',
-    ex: 'extreme',
-};
-
-const ACCESSORY_ALIASES: { [word: string]: string } = {
-    k: 'thousand',
-    '1k': 'thousand',
-    adl: 'ancient dragonlord helm',
-    ba: "baltael's aventail",
-    bsw: "baltael's aventail",
-    c7: 'the corrupted seven',
-    ddb: 'defenders dragon belt',
-    ddn: 'defenders dragon necklace',
-    ddr: 'defenders dragon ring',
-    ddv: 'distorted doom visage',
-    drk: 'dragonknight',
-    eud: 'elemental unity defender',
-    fdl: 'fierce dragonlord',
-    dlc: 'dragonlord captain',
-    gt: 'grove tender',
-    ngt: 'neo grove tender',
-    nstb: 'not so tiny bubbles',
-    pdl: "dragon's patience",
-    rdl: "dragon's rage",
-    bdl: "dragon's bulwark",
-    wdl: "dragon's wrath",
-    sf: 'soulforged',
-    ttv: 'tytanvisage',
-    df: 'dragonfable',
-};
-
-function getVariantAndUnaliasTokens(
-    searchTerm: string,
-    itemSearchCategory: SearchableItemCategory
-): { unaliasedTokens: string[]; variantNumber?: number } {
-    const words: string[] = searchTerm.split(/[ _\\-]+/);
-
-    const romanNumberRegex: RegExp = /^((?:x{0,3})(ix|iv|v?i{0,3}))$/i;
-    let variantNumber: number | undefined;
-    for (const index of [words.length - 1, words.length - 2].filter((i: number) => i > 0)) {
-        if (words[index].match(romanNumberRegex)) {
-            variantNumber = romanIntToInt(words[index]);
-            words.splice(index, 1);
-            break;
-        }
-    }
-
-    let aliasDict = ACCESSORY_ALIASES;
-    if (itemSearchCategory === 'pet') aliasDict = PET_ALIASES;
-
-    const unaliasedTokens: string[] = words.map(
-        (word: string) => aliasDict[word.toLowerCase()] || word
-    );
-    return { unaliasedTokens, variantNumber };
-}
-
-export function getCategoryFilterQuery(
+export function getSpecificCategoryFilterQuery(
     itemSearchCategory: SearchableItemCategory
 ): { terms: { item_type: SearchableItemCategory[] } } | undefined {
-    if (itemSearchCategory in { cape: 1, wings: 1 }) {
-        return { terms: { item_type: ['cape', 'wings'] } };
+    if (['weapon', 'accessory', 'item'].includes(itemSearchCategory)) return undefined;
+
+    let itemTypeFilterItems: SearchableItemCategory[];
+
+    if (['cape', 'wings'].includes(itemSearchCategory)) {
+        itemTypeFilterItems = ['cape', 'wings'];
+    } else if (['sword', 'axe', 'mace'].includes(itemSearchCategory)) {
+        itemTypeFilterItems = ['sword', 'axe', 'mace'];
+    } else if (['staff', 'wand'].includes(itemSearchCategory)) {
+        itemTypeFilterItems = ['staff', 'wand'];
+    } else {
+        itemTypeFilterItems = [itemSearchCategory];
     }
-    if (itemSearchCategory in ACCESSORY_TYPES || itemSearchCategory in WEAPON_TYPES) {
-        return { terms: { item_type: [itemSearchCategory] } };
-    }
-    return undefined;
+
+    return { terms: { item_type: itemTypeFilterItems } };
 }
 
 function getMaxAndMinLevelFilter({
@@ -264,14 +212,22 @@ function getMatchQueryBody(
     ];
 }
 
-export async function getItemSearchResult(
-    term: string,
-    itemSearchCategory: SearchableItemCategory,
-    maxLevel?: number,
-    minLevel?: number
-): Promise<{ message: MessageEmbedOptions; noResults: boolean }> {
+export async function getItemSearchResult({
+    term,
+    itemSearchCategory,
+    maxLevel,
+    minLevel,
+}: {
+    term: string;
+    itemSearchCategory: SearchableItemCategory;
+    maxLevel?: number;
+    minLevel?: number;
+}): Promise<{ embeds: MessageEmbedOptions[]; components?: MessageActionRowOptions[] } | undefined> {
     const query: { [key: string]: any } = {
-        bool: { filter: getCategoryFilterQuery(itemSearchCategory), minimum_should_match: 1 },
+        bool: {
+            filter: getSpecificCategoryFilterQuery(itemSearchCategory),
+            minimum_should_match: 1,
+        },
     };
 
     const itemIndexes: string[] = getIndexNames(itemSearchCategory);
@@ -491,5 +447,5 @@ export async function getItemSearchResult(
         responseBody = (await elasticClient.search(searchQuery)).body;
     }
 
-    return formatQueryResponse(responseBody, itemSearchCategory);
+    return formatQueryResponse(responseBody);
 }

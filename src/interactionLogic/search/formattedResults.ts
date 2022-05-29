@@ -1,7 +1,8 @@
-import { EmbedFieldData, MessageEmbedOptions, Util } from 'discord.js';
-import { ACCESSORY_TYPES, ItemTag, PRETTY_TAG_NAMES } from '../../utils/itemTypeData';
+import { EmbedFieldData, MessageActionRowOptions, MessageEmbedOptions, Util } from 'discord.js';
+import config from '../../config';
+import { ItemTag, PRETTY_TAG_NAMES } from '../../utils/itemTypeData';
 import { capitalize } from '../../utils/misc';
-import { SearchableItemCategory, Location, ItemVariantInfo, Stat, PetAttack } from './types';
+import { Location, ItemVariantInfo, Stat, PetAttack } from './types';
 
 function getFormattedListOfItemTags(searchResultVariantInfo?: ItemVariantInfo[]): string {
     return (
@@ -82,6 +83,38 @@ function getFormattedTrinketSkillInfo(searchResultTrinketSkill: {
             (searchResultTrinketSkill.element || []).map(capitalize).join(' / ') || 'N/A'
         }`
     );
+}
+
+function getEmbedsForFormattedWeaponSpecialInfo(
+    searchResultWeaponSpecials: {
+        activation: string;
+        effect: string;
+        elements?: string[];
+        rate: number;
+    }[]
+): EmbedFieldData[] | undefined {
+    if (!searchResultWeaponSpecials?.length) return;
+
+    const embedFields: EmbedFieldData[] = [];
+    for (const weaponSpecial of searchResultWeaponSpecials) {
+        let weaponSpecialDesc =
+            `**Activation:** ${capitalize(weaponSpecial.activation)}\n` +
+            `**Effect:** ${weaponSpecial.effect}`;
+        if (weaponSpecial.elements?.length) {
+            const prettyElementList: string = weaponSpecial.elements.map(capitalize).join(' / ');
+            weaponSpecialDesc += `\n**Element:** ${prettyElementList}`;
+        }
+        if (weaponSpecial.activation.toLowerCase() !== 'click weapon') {
+            const rateInPercent: number = Math.round(weaponSpecial.rate * 10 ** 5) / 10 ** 3;
+            weaponSpecialDesc += `\n**Rate:** ${rateInPercent}%`;
+        }
+        embedFields.push({
+            name: 'Weapon Special',
+            value: weaponSpecialDesc,
+            inline: true,
+        });
+    }
+    return embedFields;
 }
 
 function getListOfSimilarResults(responseBody: any): string | undefined {
@@ -187,7 +220,7 @@ function formatAccessoryQueryResponse(searchResult: any): MessageEmbedOptions {
     const isCosmetic: boolean = searchResult.common_tags.includes('cosmetic');
     if (!isCosmetic) {
         embedBody +=
-            `**Bonuses:** ${getFormattedBonusesOrResists(searchResult.bonuses)}\n` +
+            `\n**Bonuses:** ${getFormattedBonusesOrResists(searchResult.bonuses)}\n` +
             `**Resists:** ${getFormattedBonusesOrResists(searchResult.resists)}`;
     }
 
@@ -235,21 +268,12 @@ function formatWeaponQueryResponse(searchResult: any): MessageEmbedOptions {
 
     if (!isCosmetic) {
         embedBody +=
-            `**Bonuses:** ${getFormattedBonusesOrResists(searchResult.bonuses)}\n` +
-            `**Resists:** ${getFormattedBonusesOrResists(searchResult.resists)}`;
+            `\n**Bonuses:** ${getFormattedBonusesOrResists(searchResult.bonuses)}` +
+            `\n**Resists:** ${getFormattedBonusesOrResists(searchResult.resists)}`;
     }
 
     if (searchResult.artifact_modifiers?.length) {
         embedBody += `\n**Modifies:** ${searchResult.artifact_modifiers.join(', ')}`;
-    }
-
-    const embedFields = [];
-
-    if (searchResult.trinket_skill) {
-        embedFields.push({
-            name: `Trinket Skill`,
-            value: getFormattedTrinketSkillInfo(searchResult.trinket_skill),
-        });
     }
 
     return {
@@ -257,46 +281,51 @@ function formatWeaponQueryResponse(searchResult: any): MessageEmbedOptions {
         title: searchResult.full_title,
         description: embedBody,
         image: { url: (searchResult.images || [])[0] },
-        fields: embedFields,
+        fields: getEmbedsForFormattedWeaponSpecialInfo(searchResult.weapon_specials),
     };
 }
 
 export function formatQueryResponse(
-    responseBody: any,
-    itemSearchCategory: SearchableItemCategory
-): {
-    message: MessageEmbedOptions;
-    noResults: boolean;
-} {
-    const searchResult: any | undefined = responseBody.hits.hits[0]?._source;
-    if (!searchResult) {
-        return {
-            message: { description: `No ${itemSearchCategory} was found.` },
-            noResults: true,
-        };
-    }
+    responseBody: any
+): { embeds: MessageEmbedOptions[]; components?: MessageActionRowOptions[] } | undefined {
+    const searchResultWithMetadata = responseBody.hits.hits[0];
+    const searchResult = searchResultWithMetadata?._source;
 
-    if (itemSearchCategory === 'pet') {
-        // embedBody += `**`;
-    }
+    if (!searchResult) return;
 
-    const embedFields: EmbedFieldData[] = [];
-    if (itemSearchCategory === 'pet') {
-    } else {
+    const searchResultIndex: string = searchResultWithMetadata._index;
+
+    let itemQueryResponseEmbed: MessageEmbedOptions;
+    switch (searchResultIndex) {
+        case config.PET_INDEX_NAME:
+            itemQueryResponseEmbed = formatPetQueryResponse(searchResult);
+            break;
+        case config.ACCESSORY_INDEX_NAME:
+            itemQueryResponseEmbed = formatAccessoryQueryResponse(searchResult);
+            break;
+        case config.WEAPON_INDEX_NAME:
+            itemQueryResponseEmbed = formatWeaponQueryResponse(searchResult);
+            break;
+        default:
+            throw new Error(`Invalid item search index '${searchResultIndex}'`); // Should never happen
     }
 
     const otherLevelVariants: string = getFormattedOtherLevelVariants(responseBody, searchResult);
     if (otherLevelVariants) {
-        embedBody += `\n**Other Level Variants:** ${otherLevelVariants}`;
+        itemQueryResponseEmbed.description += `\n**Other Level Variants:** ${otherLevelVariants}`;
+    }
+
+    if (!itemQueryResponseEmbed.fields) {
+        itemQueryResponseEmbed.fields = [];
     }
 
     const similarResults: string | undefined = getListOfSimilarResults(responseBody);
     if (similarResults) {
-        embedFields.push({ name: 'Similar Results', value: similarResults });
+        itemQueryResponseEmbed.fields.push({ name: 'Similar Results', value: similarResults });
     }
 
     if (searchResult.images && searchResult.images.length > 1) {
-        embedFields.push({
+        itemQueryResponseEmbed.fields.push({
             name: 'Other Appearances',
             value: searchResult.images
                 .slice(1)
@@ -305,17 +334,9 @@ export function formatQueryResponse(
         });
     }
 
-    const messageEmbed: MessageEmbedOptions = {
-        url: searchResult.link,
-        title: searchResult.full_title,
-        description: embedBody,
-        image: { url: (searchResult.images || [])[0] },
-        fields: embedFields,
-    };
-
-    messageEmbed.footer = {
+    itemQueryResponseEmbed.footer = {
         text: getFormattedColorCustomInfo(searchResult.color_custom),
     };
 
-    return { message: messageEmbed, noResults: false };
+    return { embeds: [itemQueryResponseEmbed] };
 }

@@ -1,6 +1,19 @@
 import { AccessoryType, ItemTag, WeaponType } from '../../utils/itemTypeData';
 
-export type SearchableItemCategory = AccessoryType | WeaponType | 'weapon' | 'accessory' | 'pet';
+export enum ItemCategoryTypes {
+    GEAR,
+    WEAPON,
+    ACCESSORY,
+    PET,
+}
+
+export type SearchableItemCategory =
+    | AccessoryType
+    | WeaponType
+    | 'weapon'
+    | 'accessory'
+    | 'pet'
+    | 'item';
 
 export type SearchableItemCategoryFilter = { terms: { item_type: SearchableItemCategory[] } };
 

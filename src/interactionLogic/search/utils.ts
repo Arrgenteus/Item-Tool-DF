@@ -2,20 +2,63 @@ import { EmbedFieldData, MessageEmbedOptions, Util } from 'discord.js';
 import config from '../../config';
 import { ACCESSORY_TYPES, ItemTag, PRETTY_TAG_NAMES, WEAPON_TYPES } from '../../utils/itemTypeData';
 import { capitalize } from '../../utils/misc';
+import { ACCESSORY_ALIASES, PET_ALIASES, WEAPON_ALIASES } from './aliases';
 import {
     categoryAliasMapping,
-    Location,
-    PetAttack,
+    ItemCategoryTypes,
     SearchableItemCategory,
     SearchableItemCategoryAlias,
-    SearchableItemCategoryFilter,
-    Stat,
 } from './types';
 
+const ITEM_CATEGORY_TYPE_TO_INDEX_NAMES = {
+    [ItemCategoryTypes.GEAR]: [config.WEAPON_INDEX_NAME, config.ACCESSORY_INDEX_NAME],
+    [ItemCategoryTypes.WEAPON]: [config.WEAPON_INDEX_NAME],
+    [ItemCategoryTypes.ACCESSORY]: [config.ACCESSORY_INDEX_NAME],
+    [ItemCategoryTypes.PET]: [config.PET_INDEX_NAME],
+};
+
+const ITEM_CATEGORY_TYPE_TO_ALIAS_DICT = {
+    [ItemCategoryTypes.GEAR]: { ...ACCESSORY_ALIASES, ...WEAPON_ALIASES },
+    [ItemCategoryTypes.WEAPON]: WEAPON_ALIASES,
+    [ItemCategoryTypes.ACCESSORY]: ACCESSORY_ALIASES,
+    [ItemCategoryTypes.PET]: PET_ALIASES,
+};
+
+function getItemCategoryType(itemCategory: SearchableItemCategory): ItemCategoryTypes {
+    if (itemCategory === 'item') return ItemCategoryTypes.GEAR;
+    if (itemCategory === 'pet') return ItemCategoryTypes.PET;
+    if (itemCategory in WEAPON_TYPES || itemCategory === 'weapon') return ItemCategoryTypes.WEAPON;
+    return ItemCategoryTypes.ACCESSORY;
+}
+
 export function getIndexNames(itemSearchCategory: SearchableItemCategory): string[] {
-    if (itemSearchCategory === 'pet') return [config.PET_INDEX_NAME];
-    if (itemSearchCategory === 'weapon') return [config.WEAPON_INDEX_NAME];
-    return [config.ACCESSORY_INDEX_NAME];
+    const itemCategoryType: ItemCategoryTypes = getItemCategoryType(itemSearchCategory);
+    return ITEM_CATEGORY_TYPE_TO_INDEX_NAMES[itemCategoryType];
+}
+
+export function getVariantAndUnaliasTokens(
+    searchTerm: string,
+    itemSearchCategory: SearchableItemCategory
+): { unaliasedTokens: string[]; variantNumber?: number } {
+    const words: string[] = searchTerm.split(/[ _\\-]+/);
+
+    const romanNumberRegex: RegExp = /^((?:x{0,3})(ix|iv|v?i{0,3}))$/i;
+    let variantNumber: number | undefined;
+    for (const index of [words.length - 1, words.length - 2].filter((i: number) => i > 0)) {
+        if (words[index].match(romanNumberRegex)) {
+            variantNumber = romanIntToInt(words[index]);
+            words.splice(index, 1);
+            break;
+        }
+    }
+
+    const itemCategoryType: ItemCategoryTypes = getItemCategoryType(itemSearchCategory);
+    const aliasDict = ITEM_CATEGORY_TYPE_TO_ALIAS_DICT[itemCategoryType];
+
+    const unaliasedTokens: string[] = words.map(
+        (word: string) => aliasDict[word.toLowerCase()] || word
+    );
+    return { unaliasedTokens, variantNumber };
 }
 
 export function unaliasItemType(

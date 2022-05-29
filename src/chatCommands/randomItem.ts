@@ -10,6 +10,10 @@ import { ACCESSORY_TYPES } from '../utils/itemTypeData';
 
 const command: ChatCommandData = {
     names: [
+        'randomitem',
+        'random-item',
+        'randomwep',
+        'random-wep',
         'randompet',
         'random-pet',
         'randomacc',
@@ -39,10 +43,15 @@ const command: ChatCommandData = {
 
         const itemType: SearchableItemCategory = unaliasItemType(itemTypeInput);
 
-        const { message: randomPetSearchResult }: { message: MessageEmbedOptions } =
-            await getRandomItem(itemType);
+        const randomItemResult = await getRandomItem(itemType);
 
-        await channel.send({ embeds: [randomPetSearchResult] });
+        if (randomItemResult) {
+            await channel.send(randomItemResult);
+        } else {
+            await channel.send({
+                embeds: [{ description: `No ${itemType} was found.` }],
+            });
+        }
     },
 };
 
