@@ -51,11 +51,15 @@ export function capitalize(text: string): string {
 
     if (!text || !text.trim()) return text;
 
-    return text
-        .trim()
-        .split(' ')
-        .map((word) => word[0].toUpperCase() + word.slice(1))
-        .join(' ');
+    let capitalizedText: string = text[0].toUpperCase();
+    for (let i = 1; i < text.length; ++i) {
+        if ([',', ' ', '.', '/', '(', ')'].includes(text[i - 1])) {
+            capitalizedText += text[i].toUpperCase();
+        } else {
+            capitalizedText += text[i];
+        }
+    }
+    return capitalizedText;
 }
 
 export function isResist(value: string): boolean {

@@ -1,14 +1,17 @@
 import config from '../../config';
 import { elasticClient } from '../../dbConnection';
+import { formatQueryResponse } from './formattedResults';
+import { getSpecificCategoryFilterQuery } from './search';
 import { SearchableItemCategory } from './types';
-import { formatQueryResponse, getIndexNameAndCategoryFilterQuery } from './utils';
+import { getIndexNames } from './utils';
 
 export async function getRandomItem(itemCategory: SearchableItemCategory) {
-    const { index: itemIndex, query: itemCategoryFilterQuery } =
-        getIndexNameAndCategoryFilterQuery(itemCategory);
+    const itemIndexes: string[] = getIndexNames(itemCategory);
+
+    const itemCategoryFilterQuery = getSpecificCategoryFilterQuery(itemCategory);
 
     const { body: responseBody } = await elasticClient.search({
-        index: itemIndex,
+        index: itemIndexes,
         body: {
             size: 1,
             query: {
@@ -20,5 +23,5 @@ export async function getRandomItem(itemCategory: SearchableItemCategory) {
         },
     });
 
-    return formatQueryResponse(responseBody, itemCategory);
+    return formatQueryResponse(responseBody);
 }

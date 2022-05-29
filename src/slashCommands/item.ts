@@ -1,10 +1,15 @@
-import { CommandInteraction, MessageEmbedOptions } from 'discord.js';
+import { CommandInteraction, InteractionReplyOptions } from 'discord.js';
 import { SlashCommandData } from '../eventHandlerTypes';
 import { getItemSearchResult } from '../interactionLogic/search/search';
-import { SearchableItemCategory } from '../interactionLogic/search/types';
+import {
+    SearchableItemCategory,
+    SearchableItemCategoryAlias,
+} from '../interactionLogic/search/types';
 import { unaliasItemType } from '../interactionLogic/search/utils';
 
-function createSearchSlashCommand(commandName: SearchableItemCategory | 'acc'): SlashCommandData {
+function createSearchSlashCommand(
+    commandName: SearchableItemCategory | SearchableItemCategoryAlias
+): SlashCommandData {
     let searchableItemCategory: SearchableItemCategory = unaliasItemType(commandName);
 
     return {
@@ -35,24 +40,43 @@ function createSearchSlashCommand(commandName: SearchableItemCategory | 'acc'): 
         },
 
         run: async (interaction: CommandInteraction) => {
-            const searchQuery: string = interaction.options.getString('name', true);
+            const itemNameToSearchFor: string = interaction.options.getString('name', true);
             const maxLevel: number | undefined =
                 interaction.options.getInteger('max-level') ?? undefined;
             const minLevel: number | undefined =
                 interaction.options.getInteger('min-level') ?? undefined;
 
-            const accSearchResult: { message: MessageEmbedOptions; noResults: boolean } =
-                await getItemSearchResult(searchQuery, searchableItemCategory, maxLevel, minLevel);
-
-            await interaction.reply({
-                embeds: [accSearchResult.message],
-                ephemeral: accSearchResult.noResults,
-            });
+            const itemSearchCategory = unaliasItemType(commandName);
+            const itemSearchResult: InteractionReplyOptions | undefined = await getItemSearchResult(
+                {
+                    term: itemNameToSearchFor,
+                    itemSearchCategory,
+                    maxLevel,
+                    minLevel,
+                }
+            );
+            if (itemSearchResult) {
+                await interaction.reply(itemSearchResult);
+            } else {
+                await interaction.reply({
+                    embeds: [{ description: `No ${itemSearchCategory} was found.` }],
+                    ephemeral: true,
+                });
+            }
         },
     };
 }
 
-const categories: (SearchableItemCategory | 'acc')[] = [
+const categories: (SearchableItemCategory | SearchableItemCategoryAlias)[] = [
+    'item',
+    'wep',
+    'sword',
+    'axe',
+    'mace',
+    'staff',
+    'wand',
+    'dagger',
+    'scythe',
     'acc',
     'cape',
     'helm',
