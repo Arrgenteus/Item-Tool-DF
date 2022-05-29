@@ -312,7 +312,7 @@ export async function getItemSearchResult({
         body: {
             track_scores: true,
             size: 1, // Set size to 1 to return only the top result
-            sort: ['_score', { 'title.keyword': 'asc' }, { level: 'desc' }],
+            sort: ['_score', { level: 'desc' }, { 'title.keyword': 'asc' }],
             query: {
                 // Filter documents and modify search score based on item level/stats
                 function_score: {
