@@ -1,63 +1,47 @@
-import { MessageEmbedOptions } from 'discord.js';
+import { MessageActionRowOptions, MessageEmbedOptions } from 'discord.js';
 import { elasticClient } from '../../dbConnection';
+import { ACCESSORY_TYPES, WEAPON_TYPES } from '../../utils/itemTypeData';
+import { ACCESSORY_ALIASES } from './aliases';
+import { formatQueryResponse } from './formattedResults';
 import { SearchableItemCategory } from './types';
-import { formatQueryResponse, getIndexNameAndCategoryFilterQuery, romanIntToInt } from './utils';
+import { getIndexNames, getVariantAndUnaliasTokens, romanIntToInt } from './utils';
 
-const PET_ALIASES: { [word: string]: string } = {
-    tfs: 'rare pet tog',
-    ex: 'extreme',
-};
-
-const ACCESSORY_ALIASES: { [word: string]: string } = {
-    k: 'thousand',
-    '1k': 'thousand',
-    adl: 'ancient dragonlord helm',
-    ba: "baltael's aventail",
-    bsw: "baltael's aventail",
-    c7: 'the corrupted seven',
-    ddb: 'defenders dragon belt',
-    ddn: 'defenders dragon necklace',
-    ddr: 'defenders dragon ring',
-    ddv: 'distorted doom visage',
-    drk: 'dragonknight',
-    eud: 'elemental unity defender',
-    fdl: 'fierce dragonlord',
-    dlc: 'dragonlord captain',
-    gt: 'grove tender',
-    ngt: 'neo grove tender',
-    nstb: 'not so tiny bubbles',
-    pdl: "dragon's patience",
-    rdl: "dragon's rage",
-    bdl: "dragon's bulwark",
-    wdl: "dragon's wrath",
-    sf: 'soulforged',
-    ttv: 'tytanvisage',
-    df: 'dragonfable',
-};
-
-function getVariantAndUnaliasTokens(
-    searchTerm: string,
+export function getSpecificCategoryFilterQuery(
     itemSearchCategory: SearchableItemCategory
-): { unaliasedTokens: string[]; variantNumber?: number } {
-    const words: string[] = searchTerm.split(/[ _\\-]+/);
+): { terms: { item_type: SearchableItemCategory[] } } | undefined {
+    if (['weapon', 'accessory', 'item'].includes(itemSearchCategory)) return undefined;
 
-    const romanNumberRegex: RegExp = /^((?:x{0,3})(ix|iv|v?i{0,3}))$/i;
-    let variantNumber: number | undefined;
-    for (const index of [words.length - 1, words.length - 2].filter((i: number) => i > 0)) {
-        if (words[index].match(romanNumberRegex)) {
-            variantNumber = romanIntToInt(words[index]);
-            words.splice(index, 1);
-            break;
-        }
+    let itemTypeFilterItems: SearchableItemCategory[];
+
+    if (['cape', 'wings'].includes(itemSearchCategory)) {
+        itemTypeFilterItems = ['cape', 'wings'];
+    } else if (['sword', 'axe', 'mace'].includes(itemSearchCategory)) {
+        itemTypeFilterItems = ['sword', 'axe', 'mace'];
+    } else if (['staff', 'wand'].includes(itemSearchCategory)) {
+        itemTypeFilterItems = ['staff', 'wand'];
+    } else {
+        itemTypeFilterItems = [itemSearchCategory];
     }
 
-    let aliasDict = ACCESSORY_ALIASES;
-    if (itemSearchCategory === 'pet') aliasDict = PET_ALIASES;
+    return { terms: { item_type: itemTypeFilterItems } };
+}
 
-    const unaliasedTokens: string[] = words.map(
-        (word: string) => aliasDict[word.toLowerCase()] || word
-    );
-    return { unaliasedTokens, variantNumber };
+function getMaxAndMinLevelFilter({
+    maxLevel,
+    minLevel,
+}: {
+    maxLevel?: number;
+    minLevel?: number;
+}): { range: { level: { lte?: number; gte?: number } } } | undefined {
+    let levelFilter: { range: { level: { lte?: number; gte?: number } } } | undefined;
+    if (maxLevel !== undefined) {
+        levelFilter = { range: { level: { lte: maxLevel } } };
+    }
+    if (minLevel !== undefined) {
+        if (levelFilter) levelFilter.range.level.gte = minLevel;
+        else levelFilter = { range: { level: { gte: minLevel } } };
+    }
+    return levelFilter;
 }
 
 function getMatchQueryBody(
@@ -228,21 +212,25 @@ function getMatchQueryBody(
     ];
 }
 
-export async function getItemSearchResult(
-    term: string,
-    itemSearchCategory: SearchableItemCategory,
-    maxLevel?: number,
-    minLevel?: number
-): Promise<{ message: MessageEmbedOptions; noResults: boolean }> {
-    const query: { [key: string]: any } = { bool: { minimum_should_match: 1 } };
+export async function getItemSearchResult({
+    term,
+    itemSearchCategory,
+    maxLevel,
+    minLevel,
+}: {
+    term: string;
+    itemSearchCategory: SearchableItemCategory;
+    maxLevel?: number;
+    minLevel?: number;
+}): Promise<{ embeds: MessageEmbedOptions[]; components?: MessageActionRowOptions[] } | undefined> {
+    const query: { [key: string]: any } = {
+        bool: {
+            filter: getSpecificCategoryFilterQuery(itemSearchCategory),
+            minimum_should_match: 1,
+        },
+    };
 
-    // Narrow search based on specific item type
-    const { index: itemIndex, query: itemCategoryFilterQuery } =
-        getIndexNameAndCategoryFilterQuery(itemSearchCategory);
-
-    if (itemCategoryFilterQuery) {
-        query.bool.filter = itemCategoryFilterQuery;
-    }
+    const itemIndexes: string[] = getIndexNames(itemSearchCategory);
 
     const { unaliasedTokens, variantNumber } = getVariantAndUnaliasTokens(term, itemSearchCategory);
 
@@ -251,14 +239,8 @@ export async function getItemSearchResult(
         variantFilter = { match: { variant_number: variantNumber } };
     }
 
-    let levelFilter: { range: { level: { lte?: number; gte?: number } } } | undefined;
-    if (maxLevel !== undefined) {
-        levelFilter = { range: { level: { lte: maxLevel } } };
-    }
-    if (minLevel !== undefined) {
-        if (levelFilter) levelFilter.range.level.gte = minLevel;
-        else levelFilter = { range: { level: { gte: minLevel } } };
-    }
+    const levelFilter: { range: { level: { lte?: number; gte?: number } } } | undefined =
+        getMaxAndMinLevelFilter({ maxLevel, minLevel });
 
     const isPet = itemSearchCategory === 'pet';
 
@@ -326,11 +308,11 @@ export async function getItemSearchResult(
         return modifiedScore;`;
 
     const searchQuery = {
-        index: itemIndex,
+        index: itemIndexes,
         body: {
             track_scores: true,
             size: 1, // Set size to 1 to return only the top result
-            sort: ['_score', { 'title.keyword': 'asc' }, { level: 'desc' }],
+            sort: ['_score', { level: 'desc' }, { 'title.keyword': 'asc' }],
             query: {
                 // Filter documents and modify search score based on item level/stats
                 function_score: {
@@ -465,5 +447,5 @@ export async function getItemSearchResult(
         responseBody = (await elasticClient.search(searchQuery)).body;
     }
 
-    return formatQueryResponse(responseBody, itemSearchCategory);
+    return formatQueryResponse(responseBody);
 }

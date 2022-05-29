@@ -1,4 +1,4 @@
-import { Message, MessageEmbedOptions, TextChannel } from 'discord.js';
+import { Message, MessageOptions, TextChannel } from 'discord.js';
 import config from '../config';
 import { ChatCommandData } from '../eventHandlerTypes';
 import { getItemSearchResult } from '../interactionLogic/search/search';
@@ -10,6 +10,17 @@ import { unaliasItemType } from '../interactionLogic/search/utils';
 import { embed } from '../utils/misc';
 
 const commandNames: (SearchableItemCategory | SearchableItemCategoryAlias)[] = [
+    'item',
+    'wep',
+    'weap',
+    'weapon',
+    'sword',
+    'axe',
+    'mace',
+    'staff',
+    'wand',
+    'dagger',
+    'scythe',
     'acc',
     'accessory',
     'cape',
@@ -31,19 +42,19 @@ const command: ChatCommandData = {
     names: commandNames,
     run: async (
         message: Message,
-        searchQuery: string,
+        itemNameToSearchFor: string,
         commandName: SearchableItemCategory | SearchableItemCategoryAlias
     ): Promise<void> => {
-        const searchableItemCategory: SearchableItemCategory = unaliasItemType(commandName);
+        const itemSearchCategory: SearchableItemCategory = unaliasItemType(commandName);
 
         const channel: TextChannel = message.channel as TextChannel;
 
-        if (!searchQuery) {
+        if (!itemNameToSearchFor) {
             await channel.send(
                 embed(
                     `Usage: ${config.COMMAND_CHAR}${commandName} \`[name]\` _or_ ` +
                         `${config.COMMAND_CHAR}${commandName} \`[name]\` \`(operator)\` \`[level]\` - ` +
-                        `Search for a ${searchableItemCategory} with an optional level filter\n` +
+                        `Search for a ${itemSearchCategory} with an optional level filter\n` +
                         '`(operator)` can be one of the following: ' +
                         '`=`, `<`, `>`, `<=`, `>=`'
                 )
@@ -67,13 +78,13 @@ const command: ChatCommandData = {
         const operatorRegexp: RegExp = new RegExp(
             operatorList.map((op: string) => `(?:${op})`).join('|')
         );
-        const operatorMatch: RegExpMatchArray | null = searchQuery.match(operatorRegexp);
+        const operatorMatch: RegExpMatchArray | null = itemNameToSearchFor.match(operatorRegexp);
         let maxLevel: number | undefined;
         let minLevel: number | undefined;
         if (operatorMatch) {
             const usedOperator: string = operatorMatch[0];
             const inputLevel: number = Number(
-                searchQuery.slice(operatorMatch.index! + usedOperator.length).trim()
+                itemNameToSearchFor.slice(operatorMatch.index! + usedOperator.length).trim()
             );
             if (!Number.isInteger(inputLevel)) {
                 await channel.send(
@@ -89,17 +100,28 @@ const command: ChatCommandData = {
                 minLevel = inputLevel;
                 if (usedOperator === '>') minLevel += 1;
             }
-            searchQuery = searchQuery.slice(0, operatorMatch.index).trim();
+            itemNameToSearchFor = itemNameToSearchFor.slice(0, operatorMatch.index).trim();
         }
 
-        if (!searchQuery) {
+        if (!itemNameToSearchFor) {
             await channel.send('The search query cannot be blank');
             return;
         }
-        const { message: petSearchResult }: { message: MessageEmbedOptions } =
-            await getItemSearchResult(searchQuery, searchableItemCategory, maxLevel, minLevel);
 
-        await channel.send({ embeds: [petSearchResult] });
+        const itemSearchResult: MessageOptions | undefined = await getItemSearchResult({
+            term: itemNameToSearchFor,
+            itemSearchCategory,
+            maxLevel,
+            minLevel,
+        });
+
+        if (itemSearchResult) {
+            await channel.send(itemSearchResult);
+        } else {
+            await channel.send({
+                embeds: [{ description: `No ${itemSearchCategory} was found.` }],
+            });
+        }
     },
 };
 
