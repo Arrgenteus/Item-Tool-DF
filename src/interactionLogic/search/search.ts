@@ -150,6 +150,28 @@ function getMatchQueryBody(
         ...(tokens.length > 1
             ? [
                   {
+                      bool: {
+                          must: [
+                              {
+                                  term: {
+                                      [`${fieldName}.word_count`]: tokens.length,
+                                  },
+                              },
+                              {
+                                  match: {
+                                      [`${fieldName}.words`]: {
+                                          query: term,
+                                          prefix_length: 1,
+                                          minimum_should_match: '100%',
+                                          fuzziness: 'AUTO:5,9999',
+                                          boost: 6,
+                                      },
+                                  },
+                              },
+                          ],
+                      },
+                  },
+                  {
                       match: {
                           [`${fieldName}.words`]: {
                               query: term,
@@ -197,7 +219,6 @@ function getMatchQueryBody(
                 },
             },
         },
-
         // match words that are joined together in the input, but are separate tokens in the document
         {
             match: {
@@ -423,7 +444,7 @@ export async function getItemSearchResult({
                                 items: {
                                     // Within each bucket, get only details of pet with max score
                                     top_metrics: {
-                                        metrics: [{ field: 'title.keyword' }, { field: 'link' }],
+                                        metrics: [{ field: 'full_title.keyword' }],
                                         sort: { _score: 'desc' },
                                     },
                                 },

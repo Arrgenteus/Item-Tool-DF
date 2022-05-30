@@ -3,7 +3,6 @@ import {
     InteractionButtonOptions,
     MessageActionRowComponentOptions,
     MessageActionRowOptions,
-    MessageButtonOptions,
     MessageEmbedOptions,
     Snowflake,
     Util,
@@ -154,8 +153,8 @@ export function getButtonListOfSimilarResults({
         .slice(1) // The first element will always be the original search result
         .map(
             (bucket: {
-                items: { top: [{ metrics: { 'title.keyword': string; link: string } }] };
-            }) => bucket.items.top[0].metrics['title.keyword']
+                items: { top: [{ metrics: { 'full_title.keyword': string; link: string } }] };
+            }) => bucket.items.top[0].metrics['full_title.keyword']
         );
     if (!similarResults.length) return [];
 
