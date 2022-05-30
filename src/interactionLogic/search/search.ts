@@ -1,8 +1,8 @@
-import { MessageActionRowOptions, MessageEmbedOptions } from 'discord.js';
+import { MessageActionRowOptions, MessageEmbedOptions, Snowflake } from 'discord.js';
 import { elasticClient } from '../../dbConnection';
 import { ACCESSORY_TYPES, WEAPON_TYPES } from '../../utils/itemTypeData';
 import { ACCESSORY_ALIASES } from './aliases';
-import { formatQueryResponse } from './formattedResults';
+import { formatQueryResponse, getButtonListOfSimilarResults } from './formattedResults';
 import { SearchableItemCategory } from './types';
 import { getIndexNames, getVariantAndUnaliasTokens, romanIntToInt } from './utils';
 
@@ -62,6 +62,7 @@ function getMatchQueryBody(
                 // Greatly boost exact matches
                 [`${fieldName}.exact`]: {
                     query: term,
+                    analyzer: 'exact',
                     boost: 10,
                 },
             },
@@ -217,12 +218,14 @@ export async function getItemSearchResult({
     itemSearchCategory,
     maxLevel,
     minLevel,
+    userIdForSimilarResults,
 }: {
     term: string;
     itemSearchCategory: SearchableItemCategory;
     maxLevel?: number;
     minLevel?: number;
-}): Promise<{ embeds: MessageEmbedOptions[]; components?: MessageActionRowOptions[] } | undefined> {
+    userIdForSimilarResults?: Snowflake;
+}): Promise<{ embeds: MessageEmbedOptions[]; components: MessageActionRowOptions[] } | undefined> {
     const query: { [key: string]: any } = {
         bool: {
             filter: getSpecificCategoryFilterQuery(itemSearchCategory),
@@ -447,5 +450,16 @@ export async function getItemSearchResult({
         responseBody = (await elasticClient.search(searchQuery)).body;
     }
 
-    return formatQueryResponse(responseBody);
+    const formattedQueryResponse = formatQueryResponse(responseBody);
+    if (formattedQueryResponse && userIdForSimilarResults) {
+        formattedQueryResponse.components = getButtonListOfSimilarResults({
+            responseBody,
+            userId: userIdForSimilarResults,
+            itemSearchCategory,
+            maxLevel,
+            minLevel,
+        });
+    }
+
+    return formattedQueryResponse;
 }
