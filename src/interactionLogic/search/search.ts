@@ -9,7 +9,7 @@ import { getIndexNames, getVariantAndUnaliasTokens, romanIntToInt } from './util
 export function getSpecificCategoryFilterQuery(
     itemSearchCategory: SearchableItemCategory
 ): { terms: { item_type: SearchableItemCategory[] } } | undefined {
-    if (['weapon', 'accessory', 'item'].includes(itemSearchCategory)) return undefined;
+    if (['weapon', 'accessory', 'item', 'pet'].includes(itemSearchCategory)) return undefined;
 
     let itemTypeFilterItems: SearchableItemCategory[];
 
