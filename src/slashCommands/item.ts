@@ -53,6 +53,7 @@ function createSearchSlashCommand(
                     itemSearchCategory,
                     maxLevel,
                     minLevel,
+                    userIdForSimilarResults: interaction.user.id,
                 }
             );
             if (itemSearchResult) {

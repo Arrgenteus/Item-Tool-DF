@@ -1,8 +1,24 @@
-import { EmbedFieldData, MessageActionRowOptions, MessageEmbedOptions, Util } from 'discord.js';
+import {
+    EmbedFieldData,
+    InteractionButtonOptions,
+    MessageActionRowComponentOptions,
+    MessageActionRowOptions,
+    MessageEmbedOptions,
+    Snowflake,
+    Util,
+} from 'discord.js';
 import config from '../../config';
+import { INTERACTION_ID_ARG_SEPARATOR } from '../../utils/constants';
 import { ItemTag, PRETTY_TAG_NAMES } from '../../utils/itemTypeData';
 import { capitalize } from '../../utils/misc';
-import { Location, ItemVariantInfo, Stat, PetAttack } from './types';
+import {
+    Location,
+    ItemVariantInfo,
+    Stat,
+    PetAttack,
+    DIFFERENT_SEARCH_RESULT_INTERACTION_ID,
+    SearchableItemCategory,
+} from './types';
 
 function getFormattedListOfItemTags(searchResultVariantInfo?: ItemVariantInfo[]): string {
     return (
@@ -117,23 +133,53 @@ function getEmbedsForFormattedWeaponSpecialInfo(
     return embedFields;
 }
 
-function getListOfSimilarResults(responseBody: any): string | undefined {
+export function getButtonListOfSimilarResults({
+    responseBody,
+    itemSearchCategory,
+    userId,
+    maxLevel,
+    minLevel,
+}: {
+    responseBody: any;
+    itemSearchCategory: SearchableItemCategory;
+    userId: Snowflake;
+    maxLevel?: number;
+    minLevel?: number;
+}): [MessageActionRowOptions] | [] {
     const similarResultList = responseBody.aggregations?.similar_results?.filtered?.buckets;
-    if (!similarResultList) return;
+    if (!similarResultList) return [];
 
-    const similarResults: string = similarResultList
-        .slice(1)
+    const similarResults: string[] = similarResultList
+        .slice(1) // The first element will always be the original search result
         .map(
             (bucket: {
-                items: { top: [{ metrics: { 'title.keyword': string; link: string } }] };
-            }) => bucket.items.top[0].metrics
-        )
-        .map(
-            (similarResult: { 'title.keyword': string; link: string }) =>
-                `[${similarResult['title.keyword']}](${similarResult.link})`
-        )
-        .join(', ');
-    return similarResults;
+                items: { top: [{ metrics: { 'full_title.keyword': string; link: string } }] };
+            }) => bucket.items.top[0].metrics['full_title.keyword']
+        );
+    if (!similarResults.length) return [];
+
+    const similarResultButtons: MessageActionRowComponentOptions[] = similarResults.map(
+        (itemName) => ({
+            type: 'BUTTON',
+            label: itemName,
+            customId: [
+                DIFFERENT_SEARCH_RESULT_INTERACTION_ID,
+                userId,
+                itemName,
+                itemSearchCategory,
+                maxLevel?.toString(),
+                minLevel?.toString(),
+            ].join(INTERACTION_ID_ARG_SEPARATOR),
+            style: 'SECONDARY',
+        })
+    );
+
+    return [
+        {
+            type: 'ACTION_ROW',
+            components: similarResultButtons,
+        },
+    ];
 }
 
 function getFormattedOtherLevelVariants(
@@ -287,7 +333,7 @@ function formatWeaponQueryResponse(searchResult: any): MessageEmbedOptions {
 
 export function formatQueryResponse(
     responseBody: any
-): { embeds: MessageEmbedOptions[]; components?: MessageActionRowOptions[] } | undefined {
+): { embeds: MessageEmbedOptions[]; components: MessageActionRowOptions[] } | undefined {
     const searchResultWithMetadata = responseBody.hits.hits[0];
     const searchResult = searchResultWithMetadata?._source;
 
@@ -319,11 +365,6 @@ export function formatQueryResponse(
         itemQueryResponseEmbed.fields = [];
     }
 
-    const similarResults: string | undefined = getListOfSimilarResults(responseBody);
-    if (similarResults) {
-        itemQueryResponseEmbed.fields.push({ name: 'Similar Results', value: similarResults });
-    }
-
     if (searchResult.images && searchResult.images.length > 1) {
         itemQueryResponseEmbed.fields.push({
             name: 'Other Appearances',
@@ -338,5 +379,47 @@ export function formatQueryResponse(
         text: getFormattedColorCustomInfo(searchResult.color_custom),
     };
 
-    return { embeds: [itemQueryResponseEmbed] };
+    return {
+        embeds: [itemQueryResponseEmbed],
+        components: [],
+    };
+}
+
+export function replaceSimilarResultWithCurrentResultInButtonList({
+    itemNameToReplace,
+    itemNameReplacement,
+    messageComponents,
+}: {
+    itemNameToReplace: string;
+    itemNameReplacement: string;
+    messageComponents?: MessageActionRowOptions[];
+}): void {
+    if (!messageComponents?.length) return;
+
+    let itemReplaced = false;
+
+    for (const actionRow of messageComponents) {
+        for (const component of actionRow.components) {
+            if (component.type !== 'BUTTON') continue;
+            const buttonComponent = component as InteractionButtonOptions;
+            if (buttonComponent.label === itemNameToReplace) {
+                buttonComponent.label = itemNameReplacement;
+                const buttonComponentIdArgs = buttonComponent.customId.split(
+                    INTERACTION_ID_ARG_SEPARATOR
+                );
+                // Arg 0 is the handler name, arg 1 is the user ID, arg 2 is the name of the item
+                buttonComponentIdArgs[2] = itemNameReplacement;
+                buttonComponent.customId = buttonComponentIdArgs.join(INTERACTION_ID_ARG_SEPARATOR);
+
+                itemReplaced = true;
+                break;
+            }
+        }
+        if (itemReplaced) {
+            (actionRow.components as InteractionButtonOptions[]).sort((button1, button2) =>
+                button1.label! > button2.label! ? 1 : -1
+            );
+            return;
+        }
+    }
 }
