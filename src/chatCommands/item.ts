@@ -113,6 +113,7 @@ const command: ChatCommandData = {
             itemSearchCategory,
             maxLevel,
             minLevel,
+            userIdForSimilarResults: message.author.id,
         });
 
         if (itemSearchResult) {

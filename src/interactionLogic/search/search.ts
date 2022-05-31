@@ -1,8 +1,8 @@
-import { MessageActionRowOptions, MessageEmbedOptions } from 'discord.js';
+import { MessageActionRowOptions, MessageEmbedOptions, Snowflake } from 'discord.js';
 import { elasticClient } from '../../dbConnection';
 import { ACCESSORY_TYPES, WEAPON_TYPES } from '../../utils/itemTypeData';
 import { ACCESSORY_ALIASES } from './aliases';
-import { formatQueryResponse } from './formattedResults';
+import { formatQueryResponse, getButtonListOfSimilarResults } from './formattedResults';
 import { SearchableItemCategory } from './types';
 import { getIndexNames, getVariantAndUnaliasTokens, romanIntToInt } from './utils';
 
@@ -62,6 +62,7 @@ function getMatchQueryBody(
                 // Greatly boost exact matches
                 [`${fieldName}.exact`]: {
                     query: term,
+                    analyzer: 'exact',
                     boost: 10,
                 },
             },
@@ -149,6 +150,28 @@ function getMatchQueryBody(
         ...(tokens.length > 1
             ? [
                   {
+                      bool: {
+                          must: [
+                              {
+                                  term: {
+                                      [`${fieldName}.word_count`]: tokens.length,
+                                  },
+                              },
+                              {
+                                  match: {
+                                      [`${fieldName}.words`]: {
+                                          query: term,
+                                          prefix_length: 1,
+                                          minimum_should_match: '100%',
+                                          fuzziness: 'AUTO:5,9999',
+                                          boost: 6,
+                                      },
+                                  },
+                              },
+                          ],
+                      },
+                  },
+                  {
                       match: {
                           [`${fieldName}.words`]: {
                               query: term,
@@ -196,7 +219,6 @@ function getMatchQueryBody(
                 },
             },
         },
-
         // match words that are joined together in the input, but are separate tokens in the document
         {
             match: {
@@ -217,12 +239,14 @@ export async function getItemSearchResult({
     itemSearchCategory,
     maxLevel,
     minLevel,
+    userIdForSimilarResults,
 }: {
     term: string;
     itemSearchCategory: SearchableItemCategory;
     maxLevel?: number;
     minLevel?: number;
-}): Promise<{ embeds: MessageEmbedOptions[]; components?: MessageActionRowOptions[] } | undefined> {
+    userIdForSimilarResults?: Snowflake;
+}): Promise<{ embeds: MessageEmbedOptions[]; components: MessageActionRowOptions[] } | undefined> {
     const query: { [key: string]: any } = {
         bool: {
             filter: getSpecificCategoryFilterQuery(itemSearchCategory),
@@ -420,7 +444,7 @@ export async function getItemSearchResult({
                                 items: {
                                     // Within each bucket, get only details of pet with max score
                                     top_metrics: {
-                                        metrics: [{ field: 'title.keyword' }, { field: 'link' }],
+                                        metrics: [{ field: 'full_title.keyword' }],
                                         sort: { _score: 'desc' },
                                     },
                                 },
@@ -447,5 +471,16 @@ export async function getItemSearchResult({
         responseBody = (await elasticClient.search(searchQuery)).body;
     }
 
-    return formatQueryResponse(responseBody);
+    const formattedQueryResponse = formatQueryResponse(responseBody);
+    if (formattedQueryResponse && userIdForSimilarResults) {
+        formattedQueryResponse.components = getButtonListOfSimilarResults({
+            responseBody,
+            userId: userIdForSimilarResults,
+            itemSearchCategory,
+            maxLevel,
+            minLevel,
+        });
+    }
+
+    return formattedQueryResponse;
 }
