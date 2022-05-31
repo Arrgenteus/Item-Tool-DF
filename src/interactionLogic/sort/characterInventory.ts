@@ -10,29 +10,16 @@ const CHAR_INV_EXPIRATION_TIME = 5 * 60 * 1000; // 5 minutes
 const charLevelAndItems: EphemeralMap<string, { level: number; items: string[] }> =
     new EphemeralMap(CHAR_INV_EXPIRATION_TIME);
 
-export async function getCharPage(
-    charID: string,
-    retries: number = 3,
-    requestResent: boolean = false
-): Promise<string> {
-    try {
-        return await got('https://account.dragonfable.com/CharPage?id=' + charID, {
-            timeout: { request: FETCH_TIMEOUT },
-            http2: true,
-            responseType: 'text',
-            resolveBodyOnly: true,
-            retry: {
-                limit: retries,
-                calculateDelay: () => 100,
-            },
-        });
-    } catch (err) {
-        if (requestResent) {
-            throw err;
-        }
-        console.error('Error sending request initially. Resending it once more\n' + err);
-        return getCharPage(charID, retries, true);
-    }
+export async function getCharPage(charID: string, retries: number = 3): Promise<string> {
+    return got('https://account.dragonfable.com/CharPage?id=' + charID, {
+        timeout: { request: FETCH_TIMEOUT },
+        http2: true,
+        responseType: 'text',
+        resolveBodyOnly: true,
+        retry: {
+            calculateDelay: ({ attemptCount }) => (attemptCount <= retries ? 100 : 0),
+        },
+    });
 }
 
 export async function getCharLevelAndItems(
