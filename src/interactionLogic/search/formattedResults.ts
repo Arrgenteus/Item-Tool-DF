@@ -396,8 +396,6 @@ export function replaceSimilarResultWithCurrentResultInButtonList({
 }): void {
     if (!messageComponents?.length) return;
 
-    let itemReplaced = false;
-
     for (const actionRow of messageComponents) {
         for (const component of actionRow.components) {
             if (component.type !== 'BUTTON') continue;
@@ -411,15 +409,8 @@ export function replaceSimilarResultWithCurrentResultInButtonList({
                 buttonComponentIdArgs[2] = itemNameReplacement;
                 buttonComponent.customId = buttonComponentIdArgs.join(INTERACTION_ID_ARG_SEPARATOR);
 
-                itemReplaced = true;
-                break;
+                return;
             }
-        }
-        if (itemReplaced) {
-            (actionRow.components as InteractionButtonOptions[]).sort((button1, button2) =>
-                button1.label! > button2.label! ? 1 : -1
-            );
-            return;
         }
     }
 }
