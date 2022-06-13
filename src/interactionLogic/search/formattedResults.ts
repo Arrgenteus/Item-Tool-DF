@@ -146,6 +146,7 @@ export function getButtonListOfSimilarResults({
     maxLevel?: number;
     minLevel?: number;
 }): [MessageActionRowOptions] | [] {
+    const searchResultTitle: string = responseBody.hits.hits[0]._source.full_title;
     const similarResultList = responseBody.aggregations?.similar_results?.filtered?.buckets;
     if (!similarResultList) return [];
 
@@ -153,8 +154,25 @@ export function getButtonListOfSimilarResults({
         .slice(1) // The first element will always be the original search result
         .map(
             (bucket: {
-                items: { top: [{ metrics: { 'full_title.keyword': string; link: string } }] };
-            }) => bucket.items.top[0].metrics['full_title.keyword']
+                items: {
+                    hits: {
+                        hits: [
+                            {
+                                _source: {
+                                    full_title: string;
+                                    item_type: string;
+                                };
+                            }
+                        ];
+                    };
+                };
+            }) => {
+                const similarResultTitle = bucket.items.hits.hits[0]._source['full_title'];
+                const itemType = bucket.items.hits.hits[0]._source['item_type'];
+                return similarResultTitle === searchResultTitle
+                    ? `${similarResultTitle} (${capitalize(itemType)})`
+                    : similarResultTitle;
+            }
         );
     if (!similarResults.length) return [];
 
@@ -396,8 +414,6 @@ export function replaceSimilarResultWithCurrentResultInButtonList({
 }): void {
     if (!messageComponents?.length) return;
 
-    let itemReplaced = false;
-
     for (const actionRow of messageComponents) {
         for (const component of actionRow.components) {
             if (component.type !== 'BUTTON') continue;
@@ -411,15 +427,8 @@ export function replaceSimilarResultWithCurrentResultInButtonList({
                 buttonComponentIdArgs[2] = itemNameReplacement;
                 buttonComponent.customId = buttonComponentIdArgs.join(INTERACTION_ID_ARG_SEPARATOR);
 
-                itemReplaced = true;
-                break;
+                return;
             }
-        }
-        if (itemReplaced) {
-            (actionRow.components as InteractionButtonOptions[]).sort((button1, button2) =>
-                button1.label! > button2.label! ? 1 : -1
-            );
-            return;
         }
     }
 }
