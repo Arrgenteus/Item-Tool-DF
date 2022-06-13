@@ -443,9 +443,10 @@ export async function getItemSearchResult({
                             aggs: {
                                 items: {
                                     // Within each bucket, get only details of pet with max score
-                                    top_metrics: {
-                                        metrics: [{ field: 'full_title.keyword' }],
+                                    top_hits: {
+                                        _source: { includes: ['full_title', 'item_type'] },
                                         sort: { _score: 'desc' },
+                                        size: 1,
                                     },
                                 },
                                 max_score: {
