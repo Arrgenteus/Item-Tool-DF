@@ -1,6 +1,9 @@
 import { AccessoryType, ItemTag, WeaponType } from '../../utils/itemTypeData';
 
 export const DIFFERENT_SEARCH_RESULT_INTERACTION_ID = 'dsr';
+export const MORE_SEARCH_RESULT_IMAGES_INTERACTION_ID = 'msra';
+
+export const MORE_SEARCH_RESULT_IMAGES_LABEL = 'More Images';
 
 export enum ItemCategoryTypes {
     GEAR,

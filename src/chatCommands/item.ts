@@ -1,7 +1,7 @@
 import { Message, MessageOptions, TextChannel } from 'discord.js';
 import config from '../config';
 import { ChatCommandData } from '../eventHandlerTypes';
-import { getItemSearchResult } from '../interactionLogic/search/search';
+import { getSearchResultMessagewithButtons } from '../interactionLogic/search/search';
 import {
     SearchableItemCategory,
     SearchableItemCategoryAlias,
@@ -108,13 +108,14 @@ const command: ChatCommandData = {
             return;
         }
 
-        const itemSearchResult: MessageOptions | undefined = await getItemSearchResult({
-            term: itemNameToSearchFor,
-            itemSearchCategory,
-            maxLevel,
-            minLevel,
-            userIdForSimilarResults: message.author.id,
-        });
+        const itemSearchResult: MessageOptions | undefined =
+            await getSearchResultMessagewithButtons({
+                term: itemNameToSearchFor,
+                itemSearchCategory,
+                maxLevel,
+                minLevel,
+                userIdForSimilarResults: message.author.id,
+            });
 
         if (itemSearchResult) {
             await channel.send(itemSearchResult);
