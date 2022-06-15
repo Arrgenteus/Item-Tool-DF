@@ -3,6 +3,7 @@ import {
     InteractionButtonOptions,
     MessageActionRowComponentOptions,
     MessageActionRowOptions,
+    MessageButtonOptions,
     MessageEmbedOptions,
     Snowflake,
     Util,
@@ -18,6 +19,8 @@ import {
     PetAttack,
     DIFFERENT_SEARCH_RESULT_INTERACTION_ID,
     SearchableItemCategory,
+    MORE_SEARCH_RESULT_IMAGES_INTERACTION_ID,
+    MORE_SEARCH_RESULT_IMAGES_LABEL,
 } from './types';
 
 function getFormattedListOfItemTags(searchResultVariantInfo?: ItemVariantInfo[]): string {
@@ -133,7 +136,7 @@ function getEmbedsForFormattedWeaponSpecialInfo(
     return embedFields;
 }
 
-export function getButtonListOfSimilarResults({
+export function getButtonListForSimilarResults({
     responseBody,
     itemSearchCategory,
     userId,
@@ -145,8 +148,9 @@ export function getButtonListOfSimilarResults({
     userId: Snowflake;
     maxLevel?: number;
     minLevel?: number;
-}): [MessageActionRowOptions] | [] {
+}): MessageButtonOptions[] {
     const searchResultTitle: string = responseBody.hits.hits[0]._source.full_title;
+
     const similarResultList = responseBody.aggregations?.similar_results?.filtered?.buckets;
     if (!similarResultList) return [];
 
@@ -166,38 +170,57 @@ export function getButtonListOfSimilarResults({
                         ];
                     };
                 };
-            }) => {
+            }): string | undefined => {
                 const similarResultTitle = bucket.items.hits.hits[0]._source['full_title'];
                 const itemType = bucket.items.hits.hits[0]._source['item_type'];
-                return similarResultTitle === searchResultTitle
-                    ? `${similarResultTitle} (${capitalize(itemType)})`
-                    : similarResultTitle;
+                const joinedTitle = `${similarResultTitle} (${capitalize(itemType)})`;
+                if (searchResultTitle === joinedTitle) return;
+
+                return similarResultTitle === searchResultTitle ? joinedTitle : similarResultTitle;
             }
-        );
+        )
+        .filter((itemName: string | undefined) => !!itemName);
+
     if (!similarResults.length) return [];
 
-    const similarResultButtons: MessageActionRowComponentOptions[] = similarResults.map(
-        (itemName) => ({
-            type: 'BUTTON',
-            label: itemName,
-            customId: [
-                DIFFERENT_SEARCH_RESULT_INTERACTION_ID,
-                userId,
-                itemName,
-                itemSearchCategory,
-                maxLevel?.toString(),
-                minLevel?.toString(),
-            ].join(INTERACTION_ID_ARG_SEPARATOR),
-            style: 'SECONDARY',
-        })
-    );
+    return similarResults.map((itemName: string) => ({
+        type: 'BUTTON',
+        label: itemName,
+        customId: [
+            DIFFERENT_SEARCH_RESULT_INTERACTION_ID,
+            userId,
+            itemName,
+            itemSearchCategory,
+            maxLevel?.toString(),
+            minLevel?.toString(),
+        ].join(INTERACTION_ID_ARG_SEPARATOR),
+        style: 'SECONDARY',
+    }));
+}
 
-    return [
-        {
-            type: 'ACTION_ROW',
-            components: similarResultButtons,
-        },
-    ];
+export function getButtonForMoreItemImages({
+    itemName,
+    itemSearchCategory,
+    maxLevel,
+    minLevel,
+}: {
+    itemName: string;
+    itemSearchCategory: SearchableItemCategory;
+    maxLevel?: number;
+    minLevel?: number;
+}): MessageButtonOptions {
+    return {
+        type: 'BUTTON',
+        label: MORE_SEARCH_RESULT_IMAGES_LABEL,
+        customId: [
+            MORE_SEARCH_RESULT_IMAGES_INTERACTION_ID,
+            itemName,
+            itemSearchCategory,
+            maxLevel?.toString(),
+            minLevel?.toString(),
+        ].join(INTERACTION_ID_ARG_SEPARATOR),
+        style: 'PRIMARY',
+    };
 }
 
 function getFormattedOtherLevelVariants(
@@ -383,16 +406,6 @@ export function formatQueryResponse(
         itemQueryResponseEmbed.fields = [];
     }
 
-    if (searchResult.images && searchResult.images.length > 1) {
-        itemQueryResponseEmbed.fields.push({
-            name: 'Other Appearances',
-            value: searchResult.images
-                .slice(1)
-                .map((imageUrl: string, index: number) => `[Appearance ${index + 2}](${imageUrl})`)
-                .join(', '),
-        });
-    }
-
     itemQueryResponseEmbed.footer = {
         text: getFormattedColorCustomInfo(searchResult.color_custom),
     };
@@ -403,6 +416,62 @@ export function formatQueryResponse(
     };
 }
 
+export function updateMoreImagesButtonInButtonList({
+    itemName,
+    itemSearchCategory,
+    maxLevel,
+    minLevel,
+    messageComponents,
+}: {
+    itemName: string;
+    itemSearchCategory: SearchableItemCategory;
+    maxLevel?: number;
+    minLevel?: number;
+    messageComponents: MessageActionRowOptions[];
+}): void {
+    const moreImagesButton = getButtonForMoreItemImages({
+        itemName,
+        itemSearchCategory,
+        maxLevel,
+        minLevel,
+    });
+
+    if (!messageComponents.length) {
+        messageComponents.push({
+            type: 'ACTION_ROW',
+            components: [moreImagesButton],
+        });
+        return;
+    }
+
+    const firstActionRowItem = messageComponents[0].components[0];
+
+    if (firstActionRowItem && firstActionRowItem.type !== 'BUTTON') return;
+
+    if (
+        !firstActionRowItem ||
+        (firstActionRowItem as InteractionButtonOptions).label !== MORE_SEARCH_RESULT_IMAGES_LABEL
+    ) {
+        messageComponents[0].components.unshift(moreImagesButton);
+    } else {
+        messageComponents[0].components[0] = moreImagesButton;
+    }
+}
+
+export function deleteMoreImagesButtonInButtonList(messageComponents: MessageActionRowOptions[]) {
+    if (!messageComponents.length) return;
+
+    const firstActionRowItem = messageComponents[0].components[0];
+    if (
+        firstActionRowItem &&
+        firstActionRowItem.type === 'BUTTON' &&
+        (firstActionRowItem as InteractionButtonOptions).label === MORE_SEARCH_RESULT_IMAGES_LABEL
+    ) {
+        messageComponents[0].components.shift();
+        if (!messageComponents[0].components.length) messageComponents.shift();
+    }
+}
+
 export function replaceSimilarResultWithCurrentResultInButtonList({
     itemNameToReplace,
     itemNameReplacement,
@@ -410,9 +479,9 @@ export function replaceSimilarResultWithCurrentResultInButtonList({
 }: {
     itemNameToReplace: string;
     itemNameReplacement: string;
-    messageComponents?: MessageActionRowOptions[];
+    messageComponents: MessageActionRowOptions[];
 }): void {
-    if (!messageComponents?.length) return;
+    if (!messageComponents.length) return;
 
     for (const actionRow of messageComponents) {
         for (const component of actionRow.components) {
