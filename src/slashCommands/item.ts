@@ -1,6 +1,6 @@
 import { CommandInteraction, InteractionReplyOptions } from 'discord.js';
 import { SlashCommandData } from '../eventHandlerTypes';
-import { getItemSearchResult } from '../interactionLogic/search/search';
+import { getSearchResultMessagewithButtons } from '../interactionLogic/search/search';
 import {
     SearchableItemCategory,
     SearchableItemCategoryAlias,
@@ -47,15 +47,14 @@ function createSearchSlashCommand(
                 interaction.options.getInteger('min-level') ?? undefined;
 
             const itemSearchCategory = unaliasItemType(commandName);
-            const itemSearchResult: InteractionReplyOptions | undefined = await getItemSearchResult(
-                {
+            const itemSearchResult: InteractionReplyOptions | undefined =
+                await getSearchResultMessagewithButtons({
                     term: itemNameToSearchFor,
                     itemSearchCategory,
                     maxLevel,
                     minLevel,
                     userIdForSimilarResults: interaction.user.id,
-                }
-            );
+                });
             if (itemSearchResult) {
                 await interaction.reply(itemSearchResult);
             } else {

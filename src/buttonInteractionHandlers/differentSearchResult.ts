@@ -1,7 +1,11 @@
 import { ButtonInteraction, InteractionReplyOptions, Message, MessageActionRow } from 'discord.js';
 import { ActionRowInteractionData } from '../eventHandlerTypes';
-import { replaceSimilarResultWithCurrentResultInButtonList } from '../interactionLogic/search/formattedResults';
-import { getItemSearchResult } from '../interactionLogic/search/search';
+import {
+    deleteMoreImagesButtonInButtonList,
+    replaceSimilarResultWithCurrentResultInButtonList,
+    updateMoreImagesButtonInButtonList,
+} from '../interactionLogic/search/formattedResults';
+import { getSearchResultMessage } from '../interactionLogic/search/search';
 import {
     DIFFERENT_SEARCH_RESULT_INTERACTION_ID,
     SearchableItemCategory,
@@ -29,7 +33,9 @@ const buttonInteration: ActionRowInteractionData = {
             components: [],
             ephemeral: true,
         };
-        const itemSearchResult: InteractionReplyOptions | undefined = await getItemSearchResult({
+        const itemSearchResult:
+            | { message: InteractionReplyOptions; hasMultipleImages: boolean }
+            | undefined = await getSearchResultMessage({
             term: otherResultName,
             itemSearchCategory: itemSearchCategory as SearchableItemCategory,
             maxLevel,
@@ -44,17 +50,30 @@ const buttonInteration: ActionRowInteractionData = {
         ) {
             const currentSearchItemName: string = interaction.message.embeds[0].title!;
 
-            itemSearchResult.components = interaction.message.components as
-                | MessageActionRow[]
-                | undefined;
+            itemSearchResult.message.components = (interaction.message.components ?? []) as
+                | MessageActionRow[];
+
+            if (itemSearchResult.hasMultipleImages) {
+                updateMoreImagesButtonInButtonList({
+                    itemName: otherResultName,
+                    itemSearchCategory: itemSearchCategory as SearchableItemCategory,
+                    maxLevel,
+                    minLevel,
+                    messageComponents: itemSearchResult.message.components,
+                });
+            } else {
+                deleteMoreImagesButtonInButtonList(itemSearchResult.message.components);
+            }
+
             replaceSimilarResultWithCurrentResultInButtonList({
                 itemNameToReplace: otherResultName,
                 itemNameReplacement: currentSearchItemName,
-                messageComponents: itemSearchResult.components,
+                messageComponents: itemSearchResult.message.components,
             });
-            await interaction.update(itemSearchResult);
+
+            await interaction.update(itemSearchResult.message);
         } else {
-            const reply = itemSearchResult ?? noResultMessage;
+            const reply = itemSearchResult?.message ?? noResultMessage;
             reply.ephemeral = true;
             await interaction.reply(reply);
         }

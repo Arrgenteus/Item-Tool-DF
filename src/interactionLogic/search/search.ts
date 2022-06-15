@@ -1,10 +1,12 @@
-import { MessageActionRowOptions, MessageEmbedOptions, Snowflake } from 'discord.js';
+import { MessageButtonOptions, MessageEmbedOptions, MessageOptions, Snowflake } from 'discord.js';
 import { elasticClient } from '../../dbConnection';
-import { ACCESSORY_TYPES, WEAPON_TYPES } from '../../utils/itemTypeData';
-import { ACCESSORY_ALIASES } from './aliases';
-import { formatQueryResponse, getButtonListOfSimilarResults } from './formattedResults';
+import {
+    formatQueryResponse,
+    getButtonForMoreItemImages,
+    getButtonListForSimilarResults,
+} from './formattedResults';
 import { SearchableItemCategory } from './types';
-import { getIndexNames, getVariantAndUnaliasTokens, romanIntToInt } from './utils';
+import { getIndexNames, getVariantAndUnaliasTokens } from './utils';
 
 export function getSpecificCategoryFilterQuery(
     itemSearchCategory: SearchableItemCategory
@@ -234,19 +236,17 @@ function getMatchQueryBody(
     ];
 }
 
-export async function getItemSearchResult({
+async function fetchItemSearchResult({
     term,
     itemSearchCategory,
     maxLevel,
     minLevel,
-    userIdForSimilarResults,
 }: {
     term: string;
     itemSearchCategory: SearchableItemCategory;
     maxLevel?: number;
     minLevel?: number;
-    userIdForSimilarResults?: Snowflake;
-}): Promise<{ embeds: MessageEmbedOptions[]; components: MessageActionRowOptions[] } | undefined> {
+}) {
     const query: { [key: string]: any } = {
         bool: {
             filter: getSpecificCategoryFilterQuery(itemSearchCategory),
@@ -472,16 +472,131 @@ export async function getItemSearchResult({
         responseBody = (await elasticClient.search(searchQuery)).body;
     }
 
-    const formattedQueryResponse = formatQueryResponse(responseBody);
-    if (formattedQueryResponse && userIdForSimilarResults) {
-        formattedQueryResponse.components = getButtonListOfSimilarResults({
-            responseBody,
-            userId: userIdForSimilarResults,
+    return responseBody;
+}
+
+export async function getSearchResultMessagewithButtons({
+    term,
+    itemSearchCategory,
+    userIdForSimilarResults,
+    maxLevel,
+    minLevel,
+}: {
+    term: string;
+    itemSearchCategory: SearchableItemCategory;
+    userIdForSimilarResults: Snowflake;
+    maxLevel?: number;
+    minLevel?: number;
+}): Promise<MessageOptions | undefined> {
+    const searchResultResponseBody = await fetchItemSearchResult({
+        term,
+        itemSearchCategory,
+        maxLevel,
+        minLevel,
+    });
+
+    const formattedQueryResponse = formatQueryResponse(searchResultResponseBody);
+    if (!formattedQueryResponse) return;
+
+    const messageButtons: MessageButtonOptions[] = [];
+
+    const searchResultImageCount: number =
+        searchResultResponseBody.hits.hits[0]._source.images?.length ?? 0;
+    if (searchResultImageCount > 1) {
+        const searchResultTitle: string = searchResultResponseBody.hits.hits[0]._source.full_title;
+        const moreImagesButton = getButtonForMoreItemImages({
+            itemName: searchResultTitle,
             itemSearchCategory,
             maxLevel,
             minLevel,
         });
+
+        messageButtons.push(moreImagesButton);
+    }
+
+    const similarResultButtons = getButtonListForSimilarResults({
+        responseBody: searchResultResponseBody,
+        userId: userIdForSimilarResults,
+        itemSearchCategory,
+        maxLevel,
+        minLevel,
+    });
+    messageButtons.push(...similarResultButtons);
+
+    if (messageButtons.length) {
+        formattedQueryResponse.components = [{ type: 'ACTION_ROW', components: messageButtons }];
     }
 
     return formattedQueryResponse;
+}
+
+export async function getSearchResultMessage({
+    term,
+    itemSearchCategory,
+    maxLevel,
+    minLevel,
+}: {
+    term: string;
+    itemSearchCategory: SearchableItemCategory;
+    maxLevel?: number;
+    minLevel?: number;
+}): Promise<{ message: MessageOptions; hasMultipleImages: boolean } | undefined> {
+    const searchResultResponseBody = await fetchItemSearchResult({
+        term,
+        itemSearchCategory,
+        maxLevel,
+        minLevel,
+    });
+
+    const formattedQueryResponse = formatQueryResponse(searchResultResponseBody);
+    if (!formattedQueryResponse) return;
+
+    const searchResultImageCount: number =
+        searchResultResponseBody.hits.hits[0]._source.images?.length ?? 0;
+
+    return { message: formattedQueryResponse, hasMultipleImages: searchResultImageCount > 1 };
+}
+
+export async function getAllItemImages({
+    itemName,
+    itemSearchCategory,
+    maxLevel,
+    minLevel,
+}: {
+    itemName: string;
+    itemSearchCategory: SearchableItemCategory;
+    maxLevel?: number;
+    minLevel?: number;
+}): Promise<MessageEmbedOptions[]> {
+    const itemIndexes: string[] = getIndexNames(itemSearchCategory);
+
+    const filterQuery = {
+        bool: {
+            filter: [
+                { terms: { 'full_title.keyword': [itemName] } },
+                getSpecificCategoryFilterQuery(itemSearchCategory),
+                getMaxAndMinLevelFilter({ maxLevel, minLevel }),
+            ].filter((filterOption) => !!filterOption),
+        },
+    };
+
+    const searchQuery = {
+        index: itemIndexes,
+        body: {
+            size: 1,
+            sort: { level: 'desc' },
+            query: filterQuery,
+            fields: ['images'],
+        },
+    };
+
+    let { body: responseBody } = await elasticClient.search(searchQuery);
+
+    const itemImages = (responseBody.hits?.hits ?? [])[0]?._source?.images;
+
+    if (!itemImages?.length) {
+        return [{ description: 'No additional images were found.' }];
+    }
+
+    return itemImages.slice(0, 10).map((imageLink: string) => ({ image: { url: imageLink } }));
 }
