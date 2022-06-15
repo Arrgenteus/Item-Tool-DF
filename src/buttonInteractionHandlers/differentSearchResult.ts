@@ -74,7 +74,17 @@ const buttonInteration: ActionRowInteractionData = {
             await interaction.update(itemSearchResult.message);
         } else {
             const reply = itemSearchResult?.message ?? noResultMessage;
+            reply.components = [];
             reply.ephemeral = true;
+            if (itemSearchResult?.hasMultipleImages) {
+                updateMoreImagesButtonInButtonList({
+                    itemName: otherResultName,
+                    itemSearchCategory: itemSearchCategory as SearchableItemCategory,
+                    maxLevel,
+                    minLevel,
+                    messageComponents: reply.components,
+                });
+            }
             await interaction.reply(reply);
         }
     },
