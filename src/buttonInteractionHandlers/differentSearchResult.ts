@@ -42,11 +42,17 @@ const buttonInteration: ActionRowInteractionData = {
             minLevel,
         });
 
+        if (!itemSearchResult) {
+            await interaction.reply(noResultMessage);
+            return;
+        }
+
+        itemSearchResult.message.components = (itemSearchResult.message.components ??
+            []) as MessageActionRow[];
+
         if (
-            itemSearchResult &&
-            (userId === interaction.user.id ||
-                (interaction.message instanceof Message &&
-                    interaction.message.flags?.has('EPHEMERAL')))
+            userId === interaction.user.id ||
+            (interaction.message instanceof Message && interaction.message.flags?.has('EPHEMERAL'))
         ) {
             const currentSearchItemName: string = interaction.message.embeds[0].title!;
 
@@ -73,19 +79,17 @@ const buttonInteration: ActionRowInteractionData = {
 
             await interaction.update(itemSearchResult.message);
         } else {
-            const reply = itemSearchResult?.message ?? noResultMessage;
-            reply.components = [];
-            reply.ephemeral = true;
-            if (itemSearchResult?.hasMultipleImages) {
+            if (itemSearchResult.hasMultipleImages) {
                 updateMoreImagesButtonInButtonList({
                     itemName: otherResultName,
                     itemSearchCategory: itemSearchCategory as SearchableItemCategory,
                     maxLevel,
                     minLevel,
-                    messageComponents: reply.components,
+                    messageComponents: itemSearchResult.message.components,
                 });
             }
-            await interaction.reply(reply);
+            itemSearchResult.message.ephemeral = true;
+            await interaction.reply(itemSearchResult.message);
         }
     },
 };
