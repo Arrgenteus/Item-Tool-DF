@@ -1,6 +1,6 @@
 import {
     ApplicationCommandNonOptionsData,
-    ApplicationCommandOptionChoice,
+    ApplicationCommandOptionChoiceData,
     ApplicationCommandOptionData,
 } from 'discord.js';
 import { ItemTag, PRETTY_TAG_NAMES } from '../../utils/itemTypeData';
@@ -38,8 +38,8 @@ export function getSortCommandOptions(): ApplicationCommandOptionData[] {
         'weapon',
     ];
 
-    const itemTypeChoiceList: ApplicationCommandOptionChoice[] = itemTypeChoiceValues.map(
-        (itemTypeChoice: SortItemTypeOption): ApplicationCommandOptionChoice => ({
+    const itemTypeChoiceList: ApplicationCommandOptionChoiceData[] = itemTypeChoiceValues.map(
+        (itemTypeChoice: SortItemTypeOption): ApplicationCommandOptionChoiceData => ({
             name: itemTypeChoice === 'items' ? 'All Items' : PRETTY_ITEM_TYPES[itemTypeChoice],
             value: itemTypeChoice,
         })
