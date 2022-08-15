@@ -1,4 +1,9 @@
-import { ButtonInteraction, InteractionReplyOptions, Message } from 'discord.js';
+import {
+    ButtonInteraction,
+    InteractionReplyOptions,
+    InteractionUpdateOptions,
+    Message,
+} from 'discord.js';
 import { ActionRowInteractionData } from '../eventHandlerTypes';
 import { SORT_ACTIONS } from '../interactionLogic/sort/constants';
 import { getSortResultsMessageUsingMessageFilters } from '../interactionLogic/sort/getSortedItemsResponse';
@@ -12,7 +17,7 @@ const buttonInteration: ActionRowInteractionData = {
         const excludedTags: string[] | undefined = excludedTagList
             ? excludedTagList.split(',')
             : undefined;
-        const sortedItemResponse: InteractionReplyOptions =
+        const sortedItemResponse: InteractionReplyOptions & InteractionUpdateOptions =
             await getSortResultsMessageUsingMessageFilters(
                 interaction.message.embeds[0].title!,
                 interaction.message.embeds[0].description ?? undefined,
