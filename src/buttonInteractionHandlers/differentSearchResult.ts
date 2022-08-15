@@ -1,4 +1,13 @@
-import { ButtonInteraction, InteractionReplyOptions, Message, MessageActionRow } from 'discord.js';
+import {
+    BaseMessageComponentOptions,
+    ButtonInteraction,
+    InteractionReplyOptions,
+    InteractionUpdateOptions,
+    Message,
+    MessageActionRow,
+    MessageActionRowComponent,
+    MessageActionRowOptions,
+} from 'discord.js';
 import { ActionRowInteractionData } from '../eventHandlerTypes';
 import {
     deleteMoreImagesButtonInButtonList,
@@ -26,7 +35,7 @@ const buttonInteration: ActionRowInteractionData = {
         const maxLevel = maxLevelInput === '' ? undefined : Number(maxLevelInput);
         const minLevel = minLevelInput === '' ? undefined : Number(minLevelInput);
 
-        const noResultMessage: InteractionReplyOptions = {
+        const noResultMessage: InteractionUpdateOptions & InteractionReplyOptions = {
             embeds: [
                 { description: `No ${itemSearchCategory} was found. This is likely an error.` },
             ],
@@ -34,7 +43,10 @@ const buttonInteration: ActionRowInteractionData = {
             ephemeral: true,
         };
         const itemSearchResult:
-            | { message: InteractionReplyOptions; hasMultipleImages: boolean }
+            | {
+                  message: InteractionUpdateOptions & InteractionReplyOptions;
+                  hasMultipleImages: boolean;
+              }
             | undefined = await getSearchResultMessage({
             term: otherResultName,
             itemSearchCategory: itemSearchCategory as SearchableItemCategory,
@@ -47,8 +59,7 @@ const buttonInteration: ActionRowInteractionData = {
             return;
         }
 
-        itemSearchResult.message.components = (itemSearchResult.message.components ??
-            []) as MessageActionRow[];
+        itemSearchResult.message.components = itemSearchResult.message.components ?? [];
 
         if (
             userId === interaction.user.id ||
@@ -56,8 +67,9 @@ const buttonInteration: ActionRowInteractionData = {
         ) {
             const currentSearchItemName: string = interaction.message.embeds[0].title!;
 
-            itemSearchResult.message.components = (interaction.message.components ?? []) as
-                | MessageActionRow[];
+            itemSearchResult.message.components = [
+                ...(interaction.message.components ?? []),
+            ] as (Required<BaseMessageComponentOptions> & MessageActionRowOptions)[];
 
             if (itemSearchResult.hasMultipleImages) {
                 updateMoreImagesButtonInButtonList({

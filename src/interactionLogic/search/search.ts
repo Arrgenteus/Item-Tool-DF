@@ -1,4 +1,10 @@
-import { MessageButtonOptions, MessageEmbedOptions, MessageOptions, Snowflake } from 'discord.js';
+import {
+    BaseMessageComponentOptions,
+    MessageButtonOptions,
+    MessageEmbedOptions,
+    MessageOptions,
+    Snowflake,
+} from 'discord.js';
 import { elasticClient } from '../../dbConnection';
 import {
     formatQueryResponse,
@@ -487,7 +493,7 @@ export async function getSearchResultMessagewithButtons({
     userIdForSimilarResults: Snowflake;
     maxLevel?: number;
     minLevel?: number;
-}): Promise<MessageOptions | undefined> {
+}): Promise<Pick<MessageOptions, 'components' | 'embeds'> | undefined> {
     const searchResultResponseBody = await fetchItemSearchResult({
         term,
         itemSearchCategory,
@@ -498,7 +504,7 @@ export async function getSearchResultMessagewithButtons({
     const formattedQueryResponse = formatQueryResponse(searchResultResponseBody);
     if (!formattedQueryResponse) return;
 
-    const messageButtons: MessageButtonOptions[] = [];
+    const messageButtons: (Required<BaseMessageComponentOptions> & MessageButtonOptions)[] = [];
 
     const searchResultImageCount: number =
         searchResultResponseBody.hits.hits[0]._source.images?.length ?? 0;
@@ -540,7 +546,13 @@ export async function getSearchResultMessage({
     itemSearchCategory: SearchableItemCategory;
     maxLevel?: number;
     minLevel?: number;
-}): Promise<{ message: MessageOptions; hasMultipleImages: boolean } | undefined> {
+}): Promise<
+    | {
+          message: Pick<MessageOptions, 'components' | 'embeds'>;
+          hasMultipleImages: boolean;
+      }
+    | undefined
+> {
     const searchResultResponseBody = await fetchItemSearchResult({
         term,
         itemSearchCategory,

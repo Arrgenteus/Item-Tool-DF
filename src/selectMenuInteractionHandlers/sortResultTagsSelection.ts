@@ -1,4 +1,9 @@
-import { InteractionReplyOptions, Message, SelectMenuInteraction } from 'discord.js';
+import {
+    InteractionReplyOptions,
+    InteractionUpdateOptions,
+    Message,
+    SelectMenuInteraction,
+} from 'discord.js';
 import { ActionRowInteractionData } from '../eventHandlerTypes';
 import { SORT_ACTIONS } from '../interactionLogic/sort/constants';
 import { getSortResultsMessageUsingMessageFilters } from '../interactionLogic/sort/getSortedItemsResponse';
@@ -8,7 +13,7 @@ const selectMenuInteration: ActionRowInteractionData = {
     names: [SORT_ACTIONS.TAG_SELECTION],
     preferEphemeralErrorMessage: true,
     run: async (interaction: SelectMenuInteraction): Promise<void> => {
-        const sortedItemMessage: InteractionReplyOptions =
+        const sortedItemMessage: InteractionUpdateOptions & InteractionReplyOptions =
             await getSortResultsMessageUsingMessageFilters(
                 interaction.message.embeds[0].title!,
                 interaction.message.embeds[0].description ?? undefined,

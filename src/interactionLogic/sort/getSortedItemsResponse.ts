@@ -6,6 +6,7 @@ import { getSortQueryPipeline } from './queryBuilder';
 import { SortExpressionData, SortFilterParams, SortItemTypeOption } from './types';
 import { parseSortExpression, unaliasBonusName } from './sortExpressionParser';
 import {
+    BaseMessageComponentOptions,
     MessageActionRowComponentOptions,
     MessageActionRowComponentResolvable,
     MessageActionRowOptions,
@@ -57,7 +58,9 @@ function getFiltersUsedText({
     return filterText.join('\n');
 }
 
-function getTagFilterDropDownComponent(excludeTags?: Set<ItemTag>): [MessageActionRowOptions] {
+function getTagFilterDropDownComponent(
+    excludeTags?: Set<ItemTag>
+): [Required<MessageActionRowOptions>] {
     return [
         {
             type: 'ACTION_ROW',
@@ -84,7 +87,7 @@ function getTagFilterDropDownComponent(excludeTags?: Set<ItemTag>): [MessageActi
 function getFullResultsButtonComponent(
     itemType: ItemType,
     excludeTags?: Set<ItemTag>
-): [MessageActionRowOptions] {
+): [Required<MessageActionRowOptions>] {
     const excludeTagsList: string = (excludeTags ? [...excludeTags] : []).join(',');
     return [
         {
@@ -107,7 +110,7 @@ function getPrevAndNextSortPageNavigationComponents(
     excludeTags?: Set<ItemTag>,
     prevPageValueLimit?: number | undefined,
     nextPageValueLimit?: number | undefined
-): [MessageActionRowOptions] | [] {
+): [Required<MessageActionRowOptions>] | [] {
     const excludeTagsList: string = (excludeTags ? [...excludeTags] : []).join(',');
 
     const buttonComponents: MessageActionRowComponentResolvable[] = [];
@@ -137,7 +140,7 @@ function getPrevAndNextSortPageNavigationComponents(
     return [{ type: 'ACTION_ROW', components: buttonComponents }];
 }
 
-function itemButtonList(excludeTags?: Set<ItemTag>): MessageActionRowOptions[] {
+function itemButtonList(excludeTags?: Set<ItemTag>): Required<MessageActionRowOptions>[] {
     const excludeTagsList: string = (excludeTags ? [...excludeTags] : []).join(',');
 
     // Display item types after the 5th in a separate action row, since a single action row can only contain 5 buttons
@@ -146,7 +149,7 @@ function itemButtonList(excludeTags?: Set<ItemTag>): MessageActionRowOptions[] {
         ['ring', 'trinket', 'weapon'],
     ];
     return itemTypeList.map(
-        (itemTypeSubset: ItemType[]): MessageActionRowOptions => ({
+        (itemTypeSubset: ItemType[]): Required<MessageActionRowOptions> => ({
             type: 'ACTION_ROW',
             components: itemTypeSubset.map(
                 (itemType: ItemType): MessageActionRowComponentResolvable => ({
@@ -264,7 +267,7 @@ export async function getSortedItemListMessage(
             sortedList = lastResult.slice(0, lastItemIndexBeforeLimit) + ellipses;
     }
 
-    let buttonRow: MessageActionRowOptions[];
+    let buttonRow: Required<MessageActionRowOptions>[];
 
     if (returnShortResult) {
         buttonRow = getFullResultsButtonComponent(
