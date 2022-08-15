@@ -1,4 +1,3 @@
-import config from '../../config';
 import { elasticClient } from '../../dbConnection';
 import { formatQueryResponse } from './formattedResults';
 import { getSpecificCategoryFilterQuery } from './search';

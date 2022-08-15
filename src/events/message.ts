@@ -8,7 +8,7 @@ const messageEventHandler: ClientEventHandler = {
     eventName: 'messageCreate',
     async run(message: Message): Promise<void> {
         if (
-            message.channel.type !== 'GUILD_TEXT' ||
+            message.channel.type === 'DM' ||
             !message.content.startsWith(config.COMMAND_CHAR) ||
             message.author.bot
         )

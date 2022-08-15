@@ -1,10 +1,12 @@
 import {
+    BaseMessageComponentOptions,
     EmbedFieldData,
     InteractionButtonOptions,
-    MessageActionRowComponentOptions,
     MessageActionRowOptions,
+    MessageButton,
     MessageButtonOptions,
     MessageEmbedOptions,
+    MessageOptions,
     Snowflake,
     Util,
 } from 'discord.js';
@@ -148,7 +150,7 @@ export function getButtonListForSimilarResults({
     userId: Snowflake;
     maxLevel?: number;
     minLevel?: number;
-}): MessageButtonOptions[] {
+}): (Required<BaseMessageComponentOptions> & MessageButtonOptions)[] {
     const searchResultTitle: string = responseBody.hits.hits[0]._source.full_title;
 
     const similarResultList = responseBody.aggregations?.similar_results?.filtered?.buckets;
@@ -208,7 +210,7 @@ export function getButtonForMoreItemImages({
     itemSearchCategory: SearchableItemCategory;
     maxLevel?: number;
     minLevel?: number;
-}): MessageButtonOptions {
+}): Required<BaseMessageComponentOptions> & MessageButtonOptions {
     return {
         type: 'BUTTON',
         label: MORE_SEARCH_RESULT_IMAGES_LABEL,
@@ -374,7 +376,7 @@ function formatWeaponQueryResponse(searchResult: any): MessageEmbedOptions {
 
 export function formatQueryResponse(
     responseBody: any
-): { embeds: MessageEmbedOptions[]; components: MessageActionRowOptions[] } | undefined {
+): Pick<MessageOptions, 'components' | 'embeds'> | undefined {
     const searchResultWithMetadata = responseBody.hits.hits[0];
     const searchResult = searchResultWithMetadata?._source;
 
@@ -429,12 +431,13 @@ export function updateMoreImagesButtonInButtonList({
     minLevel?: number;
     messageComponents: MessageActionRowOptions[];
 }): void {
-    const moreImagesButton = getButtonForMoreItemImages({
+    const moreImagesButtonOptions = getButtonForMoreItemImages({
         itemName,
         itemSearchCategory,
         maxLevel,
         minLevel,
     });
+    const moreImagesButton = new MessageButton(moreImagesButtonOptions);
 
     if (!messageComponents.length) {
         messageComponents.push({
