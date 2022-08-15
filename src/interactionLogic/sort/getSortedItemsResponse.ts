@@ -6,8 +6,6 @@ import { getSortQueryPipeline } from './queryBuilder';
 import { SortExpressionData, SortFilterParams, SortItemTypeOption } from './types';
 import { parseSortExpression, unaliasBonusName } from './sortExpressionParser';
 import {
-    BaseMessageComponentOptions,
-    MessageActionRowComponentOptions,
     MessageActionRowComponentResolvable,
     MessageActionRowOptions,
     MessageOptions,

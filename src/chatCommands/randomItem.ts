@@ -1,4 +1,4 @@
-import { Message, MessageEmbedOptions, TextChannel } from 'discord.js';
+import { Message, TextChannel } from 'discord.js';
 import { ChatCommandData } from '../eventHandlerTypes';
 import { getRandomItem } from '../interactionLogic/search/random';
 import {
@@ -6,7 +6,6 @@ import {
     SearchableItemCategoryAlias,
 } from '../interactionLogic/search/types';
 import { unaliasItemType } from '../interactionLogic/search/utils';
-import { ACCESSORY_TYPES } from '../utils/itemTypeData';
 
 const command: ChatCommandData = {
     names: [

@@ -4,8 +4,6 @@ import {
     InteractionReplyOptions,
     InteractionUpdateOptions,
     Message,
-    MessageActionRow,
-    MessageActionRowComponent,
     MessageActionRowOptions,
 } from 'discord.js';
 import { ActionRowInteractionData } from '../eventHandlerTypes';
