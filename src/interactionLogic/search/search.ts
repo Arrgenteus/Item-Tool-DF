@@ -58,9 +58,50 @@ function getMatchQueryBody(
     familyTitles: boolean = false
 ) {
     const isPet = itemSearchCategory === 'pet';
-    const term = tokens.join(' ');
 
-    const minimumShouldMatch: string = isPet ? '2<75%' : '3<75%';
+    const stopWords = new Set([
+        'a',
+        'an',
+        'and',
+        'are',
+        'as',
+        'at',
+        'be',
+        'but',
+        'by',
+        'for',
+        'if',
+        'in',
+        'into',
+        'is',
+        'it',
+        'no',
+        'not',
+        'of',
+        'on',
+        'or',
+        'such',
+        'that',
+        'the',
+        'their',
+        'then',
+        'there',
+        'these',
+        'they',
+        'this',
+        'to',
+        'was',
+        'will',
+        'with',
+    ]);
+    const stopWordCount = tokens.filter((token) => stopWords.has(token)).length;
+
+    const minimumShouldMatch: string = isPet
+        ? `${2 + stopWordCount}<75%`
+        : `${3 + stopWordCount}<75%`;
+
+    const term = tokens.join(' ');
+    const termWithoutStopwords = tokens.filter((token) => !stopWords.has(token)).join(' ');
 
     const fieldName = familyTitles ? 'family_titles' : 'title';
 
@@ -102,7 +143,7 @@ function getMatchQueryBody(
         {
             match: {
                 [`${fieldName}.forward_autocomplete`]: {
-                    query: term,
+                    query: termWithoutStopwords,
                     minimum_should_match: minimumShouldMatch,
                     fuzziness: 'AUTO:5,8',
                     prefix_length: 1,
@@ -113,7 +154,7 @@ function getMatchQueryBody(
         {
             match: {
                 [`${fieldName}.forward_autocomplete`]: {
-                    query: term,
+                    query: termWithoutStopwords,
                     minimum_should_match: '100%',
                     fuzziness: 'AUTO:5,8',
                     prefix_length: 1,
@@ -124,7 +165,7 @@ function getMatchQueryBody(
         {
             match: {
                 [`${fieldName}.forward_autocomplete`]: {
-                    query: term,
+                    query: termWithoutStopwords,
                     minimum_should_match: '100%',
                     boost: 1,
                 },
@@ -133,19 +174,19 @@ function getMatchQueryBody(
         {
             match: {
                 [`${fieldName}.forward_autocomplete`]: {
-                    query: term,
+                    query: termWithoutStopwords,
                     minimum_should_match: '100%',
                     analyzer: 'exact',
                     boost: 1,
                 },
             },
         },
-        ...(term.length > 3
+        ...(termWithoutStopwords.length > 3
             ? [
                   {
                       match: {
                           [`${fieldName}.autocomplete`]: {
-                              query: term,
+                              query: termWithoutStopwords,
                               fuzziness: 'AUTO:6,9',
                               prefix_length: 2,
                               minimum_should_match: '100%',
