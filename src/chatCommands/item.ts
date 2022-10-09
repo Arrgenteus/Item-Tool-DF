@@ -36,6 +36,7 @@ const commandNames: (SearchableItemCategory | SearchableItemCategoryAlias)[] = [
     'trinket',
     'bracer',
     'pet',
+    'cosmetic',
 ];
 
 const command: ChatCommandData = {

@@ -16,7 +16,11 @@ import { getIndexNames, getVariantAndUnaliasTokens } from './utils';
 
 export function getSpecificCategoryFilterQuery(
     itemSearchCategory: SearchableItemCategory
-): { terms: { item_type: SearchableItemCategory[] } } | undefined {
+): { terms: { item_type: SearchableItemCategory[] } | { common_tags: ['cosmetic'] } } | undefined {
+    if (itemSearchCategory === 'cosmetic') {
+        return { terms: { common_tags: ['cosmetic'] } };
+    }
+
     if (['weapon', 'accessory', 'item', 'pet'].includes(itemSearchCategory)) return undefined;
 
     let itemTypeFilterItems: SearchableItemCategory[];
