@@ -1,7 +1,5 @@
-import { EmbedFieldData, MessageEmbedOptions, Util } from 'discord.js';
 import config from '../../config';
-import { ACCESSORY_TYPES, ItemTag, PRETTY_TAG_NAMES, WEAPON_TYPES } from '../../utils/itemTypeData';
-import { capitalize } from '../../utils/misc';
+import { WEAPON_TYPES } from '../../utils/itemTypeData';
 import { ACCESSORY_ALIASES, PET_ALIASES, WEAPON_ALIASES } from './aliases';
 import {
     categoryAliasMapping,
@@ -25,7 +23,7 @@ const ITEM_CATEGORY_TYPE_TO_ALIAS_DICT = {
 };
 
 function getItemCategoryType(itemCategory: SearchableItemCategory): ItemCategoryTypes {
-    if (itemCategory === 'item') return ItemCategoryTypes.GEAR;
+    if (itemCategory === 'item' || itemCategory === 'cosmetic') return ItemCategoryTypes.GEAR;
     if (itemCategory === 'pet') return ItemCategoryTypes.PET;
     if (itemCategory in WEAPON_TYPES || itemCategory === 'weapon') return ItemCategoryTypes.WEAPON;
     return ItemCategoryTypes.ACCESSORY;
