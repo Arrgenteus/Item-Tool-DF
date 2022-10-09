@@ -18,7 +18,8 @@ export type SearchableItemCategory =
     | 'weapon'
     | 'accessory'
     | 'pet'
-    | 'item';
+    | 'item'
+    | 'cosmetic';
 
 export type SearchableItemCategoryFilter = { terms: { item_type: SearchableItemCategory[] } };
 
