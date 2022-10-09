@@ -1,4 +1,8 @@
-import { CommandInteraction, InteractionReplyOptions } from 'discord.js';
+import {
+    ApplicationCommandOptionData,
+    CommandInteraction,
+    InteractionReplyOptions,
+} from 'discord.js';
 import { SlashCommandData } from '../eventHandlerTypes';
 import { getSearchResultMessagewithButtons } from '../interactionLogic/search/search';
 import {
@@ -12,6 +16,29 @@ function createSearchSlashCommand(
 ): SlashCommandData {
     let searchableItemCategory: SearchableItemCategory = unaliasItemType(commandName);
 
+    const commandOptions: ApplicationCommandOptionData[] = [
+        {
+            type: 'STRING',
+            name: 'name',
+            required: true,
+            description: `The ${searchableItemCategory} name to search for.`,
+        },
+    ];
+    if (searchableItemCategory !== 'cosmetic') {
+        commandOptions.push(
+            {
+                type: 'INTEGER',
+                name: 'max-level',
+                description: `The maximum ${searchableItemCategory} level to return in results. Is 90 by default.`,
+            },
+            {
+                type: 'INTEGER',
+                name: 'min-level',
+                description: `The minimum ${searchableItemCategory} level to return in results. Is 0 by default.`,
+            }
+        );
+    }
+
     return {
         preferEphemeralErrorMessage: true,
         structure: {
@@ -19,24 +46,7 @@ function createSearchSlashCommand(
             description: `Search for ${
                 searchableItemCategory[0] === 'a' ? 'an' : 'a'
             } ${searchableItemCategory} by name`,
-            options: [
-                {
-                    type: 'STRING',
-                    name: 'name',
-                    required: true,
-                    description: `The ${searchableItemCategory} name to search for.`,
-                },
-                {
-                    type: 'INTEGER',
-                    name: 'max-level',
-                    description: `The maximum ${searchableItemCategory} level to return in results. Is 90 by default.`,
-                },
-                {
-                    type: 'INTEGER',
-                    name: 'min-level',
-                    description: `The minimum ${searchableItemCategory} level to return in results. Is 0 by default.`,
-                },
-            ],
+            options: commandOptions,
         },
 
         run: async (interaction: CommandInteraction) => {
@@ -85,6 +95,7 @@ const categories: (SearchableItemCategory | SearchableItemCategoryAlias)[] = [
     'ring',
     'trinket',
     'bracer',
+    'cosmetic',
 ];
 const commands: SlashCommandData[] = categories.map(createSearchSlashCommand);
 
