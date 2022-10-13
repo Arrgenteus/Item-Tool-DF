@@ -55,7 +55,7 @@ const command: SlashCommandData = {
 
         const filters = {
             sortExpression,
-            weaponElement,
+            weaponElement: weaponElement?.toLowerCase(),
             minLevel,
             maxLevel,
             charID,
