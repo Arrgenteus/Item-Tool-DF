@@ -1,12 +1,12 @@
 import { ButtonInteraction, MessageEmbedOptions } from 'discord.js';
-import { ActionRowInteractionData } from '../eventHandlerTypes';
+import { NonCommandInteractionData } from '../eventHandlerTypes';
 import { getAllItemImages } from '../interactionLogic/search/search';
 import {
     MORE_SEARCH_RESULT_IMAGES_INTERACTION_ID,
     SearchableItemCategory,
 } from '../interactionLogic/search/types';
 
-const buttonInteration: ActionRowInteractionData = {
+const buttonInteration: NonCommandInteractionData = {
     names: [MORE_SEARCH_RESULT_IMAGES_INTERACTION_ID],
     preferEphemeralErrorMessage: true,
     run: async (interaction: ButtonInteraction, args: string[]): Promise<void> => {

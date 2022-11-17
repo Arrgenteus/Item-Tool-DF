@@ -4,12 +4,12 @@ import {
     Message,
     SelectMenuInteraction,
 } from 'discord.js';
-import { ActionRowInteractionData } from '../eventHandlerTypes';
+import { NonCommandInteractionData } from '../eventHandlerTypes';
 import { SORT_ACTIONS } from '../interactionLogic/sort/constants';
 import { getSortResultsMessageUsingMessageFilters } from '../interactionLogic/sort/getSortedItemsResponse';
 import { ItemTag } from '../utils/itemTypeData';
 
-const selectMenuInteration: ActionRowInteractionData = {
+const selectMenuInteration: NonCommandInteractionData = {
     names: [SORT_ACTIONS.TAG_SELECTION],
     preferEphemeralErrorMessage: true,
     run: async (interaction: SelectMenuInteraction): Promise<void> => {
