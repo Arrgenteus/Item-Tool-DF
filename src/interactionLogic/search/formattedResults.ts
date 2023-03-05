@@ -17,7 +17,7 @@ import { capitalize } from '../../utils/misc';
 import {
     Location,
     ItemVariantInfo,
-    Stat,
+    Stats,
     PetAttack,
     DIFFERENT_SEARCH_RESULT_INTERACTION_ID,
     SearchableItemCategory,
@@ -51,10 +51,10 @@ function getFormattedListOfLocations(searchResultVariantInfo?: ItemVariantInfo[]
     );
 }
 
-function getFormattedBonusesOrResists(searchResultStats?: Stat[]) {
+function getFormattedBonusesOrResists(searchResultStats?: Stats) {
     return (
         (searchResultStats || [])
-            .map((stat: Stat) => {
+            .map((stat: Stats) => {
                 if (typeof stat.value === 'string') {
                     return `${capitalize(stat.name)} +[${stat.value}]`;
                 }

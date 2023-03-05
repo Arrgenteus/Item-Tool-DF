@@ -324,12 +324,12 @@ async function fetchItemSearchResult({
 
     const petScoringScript: string = `
         def critOrBonus = 0;
-        for (bonus in params._source.bonuses) {
-            if (bonus.name == 'crit') {
-                if (bonus.value instanceof int) critOrBonus += bonus.value;
+        for (bonus in params._source.bonuses.keySet()) {
+            if (bonus == 'crit') {
+                if (params._source.bonuses[bonus] instanceof int) critOrBonus += params._source.bonuses[bonus];
                 else critOrBonus += 20;
-            } else if (bonus.name == 'bonus') {
-                if (bonus.value instanceof int) critOrBonus += bonus.value;
+            } else if (bonus == 'bonus') {
+                if (params._source.bonuses[bonus] instanceof int) critOrBonus += params._source.bonuses[bonus];
                 else critOrBonus += 20;
             }
         }
