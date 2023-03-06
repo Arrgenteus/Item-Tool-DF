@@ -348,7 +348,7 @@ async function fetchItemSearchResult({
             finalScore = _score + (critOrBonus / 10) + (params.containsKey('maxLevel') ? params['maxLevel'] / 10 : 9);
         }
         if (!params._source.common_tags.contains('rare')) {
-            finalScore += 10;
+            finalScore += 5;
         }
         return finalScore;`;
 
@@ -387,7 +387,7 @@ async function fetchItemSearchResult({
         }
 
         if (!params._source.common_tags.contains('rare')) {
-            modifiedScore += 10;
+            modifiedScore += 5;
         }
 
         return modifiedScore;`;
