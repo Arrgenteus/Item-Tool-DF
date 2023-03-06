@@ -10,6 +10,7 @@ import {
     Snowflake,
     Util,
 } from 'discord.js';
+import { stringify } from 'querystring';
 import config from '../../config';
 import { INTERACTION_ID_ARG_SEPARATOR } from '../../utils/constants';
 import { ItemTag, PRETTY_TAG_NAMES } from '../../utils/itemTypeData';
@@ -152,13 +153,14 @@ export function getButtonListForSimilarResults({
     minLevel?: number;
 }): (Required<BaseMessageComponentOptions> & MessageButtonOptions)[] {
     const searchResultTitle: string = responseBody.hits.hits[0]._source.full_title;
+    const searchResultItemType: string = responseBody.hits.hits[0]._source.item_type;
 
     const similarResultList = responseBody.aggregations?.similar_results?.filtered?.buckets;
     if (!similarResultList) return [];
 
     const similarResults: string[] = similarResultList
-        .slice(1) // The first element will always be the original search result
         .map(
+            // Remove the unneeded nesting from the output
             (bucket: {
                 items: {
                     hits: {
@@ -172,18 +174,19 @@ export function getButtonListForSimilarResults({
                         ];
                     };
                 };
-            }): string | undefined => {
-                const similarResultTitle = bucket.items.hits.hits[0]._source['full_title'];
-                const itemType = bucket.items.hits.hits[0]._source['item_type'];
-                const joinedTitle = `${similarResultTitle} (${capitalize(itemType)})`;
-                if (searchResultTitle === joinedTitle) return;
-
-                return similarResultTitle === searchResultTitle ? joinedTitle : similarResultTitle;
-            }
+            }): { full_title: string; item_type: string } => bucket.items.hits.hits[0]._source
         )
-        .filter((itemName: string | undefined) => !!itemName);
-
-    if (!similarResults.length) return [];
+        .filter(
+            // Filter out the original search result
+            (similarItem: { full_title: string; item_type: string }) =>
+                similarItem.full_title !== searchResultTitle ||
+                similarItem.item_type !== searchResultItemType
+        )
+        .map((similarItem: { full_title: string; item_type: string }): string =>
+            similarItem.full_title === searchResultTitle
+                ? `${similarItem.full_title} (${capitalize(similarItem.item_type)})`
+                : similarItem.full_title
+        );
 
     return similarResults.map((itemName: string) => ({
         type: 'BUTTON',

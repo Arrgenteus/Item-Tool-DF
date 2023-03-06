@@ -12,7 +12,7 @@ import {
     getButtonListForSimilarResults,
 } from './formattedResults';
 import { SearchableItemCategory } from './types';
-import { getIndexNames, getVariantAndUnaliasTokens } from './utils';
+import { getIndexNames, getVariantAndUnaliasTokens, romanIntToInt } from './utils';
 
 export function getSpecificCategoryFilterQuery(
     itemSearchCategory: SearchableItemCategory
@@ -307,11 +307,21 @@ async function fetchItemSearchResult({
 
     const itemIndexes: string[] = getIndexNames(itemSearchCategory);
 
-    const { unaliasedTokens, variantNumber } = getVariantAndUnaliasTokens(term, itemSearchCategory);
+    const { unaliasedTokens, variantRomanNumber } = getVariantAndUnaliasTokens(
+        term,
+        itemSearchCategory
+    );
 
-    let variantFilter: { match: { variant_number: number } } | undefined;
-    if (variantNumber) {
-        variantFilter = { match: { variant_number: variantNumber } };
+    let variantFilter: any | undefined;
+    if (variantRomanNumber) {
+        variantFilter = {
+            bool: {
+                should: [
+                    { match: { variant_number: romanIntToInt(variantRomanNumber) } },
+                    { match: { 'title.words': variantRomanNumber } },
+                ],
+            },
+        };
     }
 
     const levelFilter: { range: { level: { lte?: number; gte?: number } } } | undefined =
@@ -338,7 +348,7 @@ async function fetchItemSearchResult({
             finalScore = _score + (critOrBonus / 10) + (params.containsKey('maxLevel') ? params['maxLevel'] / 10 : 9);
         }
         if (!params._source.common_tags.contains('rare')) {
-            finalScore += 5;
+            finalScore += 10;
         }
         return finalScore;`;
 
@@ -377,7 +387,7 @@ async function fetchItemSearchResult({
         }
 
         if (!params._source.common_tags.contains('rare')) {
-            modifiedScore += 5;
+            modifiedScore += 10;
         }
 
         return modifiedScore;`;
