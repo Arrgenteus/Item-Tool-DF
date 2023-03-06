@@ -10,7 +10,6 @@ import {
     Snowflake,
     Util,
 } from 'discord.js';
-import { stringify } from 'querystring';
 import config from '../../config';
 import { INTERACTION_ID_ARG_SEPARATOR } from '../../utils/constants';
 import { ItemTag, PRETTY_TAG_NAMES } from '../../utils/itemTypeData';
