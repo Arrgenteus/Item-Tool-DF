@@ -4,12 +4,12 @@ import {
     InteractionUpdateOptions,
     Message,
 } from 'discord.js';
-import { ActionRowInteractionData } from '../eventHandlerTypes';
+import { NonCommandInteractionData } from '../eventHandlerTypes';
 import { SORT_ACTIONS } from '../interactionLogic/sort/constants';
 import { getSortResultsMessageUsingMessageFilters } from '../interactionLogic/sort/getSortedItemsResponse';
 import { ItemTag, ItemType } from '../utils/itemTypeData';
 
-const buttonInteration: ActionRowInteractionData = {
+const buttonInteration: NonCommandInteractionData = {
     names: [SORT_ACTIONS.SHOW_RESULTS],
     preferEphemeralErrorMessage: true,
     run: async (interaction: ButtonInteraction, args: string[]): Promise<void> => {

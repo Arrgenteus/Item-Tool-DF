@@ -4,12 +4,12 @@ import {
     InteractionUpdateOptions,
     Message,
 } from 'discord.js';
-import { ActionRowInteractionData } from '../eventHandlerTypes';
+import { NonCommandInteractionData } from '../eventHandlerTypes';
 import { SORT_ACTIONS } from '../interactionLogic/sort/constants';
 import { getSortResultsMessageUsingMessageFilters } from '../interactionLogic/sort/getSortedItemsResponse';
 import { ItemTag } from '../utils/itemTypeData';
 
-const buttonInteration: ActionRowInteractionData = {
+const buttonInteration: NonCommandInteractionData = {
     // previous page sort results, next page sort results
     names: [SORT_ACTIONS.PREV_PAGE, SORT_ACTIONS.NEXT_PAGE],
     preferEphemeralErrorMessage: true,
