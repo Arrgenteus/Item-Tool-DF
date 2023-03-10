@@ -6,7 +6,7 @@ import {
     Message,
     MessageActionRowOptions,
 } from 'discord.js';
-import { ActionRowInteractionData } from '../eventHandlerTypes';
+import { NonCommandInteractionData } from '../eventHandlerTypes';
 import {
     deleteMoreImagesButtonInButtonList,
     replaceSimilarResultWithCurrentResultInButtonList,
@@ -18,7 +18,7 @@ import {
     SearchableItemCategory,
 } from '../interactionLogic/search/types';
 
-const buttonInteration: ActionRowInteractionData = {
+const buttonInteration: NonCommandInteractionData = {
     names: [DIFFERENT_SEARCH_RESULT_INTERACTION_ID],
     preferEphemeralErrorMessage: true,
     run: async (interaction: ButtonInteraction, args: string[]): Promise<void> => {
