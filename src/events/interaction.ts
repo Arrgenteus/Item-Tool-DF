@@ -1,15 +1,25 @@
-import { ButtonInteraction, CommandInteraction, SelectMenuInteraction } from 'discord.js';
+import {
+    ButtonInteraction,
+    CommandInteraction,
+    ModalSubmitInteraction,
+    SelectMenuInteraction,
+} from 'discord.js';
 import config from '../config';
 import { ValidationError } from '../errors';
-import { ActionRowInteractionData, ClientEventHandler } from '../eventHandlerTypes';
+import { NonCommandInteractionData, ClientEventHandler } from '../eventHandlerTypes';
 import buttonInteractionHandlers from '../handlerStorage/buttonInteractionHandlers';
+import modalSubmitHandlers from '../handlerStorage/modalSubmitHandlers';
 import selectMenuInteractionHandlers from '../handlerStorage/selectMenuInteractionHandlers';
 import slashCommands from '../handlerStorage/slashCommands';
 import { INTERACTION_ID_ARG_SEPARATOR } from '../utils/constants';
 
 async function interactionErrorHandler(
     err: Error,
-    interaction: CommandInteraction | ButtonInteraction | SelectMenuInteraction,
+    interaction:
+        | CommandInteraction
+        | ButtonInteraction
+        | SelectMenuInteraction
+        | ModalSubmitInteraction,
     preferEphemeralErrorMessage: boolean
 ) {
     let errMessage: {
@@ -62,18 +72,21 @@ async function slashCommandHandler(interaction: CommandInteraction): Promise<voi
     }
 }
 
-async function actionRowInteractionHandler(
-    interaction: ButtonInteraction | SelectMenuInteraction
+async function nonCommandInteractionHandler(
+    interaction: ButtonInteraction | SelectMenuInteraction | ModalSubmitInteraction
 ): Promise<void> {
     let separatorIndex: number = interaction.customId.indexOf(INTERACTION_ID_ARG_SEPARATOR);
     if (separatorIndex === -1) separatorIndex = interaction.customId.length;
     let handlerName: string = interaction.customId.slice(0, separatorIndex);
 
-    const handlers =
-        interaction instanceof ButtonInteraction
-            ? buttonInteractionHandlers
-            : selectMenuInteractionHandlers;
-    const handler: ActionRowInteractionData | undefined = handlers.get(handlerName);
+    const handlers = {
+        ButtonInteraction: buttonInteractionHandlers,
+        SelectMenuInteraction: selectMenuInteractionHandlers,
+        ModalSubmitInteraction: modalSubmitHandlers,
+    }[interaction.constructor.name];
+    if (!handlers) return;
+
+    const handler: NonCommandInteractionData | undefined = handlers.get(handlerName);
     if (!handler) return;
 
     try {
@@ -94,7 +107,7 @@ const interactionEventHandler: ClientEventHandler = {
     eventName: 'interactionCreate',
     async run(interaction: CommandInteraction | ButtonInteraction): Promise<void> {
         if (interaction.isCommand()) await slashCommandHandler(interaction);
-        else await actionRowInteractionHandler(interaction);
+        else await nonCommandInteractionHandler(interaction);
     },
 };
 

@@ -5,6 +5,7 @@ import {
     ClientEvents,
     CommandInteraction,
     Message,
+    ModalSubmitInteraction,
     PermissionResolvable,
     SelectMenuInteraction,
 } from 'discord.js';
@@ -27,11 +28,11 @@ export interface ChatCommandData {
     run(message: Partial<Message>, args: string, commandName: string): Promise<void>;
 }
 
-export interface ActionRowInteractionData {
+export interface NonCommandInteractionData {
     readonly names: readonly string[];
     readonly preferEphemeralErrorMessage?: boolean;
     run(
-        interaction: ButtonInteraction | SelectMenuInteraction,
+        interaction: ButtonInteraction | SelectMenuInteraction | ModalSubmitInteraction,
         args: string[],
         handlerName: string
     ): Promise<void>;
