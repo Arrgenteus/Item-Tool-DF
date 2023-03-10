@@ -6,6 +6,7 @@ import {
     SearchableItemCategoryAlias,
 } from '../interactionLogic/search/types';
 import { unaliasItemType } from '../interactionLogic/search/utils';
+import { botResponseCache } from '../utils/store';
 
 const command: ChatCommandData = {
     names: [
@@ -44,13 +45,15 @@ const command: ChatCommandData = {
 
         const randomItemResult = await getRandomItem(itemType);
 
+        let sentMessage: Message;
         if (randomItemResult) {
-            await channel.send(randomItemResult);
+            sentMessage = await channel.send(randomItemResult);
         } else {
-            await channel.send({
+            sentMessage = await channel.send({
                 embeds: [{ description: `No ${itemType} was found.` }],
             });
         }
+        botResponseCache.set(message.id, sentMessage);
     },
 };
 

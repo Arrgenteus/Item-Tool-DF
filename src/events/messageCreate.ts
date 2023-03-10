@@ -4,7 +4,7 @@ import { ValidationError } from '../errors';
 import { ChatCommandData, ClientEventHandler } from '../eventHandlerTypes';
 import chatCommands from '../handlerStorage/chatCommands';
 
-const messageEventHandler: ClientEventHandler = {
+const messageCreateEventHandler: ClientEventHandler = {
     eventName: 'messageCreate',
     async run(message: Message): Promise<void> {
         if (
@@ -42,4 +42,4 @@ const messageEventHandler: ClientEventHandler = {
     },
 };
 
-export default messageEventHandler;
+export default messageCreateEventHandler;
