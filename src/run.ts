@@ -2,12 +2,17 @@ import { Client as DiscordClient, Guild, Intents } from 'discord.js';
 import config from './config';
 import { SlashCommandData } from './eventHandlerTypes';
 import interactionEventHandler from './events/interaction';
-import messageEventHandler from './events/message';
+import messageCreateEventHandler from './events/messageCreate';
+import messageDeleteEventHandler from './events/messageDelete';
 import slashCommands from './handlerStorage/slashCommands';
 
 const client = new DiscordClient({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES] });
 
-const eventHandlers = [interactionEventHandler, messageEventHandler];
+const eventHandlers = [
+    interactionEventHandler,
+    messageCreateEventHandler,
+    messageDeleteEventHandler,
+];
 for (const eventHandler of eventHandlers) client.on(eventHandler.eventName, eventHandler.run);
 
 client.on('ready', () => {
