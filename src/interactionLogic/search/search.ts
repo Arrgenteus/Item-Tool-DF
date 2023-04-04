@@ -287,6 +287,104 @@ function getMatchQueryBody(
     ];
 }
 
+export async function fetchAutocompleteItemResults({
+    term,
+    itemSearchCategory,
+    maxLevel,
+    minLevel,
+}: {
+    term: string;
+    itemSearchCategory: SearchableItemCategory;
+    maxLevel?: number;
+    minLevel?: number;
+}) {
+    const query: { [key: string]: any } = {
+        bool: {
+            filter: getSpecificCategoryFilterQuery(itemSearchCategory),
+            minimum_should_match: 1,
+        },
+    };
+
+    const itemIndexes: string[] = getIndexNames(itemSearchCategory);
+
+    const { unaliasedTokens } = getVariantAndUnaliasTokens(term, itemSearchCategory);
+
+    const levelFilter: { range: { level: { lte?: number; gte?: number } } } | undefined =
+        getMaxAndMinLevelFilter({ maxLevel, minLevel });
+
+    // Match words that are joined together in the input, but are separate tokens in the document
+    query.bool.should = getMatchQueryBody(unaliasedTokens, itemSearchCategory);
+
+    const searchQuery = {
+        index: itemIndexes,
+        body: {
+            track_scores: true,
+            size: 0,
+            sort: ['_score', { level: 'desc' }, { 'title.keyword': 'asc' }],
+            query: {
+                // Filter documents and modify search score based on item level/stats
+                function_score: {
+                    query: query,
+                    functions: [
+                        ...(levelFilter
+                            ? [
+                                  {
+                                      filter: levelFilter,
+                                      weight: 1000,
+                                  },
+                              ]
+                            : []),
+                        // If the user is searching for wings, prioritize wings over capes and vice versa
+                        ...(itemSearchCategory === 'wings'
+                            ? [
+                                  {
+                                      filter: { term: { item_type: 'wings' } },
+                                      weight: 1000,
+                                  },
+                              ]
+                            : []),
+                        { filter: { exists: { field: 'trinket_skill' } }, weight: 30 },
+                    ],
+                    boost_mode: 'sum',
+                    score_mode: 'sum',
+                },
+            },
+            aggs: {
+                filtered: {
+                    terms: {
+                        field: 'title.keyword',
+                        // order: {
+                        //     // Sort buckets by those with the max score
+                        //     max_score: 'asc',
+                        // },
+                        size: 20, // Get top 4 results
+                    },
+                    aggs: {
+                        items: {
+                            // Within each bucket, get only details of item with max score
+                            top_hits: {
+                                _source: { includes: ['title', 'full_title', 'item_type'] },
+                                // sort: { _score: 'desc' },
+                                size: 1,
+                            },
+                        },
+                        // max_score: {
+                        //     // Calculate max score for each bucket for sorting purposes
+                        //     max: {
+                        //         script: '_score',
+                        //     },
+                        // },
+                    },
+                },
+            },
+        },
+    };
+
+    let { body: responseBody } = await elasticClient.search(searchQuery);
+
+    return responseBody;
+}
+
 async function fetchItemSearchResult({
     term,
     itemSearchCategory,
