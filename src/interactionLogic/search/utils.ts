@@ -37,14 +37,14 @@ export function getIndexNames(itemSearchCategory: SearchableItemCategory): strin
 export function getVariantAndUnaliasTokens(
     searchTerm: string,
     itemSearchCategory: SearchableItemCategory
-): { unaliasedTokens: string[]; variantNumber?: number } {
-    const words: string[] = searchTerm.split(/[ _\\-]+/);
+): { unaliasedTokens: string[]; variantRomanNumber?: string } {
+    const words: string[] = searchTerm.split(/[ _\\\-]+/);
 
     const romanNumberRegex: RegExp = /^((?:x{0,3})(ix|iv|v?i{0,3}))$/i;
-    let variantNumber: number | undefined;
+    let variantRomanNumber: string | undefined;
     for (const index of [words.length - 1, words.length - 2].filter((i: number) => i > 0)) {
         if (words[index].match(romanNumberRegex)) {
-            variantNumber = romanIntToInt(words[index]);
+            variantRomanNumber = words[index];
             words.splice(index, 1);
             break;
         }
@@ -56,7 +56,7 @@ export function getVariantAndUnaliasTokens(
     const unaliasedTokens: string[] = words.map(
         (word: string) => aliasDict[word.toLowerCase()] || word
     );
-    return { unaliasedTokens, variantNumber };
+    return { unaliasedTokens, variantRomanNumber };
 }
 
 export function unaliasItemType(

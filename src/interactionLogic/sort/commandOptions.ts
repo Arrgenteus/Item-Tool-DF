@@ -2,6 +2,7 @@ import {
     ApplicationCommandNonOptionsData,
     ApplicationCommandOptionChoiceData,
     ApplicationCommandOptionData,
+    ModalOptions,
 } from 'discord.js';
 import { ItemTag, PRETTY_TAG_NAMES } from '../../utils/itemTypeData';
 import { ITEM_TAG_FILTER_OPTION_NAMES, PRETTY_ITEM_TYPES } from './constants';
@@ -48,16 +49,14 @@ export function getSortCommandOptions(): ApplicationCommandOptionData[] {
     return [
         {
             type: 'STRING',
-            name: SortCommandParams.ITEM_TYPE,
-            required: true,
-            description: 'The type of item to sort',
-            choices: itemTypeChoiceList,
+            name: SortCommandParams.SORT_EXPRESSION,
+            description: `Eg. "Ice", "Damage", "All + Health", "INT - (DEX + STR)", etc. Supports +, -, *, / operators`,
         },
         {
             type: 'STRING',
-            name: SortCommandParams.SORT_EXPRESSION,
-            required: true,
-            description: `Eg. "Ice", "Damage", "All + Health", "INT - (DEX + STR)", etc. Supports +, -, *, / operators`,
+            name: SortCommandParams.ITEM_TYPE,
+            description: 'The type of item to sort',
+            choices: itemTypeChoiceList,
         },
         {
             type: 'STRING',
@@ -69,11 +68,6 @@ export function getSortCommandOptions(): ApplicationCommandOptionData[] {
             type: 'INTEGER',
             name: SortCommandParams.MAX_LEVEL,
             description: `Maximum level of items to be shown in results`,
-        },
-        {
-            type: 'INTEGER',
-            name: SortCommandParams.MIN_LEVEL,
-            description: `Minimum level of items to be shown in results`,
         },
         {
             type: 'BOOLEAN',
@@ -88,4 +82,61 @@ export function getSortCommandOptions(): ApplicationCommandOptionData[] {
         },
         ...getItemTagFilterOptions(),
     ];
+}
+
+export function getSortCommandInputModal({ sortExpression }: { sortExpression?: string }) {
+    const modal: ModalOptions = {
+        customId: 'sort-filters',
+        title: 'Sort options and filters',
+        components: [
+            {
+                type: 'ACTION_ROW',
+                components: [
+                    {
+                        customId: 'sort-expression',
+                        type: 'TEXT_INPUT',
+                        label: 'Sort Expression (+,-,*,/ operators allowed)',
+                        required: true,
+                        minLength: 2,
+                        maxLength: 100,
+                        value: sortExpression,
+                        placeholder:
+                            'Eg. Ice, Damage,  All + Health, DEX, (INT + DEX + STR) / 3, etc.',
+                        style: 'SHORT',
+                    },
+                ],
+            },
+            {
+                type: 'ACTION_ROW',
+                components: [
+                    {
+                        customId: 'max-level',
+                        type: 'TEXT_INPUT',
+                        label: 'Max level of items to show',
+                        minLength: 1,
+                        maxLength: 2,
+                        value: '90',
+                        placeholder: 'Level between 0 and 90',
+                        style: 'SHORT',
+                    },
+                ],
+            },
+            {
+                type: 'ACTION_ROW',
+                components: [
+                    {
+                        customId: 'weapon-element',
+                        type: 'TEXT_INPUT',
+                        label: 'Only show weapons of this element',
+                        minLength: 1,
+                        maxLength: 20,
+                        placeholder: 'Weapon element to filter by',
+                        style: 'SHORT',
+                    },
+                ],
+            },
+        ],
+    };
+
+    return modal;
 }

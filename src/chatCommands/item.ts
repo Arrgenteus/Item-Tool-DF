@@ -8,6 +8,7 @@ import {
 } from '../interactionLogic/search/types';
 import { unaliasItemType } from '../interactionLogic/search/utils';
 import { embed } from '../utils/misc';
+import { botResponseCache } from '../utils/store';
 
 const commandNames: (SearchableItemCategory | SearchableItemCategoryAlias)[] = [
     'item',
@@ -118,13 +119,15 @@ const command: ChatCommandData = {
                 userIdForSimilarResults: message.author.id,
             });
 
+        let sentMessage: Message;
         if (itemSearchResult) {
-            await channel.send(itemSearchResult);
+            sentMessage = await channel.send(itemSearchResult);
         } else {
-            await channel.send({
+            sentMessage = await channel.send({
                 embeds: [{ description: `No ${itemSearchCategory} was found.` }],
             });
         }
+        botResponseCache.set(message.id, sentMessage);
     },
 };
 
