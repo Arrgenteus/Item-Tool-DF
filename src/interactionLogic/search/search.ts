@@ -397,7 +397,7 @@ async function fetchItemSearchResult({
         body: {
             track_scores: true,
             size: 1, // Set size to 1 to return only the top result
-            sort: ['_score', { level: 'desc' }, { 'title.keyword': 'asc' }],
+            sort: ['_score', { level: 'desc' }, { title_keyword: 'asc' }],
             query: {
                 // Filter documents and modify search score based on item level/stats
                 function_score: {

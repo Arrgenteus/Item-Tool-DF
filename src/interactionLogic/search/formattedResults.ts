@@ -53,15 +53,15 @@ function getFormattedListOfLocations(searchResultVariantInfo?: ItemVariantInfo[]
 
 function getFormattedBonusesOrResists(searchResultStats?: Stats) {
     return (
-        (searchResultStats || [])
-            .map((stat: Stats) => {
-                if (typeof stat.value === 'string') {
-                    return `${capitalize(stat.name)} +[${stat.value}]`;
+        Object.entries(searchResultStats ?? {})
+            .map(([statName, statValue]: [string, string | number]) => {
+                if (typeof statValue === 'string') {
+                    return `${capitalize(statName)} +[${statValue}]`;
                 }
-                if (stat.value < 0) {
-                    return `${capitalize(stat.name)} ${stat.value}`;
+                if (statValue < 0) {
+                    return `${capitalize(statName)} ${statValue}`;
                 }
-                return `${capitalize(stat.name)} +${stat.value}`;
+                return `${capitalize(statName)} +${statValue}`;
             })
             .join(', ') || 'None'
     );
