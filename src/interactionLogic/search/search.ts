@@ -354,27 +354,27 @@ async function fetchItemSearchResult({
 
     const itemScoringScript: string = `
         def bonusTotal = 0;
-        for (bonus in params._source.bonuses) {
-            if (bonus.value > 0) {
-                bonusTotal += bonus.value;
+        for (bonus in params._source.bonuses.keySet()) {
+            if (params._source.bonuses[bonus] > 0) {
+                bonusTotal += params._source.bonuses[bonus];
             }
         }
 
         def resistTotal = 0;
         def allResist = 0;
-        for (resist in params._source.resists) {
-            if (resist.value > 50) {
+        for (resist in params._source.resists.keySet()) {
+            if (params._source.resists[resist] > 50) {
                 continue;
             }
-            if (resist.name == 'health') {
-                if (resist.value < 0) {
-                    resistTotal += -resist.value;
+            if (resist == 'health') {
+                if (params._source.resists[resist] < 0) {
+                    resistTotal += -params._source.resists[resist];
                 }
-            } else if (resist.value > 0) {
-                if (resist.name == 'all') {
-                    allResist = resist.value;
+            } else if (params._source.resists[resist] > 0) {
+                if (resist == 'all') {
+                    allResist = params._source.resists[resist];
                 } else {
-                    resistTotal += resist.value;
+                    resistTotal += params._source.resists[resist];
                 }
             }
         }
