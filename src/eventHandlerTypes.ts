@@ -1,6 +1,7 @@
 import {
     ApplicationCommandData,
     ApplicationCommandPermissionData,
+    AutocompleteInteraction,
     ButtonInteraction,
     ClientEvents,
     CommandInteraction,
@@ -32,7 +33,11 @@ export interface NonCommandInteractionData {
     readonly names: readonly string[];
     readonly preferEphemeralErrorMessage?: boolean;
     run(
-        interaction: ButtonInteraction | SelectMenuInteraction | ModalSubmitInteraction,
+        interaction:
+            | ButtonInteraction
+            | SelectMenuInteraction
+            | ModalSubmitInteraction
+            | AutocompleteInteraction,
         args: string[],
         handlerName: string
     ): Promise<void>;

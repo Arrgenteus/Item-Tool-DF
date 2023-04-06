@@ -1,4 +1,5 @@
 import {
+    ApplicationCommandOptionChoiceData,
     BaseMessageComponentOptions,
     MessageButtonOptions,
     MessageEmbedOptions,
@@ -285,6 +286,105 @@ function getMatchQueryBody(
             },
         },
     ];
+}
+
+export async function fetchAutocompleteItemResults({
+    term,
+    itemSearchCategory,
+    maxLevel,
+    minLevel,
+}: {
+    term: string;
+    itemSearchCategory: SearchableItemCategory;
+    maxLevel?: number;
+    minLevel?: number;
+}): Promise<ApplicationCommandOptionChoiceData[]> {
+    const query: { [key: string]: any } = {
+        bool: {
+            filter: getSpecificCategoryFilterQuery(itemSearchCategory),
+            minimum_should_match: 1,
+        },
+    };
+
+    const itemIndexes: string[] = getIndexNames(itemSearchCategory);
+
+    const { unaliasedTokens } = getVariantAndUnaliasTokens(term, itemSearchCategory);
+
+    const levelFilter: { range: { level: { lte?: number; gte?: number } } } | undefined =
+        getMaxAndMinLevelFilter({ maxLevel, minLevel });
+
+    query.bool.must = levelFilter;
+
+    // Match words that are joined together in the input, but are separate tokens in the document
+    query.bool.should = getMatchQueryBody(unaliasedTokens, itemSearchCategory);
+
+    const searchQuery = {
+        index: itemIndexes,
+        body: {
+            track_scores: true,
+            size: 0,
+            sort: ['_score', { level: 'desc' }, { title_keyword: 'asc' }],
+            query: {
+                // Filter documents and modify search score based on item level/stats
+                function_score: {
+                    query: query,
+                    functions: [
+                        // If the user is searching for wings, prioritize wings over capes and vice versa
+                        ...(itemSearchCategory === 'wings'
+                            ? [
+                                  {
+                                      filter: { term: { item_type: 'wings' } },
+                                      weight: 1000,
+                                  },
+                              ]
+                            : []),
+                    ],
+                    boost_mode: 'sum',
+                    score_mode: 'sum',
+                },
+            },
+            aggs: {
+                grouped_titles: {
+                    terms: {
+                        field: 'title_keyword',
+                        order: {
+                            // Sort buckets by those with the max score
+                            max_score: 'asc',
+                        },
+                        size: 20, // Get first 20 results only (discord's autocomplete limit)
+                    },
+                    aggs: {
+                        item: {
+                            // Within each bucket, get only details of item with max score
+                            top_hits: {
+                                _source: { includes: ['title_keyword'] },
+                                sort: { _score: 'desc' },
+                                size: 1,
+                            },
+                        },
+                        max_score: {
+                            // Calculate max score for each bucket for sorting purposes
+                            max: {
+                                script: '_score',
+                            },
+                        },
+                    },
+                },
+            },
+        },
+    };
+
+    let { body: responseBody } = await elasticClient.search(searchQuery);
+
+    return responseBody.aggregations.grouped_titles.buckets.map(
+        (result: {
+            key: string;
+            [otherKeys: string]: any;
+        }): ApplicationCommandOptionChoiceData => ({
+            name: result.key,
+            value: result.key,
+        })
+    );
 }
 
 async function fetchItemSearchResult({
