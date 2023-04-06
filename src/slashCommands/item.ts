@@ -14,7 +14,7 @@ import { unaliasItemType } from '../interactionLogic/search/utils';
 function createSearchSlashCommand(
     commandName: SearchableItemCategory | SearchableItemCategoryAlias
 ): SlashCommandData {
-    let searchableItemCategory: SearchableItemCategory = unaliasItemType(commandName);
+    const searchableItemCategory: SearchableItemCategory = unaliasItemType(commandName);
 
     const commandOptions: ApplicationCommandOptionData[] = [
         {
@@ -22,6 +22,7 @@ function createSearchSlashCommand(
             name: 'name',
             required: true,
             description: `The ${searchableItemCategory} name to search for.`,
+            autocomplete: true,
         },
     ];
     if (searchableItemCategory !== 'cosmetic') {
