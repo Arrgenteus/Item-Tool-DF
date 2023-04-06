@@ -1,4 +1,5 @@
 import {
+    AutocompleteInteraction,
     ButtonInteraction,
     CommandInteraction,
     ModalSubmitInteraction,
@@ -7,6 +8,7 @@ import {
 import config from '../config';
 import { ValidationError } from '../errors';
 import { NonCommandInteractionData, ClientEventHandler } from '../eventHandlerTypes';
+import autocompleteHandlers from '../handlerStorage/autocompleteHandlers';
 import buttonInteractionHandlers from '../handlerStorage/buttonInteractionHandlers';
 import modalSubmitHandlers from '../handlerStorage/modalSubmitHandlers';
 import selectMenuInteractionHandlers from '../handlerStorage/selectMenuInteractionHandlers';
@@ -72,7 +74,27 @@ async function slashCommandHandler(interaction: CommandInteraction): Promise<voi
     }
 }
 
-async function nonCommandInteractionHandler(
+async function autocompleteHandler(interaction: AutocompleteInteraction): Promise<void> {
+    const handler: NonCommandInteractionData | undefined = autocompleteHandlers.get(
+        interaction.commandName
+    );
+    if (!handler) {
+        console.warn(
+            `No autocomplete interaction handler available for command "${interaction.commandName}"`
+        );
+        return;
+    }
+
+    try {
+        await handler.run(interaction, [], interaction.commandName);
+    } catch (err: any) {
+        console.error(
+            `An error occurred while generating autocomplete response to command "${interaction.commandName}":\n${err.stack}`
+        );
+    }
+}
+
+async function widgetInteractionHandler(
     interaction: ButtonInteraction | SelectMenuInteraction | ModalSubmitInteraction
 ): Promise<void> {
     let separatorIndex: number = interaction.customId.indexOf(INTERACTION_ID_ARG_SEPARATOR);
@@ -107,7 +129,8 @@ const interactionEventHandler: ClientEventHandler = {
     eventName: 'interactionCreate',
     async run(interaction: CommandInteraction | ButtonInteraction): Promise<void> {
         if (interaction.isCommand()) await slashCommandHandler(interaction);
-        else await nonCommandInteractionHandler(interaction);
+        else if (interaction.isAutocomplete()) await autocompleteHandler(interaction);
+        else await widgetInteractionHandler(interaction);
     },
 };
 
