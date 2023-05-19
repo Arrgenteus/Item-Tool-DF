@@ -27,7 +27,7 @@ function getItemTagFilterOptions(): ApplicationCommandNonOptionsData[] {
 
     const weakcoreOption: ApplicationCommandNonOptionsData = {
         type: 'BOOLEAN',
-        description: 'Only show weakcore options (no DC/DM/Se/Rare/SO items).',
+        description: 'Only show weakcore options (no DC/DM/Seasonal/Rare/Special Offer items)',
         name: 'weakcore',
     };
 
