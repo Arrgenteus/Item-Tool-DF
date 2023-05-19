@@ -65,7 +65,7 @@ function getTagFilterDropDownComponent(
             components: [
                 {
                     customId: SORT_ACTIONS.TAG_SELECTION,
-                    placeholder: 'All tags included',
+                    placeholder: 'All tags included in results. Click to change',
                     minValues: 0,
                     maxValues: SORTABLE_TAGS.length - 1,
                     type: 'SELECT_MENU',
