@@ -29,6 +29,7 @@ export const ACCESSORY_ALIASES: { readonly [word: string]: string } = {
     ttv: 'tytanvisage',
     df: 'dragonfable',
     dl: 'dragonlord',
+    amogus: 'exalted blaster amalgam',
 };
 
 export const WEAPON_ALIASES: { readonly [word: string]: string } = {
