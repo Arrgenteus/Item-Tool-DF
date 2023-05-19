@@ -19,7 +19,11 @@ const selectMenuInteration: NonCommandInteractionData = {
                 interaction.message.embeds[0].description ?? undefined,
                 interaction.values as ItemTag[]
             );
-        if (interaction.message instanceof Message && interaction.message.flags?.has('EPHEMERAL')) {
+        if (
+            interaction.message instanceof Message &&
+            (interaction.user.id === interaction.message.interaction?.user.id ||
+                interaction.message.flags?.has('EPHEMERAL'))
+        ) {
             await interaction.update(sortedItemMessage);
         } else {
             sortedItemMessage.ephemeral = true;

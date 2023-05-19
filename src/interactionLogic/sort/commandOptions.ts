@@ -9,7 +9,7 @@ import { ITEM_TAG_FILTER_OPTION_NAMES, PRETTY_ITEM_TYPES } from './constants';
 import { SortCommandParams, SortItemTypeOption } from './types';
 
 function getItemTagFilterOptions(): ApplicationCommandNonOptionsData[] {
-    return ITEM_TAG_FILTER_OPTION_NAMES.map(
+    const itemTagFilterOptions = ITEM_TAG_FILTER_OPTION_NAMES.map(
         ({
             optionName,
             tag,
@@ -24,6 +24,14 @@ function getItemTagFilterOptions(): ApplicationCommandNonOptionsData[] {
             name: optionName,
         })
     );
+
+    const weakcoreOption: ApplicationCommandNonOptionsData = {
+        type: 'BOOLEAN',
+        description: 'Only show weakcore options (no DC/DM/Seasonal/Rare/Special Offer items)',
+        name: 'weakcore',
+    };
+
+    return [weakcoreOption].concat(itemTagFilterOptions);
 }
 
 export function getSortCommandOptions(): ApplicationCommandOptionData[] {

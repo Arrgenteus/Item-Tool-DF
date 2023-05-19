@@ -55,6 +55,10 @@ const command: SlashCommandData = {
             interaction.options.getString(SortCommandParams.CHAR_ID) ?? undefined;
 
         const excludeTags: Set<ItemTag> = new Set();
+        if (interaction.options.getBoolean('weakcore')) {
+            const weakcoreTags: ItemTag[] = ['dc', 'dm', 'so', 'se', 'rare'];
+            for (const weakcoreTag of weakcoreTags) excludeTags.add(weakcoreTag);
+        }
         for (const { optionName, tag } of ITEM_TAG_FILTER_OPTION_NAMES) {
             if (interaction.options.getBoolean(optionName) === false) excludeTags.add(tag);
         }
