@@ -73,7 +73,7 @@ function getTagFilterDropDownComponent(
                         (tag: ItemTag): MessageSelectOptionData => ({
                             label: 'Exclude ' + PRETTY_TAG_NAMES[tag],
                             value: tag,
-                            default: excludeTags && excludeTags.has(tag),
+                            default: excludeTags?.has(tag),
                         })
                     ),
                 },
@@ -195,7 +195,7 @@ export async function getSortedItemListMessage(
 
     let itemGroup: {
         customSortValue: number;
-        items: { title: string; levels: string[]; tagSet: { tags: string[] }[] }[];
+        items: { title: string; levels: string[]; variant_info: { tags: string[] }[] }[];
     } | null = null;
     let sortedList: string = '';
     let lastResult: string = '';
@@ -221,12 +221,12 @@ export async function getSortedItemListMessage(
         let items: {
             title: string;
             levels: string[];
-            tagSet: { tags: string[] }[];
+            variant_info: { tags: string[] }[];
         }[] = itemGroup.items;
 
         // Format and concatenate items in the itemGroup
         const itemDisplayList: string[] = items.map((item) => {
-            let possibleTags: string = item.tagSet
+            let possibleTags: string = item.variant_info
                 .map(({ tags }) => (tags.length ? tags.map(capitalize).join('+') : 'None'))
                 .join(' / ');
             possibleTags = possibleTags === 'None' ? '' : `[${possibleTags}]`;
