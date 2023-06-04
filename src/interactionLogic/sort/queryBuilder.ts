@@ -112,8 +112,8 @@ export async function getSortQueryPipeline(
             $group: {
                 _id: {
                     customSortValue: '$customSortValue',
-                    title: '$title',
-                    variant_info: '$variant_info.tags',
+                    title: '$full_title',
+                    variant_info: '$variant_info',
                 },
                 levels: { $push: '$level' },
             },
@@ -129,7 +129,7 @@ export async function getSortQueryPipeline(
                     $push: {
                         title: '$_id.title',
                         levels: '$levels',
-                        variant_info: '$_id.variant_info.tags',
+                        variant_info: '$_id.variant_info',
                     },
                 },
             },
