@@ -81,12 +81,6 @@ export async function getSortQueryPipeline(
         (ascending && !prevPageValueLimit) || (!ascending && prevPageValueLimit) ? 1 : -1;
 
     return [
-        {
-            $addFields: {
-                bonuses: { $arrayToObject: '$bonuses' },
-                resists: { $arrayToObject: '$resists' },
-            },
-        },
         { $addFields: { customSortValue: sortExpression.mongo } },
         { $match: primaryFilter },
         // For items with the same name, only use the highest level item if the user provided a char ID
