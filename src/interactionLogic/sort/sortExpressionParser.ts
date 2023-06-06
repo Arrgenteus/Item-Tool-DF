@@ -362,7 +362,7 @@ function mongoExpression(postfixExpression: (string | number)[]): MongoSortExpre
             mongoExpStack.push(token);
         } else {
             let field: string = token;
-            if (token === 'damage') field = '$' + field;
+            if (token === 'damage') field = '$avg_damage';
             else if (!isResist(token)) field = '$bonuses.' + field;
             else field = '$resists.' + field;
 

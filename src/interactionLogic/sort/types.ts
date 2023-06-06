@@ -32,7 +32,7 @@ type DatabaseItemType = Omit<ItemType, 'capeOrWings'> | 'cape' | 'wings';
 
 export interface ItemTypeMongoFilter {
     category?: string;
-    type?: DatabaseItemType | { $in: DatabaseItemType[] };
+    item_type?: DatabaseItemType | { $in: DatabaseItemType[] };
 }
 
 export interface SortFilterParams {

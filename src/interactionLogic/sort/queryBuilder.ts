@@ -6,10 +6,10 @@ import { CharLevelAndItems, ItemTypeMongoFilter, SortFilterParams } from './type
 function getItemTypeFilter(itemType: ItemType): ItemTypeMongoFilter {
     if (itemType === 'weapon') return { category: 'weapon' };
     if (itemType === 'capeOrWings')
-        return { category: 'accessory', type: { $in: ['cape', 'wings'] } };
+        return { category: 'accessory', item_type: { $in: ['cape', 'wings'] } };
     return {
         category: 'accessory',
-        type: itemType,
+        item_type: itemType,
     };
 }
 
@@ -28,22 +28,24 @@ export async function getSortQueryPipeline(
     }: SortFilterParams,
     returnShortResult: boolean = false
 ): Promise<Object[]> {
+    const itemTypeFilter = getItemTypeFilter(itemType);
     const primaryFilter: { [filterName: string]: any } = {
         customSortValue: { $exists: true, $ne: 0 },
-        ...getItemTypeFilter(itemType),
+        ...itemTypeFilter,
         $and: [
-            { tagSet: { $elemMatch: { tags: { $not: { $all: ['default', 'temp'] } } } } },
-            { tagSet: { $elemMatch: { tags: { $not: { $all: ['rare', 'temp'] } } } } },
+            { variant_info: { $elemMatch: { tags: { $not: { $all: ['default', 'temp'] } } } } },
+            { variant_info: { $elemMatch: { tags: { $not: { $all: ['rare', 'temp'] } } } } },
         ],
-        ...(weaponElement ? { elements: weaponElement } : {}),
     };
-
+    if (weaponElement && itemTypeFilter.category === 'weapon') {
+        primaryFilter.elements = weaponElement;
+    }
     const secondaryFilter: { [filterName: string]: any } = {};
 
     let charLevelAndItems: CharLevelAndItems | undefined;
     if (charID) {
         charLevelAndItems = await getCharLevelAndItems(charID);
-        primaryFilter.originalTitle = { $in: charLevelAndItems.items };
+        primaryFilter.original_title = { $in: charLevelAndItems.items };
         secondaryFilter.level = { $lte: charLevelAndItems.level };
     }
 
@@ -58,12 +60,12 @@ export async function getSortQueryPipeline(
         secondaryFilter.level = { ...secondaryFilter.level, $lte: maxLevel };
     }
 
-    const tagsToExclude: (ItemTag | [])[] = ['ak', 'alexander'];
+    const tagsToExclude: (ItemTag | [])[] = ['ak', 'alexander', 'cosmetic'];
     for (const tag of excludeTags ?? []) {
         if (tag === 'none') tagsToExclude.push([]);
         else tagsToExclude.push(tag);
     }
-    primaryFilter.$and.push({ tagSet: { $elemMatch: { tags: { $nin: tagsToExclude } } } });
+    primaryFilter.$and.push({ variant_info: { $elemMatch: { tags: { $nin: tagsToExclude } } } });
 
     if (nextPageValueLimit !== undefined) {
         secondaryFilter.customSortValue = {};
@@ -79,13 +81,6 @@ export async function getSortQueryPipeline(
         (ascending && !prevPageValueLimit) || (!ascending && prevPageValueLimit) ? 1 : -1;
 
     return [
-        {
-            $addFields: {
-                damage: { $avg: '$damage' },
-                bonuses: { $arrayToObject: '$bonuses' },
-                resists: { $arrayToObject: '$resists' },
-            },
-        },
         { $addFields: { customSortValue: sortExpression.mongo } },
         { $match: primaryFilter },
         // For items with the same name, only use the highest level item if the user provided a char ID
@@ -95,7 +90,7 @@ export async function getSortQueryPipeline(
                   { $sort: { level: -1 } },
                   {
                       $group: {
-                          _id: '$originalTitle',
+                          _id: '$original_title',
                           doc: { $first: '$$CURRENT' },
                       },
                   },
@@ -106,13 +101,13 @@ export async function getSortQueryPipeline(
         // If for example, the provided char is level 90 and has NSoD, filtering by level and page limit
         // before the above grouping would not filter out lower level versions of NSoD, when it should do so
         { $match: secondaryFilter },
-        // Group documents by sort value, title, and tagSet
+        // Group documents by sort value, title, and variant info
         {
             $group: {
                 _id: {
                     customSortValue: '$customSortValue',
-                    title: '$title',
-                    tagSet: '$tagSet',
+                    title: '$full_title',
+                    variant_info: '$variant_info',
                 },
                 levels: { $push: '$level' },
             },
@@ -128,7 +123,7 @@ export async function getSortQueryPipeline(
                     $push: {
                         title: '$_id.title',
                         levels: '$levels',
-                        tagSet: '$_id.tagSet',
+                        variant_info: '$_id.variant_info',
                     },
                 },
             },
