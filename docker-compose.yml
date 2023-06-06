@@ -3,4 +3,5 @@ services:
     app:
         build: .
         image: 'dragonfable/item-search-and-sort'
+        network-mode: host
         restart: always
