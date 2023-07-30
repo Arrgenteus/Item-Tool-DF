@@ -1,4 +1,4 @@
-import { Message, MessageOptions, TextChannel } from 'discord.js';
+import { Message, MessageOptions, GuildTextBasedChannel } from 'discord.js';
 import config from '../config';
 import { ChatCommandData } from '../eventHandlerTypes';
 import { getSearchResultMessagewithButtons } from '../interactionLogic/search/search';
@@ -9,10 +9,39 @@ import {
 import { unaliasItemType } from '../interactionLogic/search/utils';
 import { embed } from '../utils/misc';
 import { botResponseCache } from '../utils/store';
-import { searchCommandOptions } from '../interactionLogic/search/commandOptions';
+
+const commandNames: (SearchableItemCategory | SearchableItemCategoryAlias)[] = [
+    'item',
+    'wep',
+    'weap',
+    'weapon',
+    'sword',
+    'axe',
+    'mace',
+    'staff',
+    'wand',
+    'dagger',
+    'scythe',
+    'acc',
+    'accessory',
+    'cape',
+    'cloak',
+    'wings',
+    'wing',
+    'helm',
+    'helmet',
+    'belt',
+    'necklace',
+    'neck',
+    'ring',
+    'trinket',
+    'bracer',
+    'pet',
+    'cosmetic',
+];
 
 const command: ChatCommandData = {
-    names: searchCommandOptions,
+    names: commandNames,
     run: async (
         message: Message,
         itemNameToSearchFor: string,
@@ -20,7 +49,7 @@ const command: ChatCommandData = {
     ): Promise<void> => {
         const itemSearchCategory: SearchableItemCategory = unaliasItemType(commandName);
 
-        const channel: TextChannel = message.channel as TextChannel;
+        const channel: GuildTextBasedChannel = message.channel as GuildTextBasedChannel;
 
         if (!itemNameToSearchFor) {
             await channel.send(

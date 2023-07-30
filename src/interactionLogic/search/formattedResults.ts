@@ -535,17 +535,20 @@ export async function getCompareResultMessage({
     term2: string;
     itemSearchCategory: SearchableItemCategory;
 }): Promise<Pick<MessageOptions, 'embeds'>> {
-    const item1SearchResultResponseBody = await fetchItemSearchResult({
-        term: term1,
-        itemSearchCategory: itemSearchCategory,
-    });
+    const [item1SearchResultResponseBody, item2SearchResultResponseBody] = await Promise.all([
+        fetchItemSearchResult({
+            term: term1,
+            itemSearchCategory: itemSearchCategory,
+        }),
+        fetchItemSearchResult({
+            term: term2,
+            itemSearchCategory: itemSearchCategory,
+        }),
+    ]);
+
     const item1SearchResult = (item1SearchResultResponseBody.hits?.hits ?? [])[0]?._source;
     if (!item1SearchResult) throw new ValidationError(`Search results for ${term1} not found.`);
 
-    const item2SearchResultResponseBody = await fetchItemSearchResult({
-        term: term2,
-        itemSearchCategory: itemSearchCategory,
-    });
     const item2SearchResult = (item2SearchResultResponseBody.hits?.hits ?? [])[0]?._source;
     if (!item2SearchResult) throw new ValidationError(`Search results for ${term2} not found.`);
 
