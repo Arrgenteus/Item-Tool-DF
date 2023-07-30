@@ -19,6 +19,7 @@ export const searchCommandOptions: (SearchableItemCategory | SearchableItemCateg
     'trinket',
     'bracer',
     'cosmetic',
+    'pet',
 ];
 
 export const compareCommandCategoryList: (SearchableItemCategory | SearchableItemCategoryAlias)[] =
