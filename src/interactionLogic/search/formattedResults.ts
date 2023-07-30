@@ -23,7 +23,10 @@ import {
     SearchableItemCategory,
     MORE_SEARCH_RESULT_IMAGES_INTERACTION_ID,
     MORE_SEARCH_RESULT_IMAGES_LABEL,
+    ItemStats,
 } from './types';
+import { fetchItemSearchResult } from './search';
+import { ValidationError } from '../../errors';
 
 function getFormattedListOfItemTags(searchResultVariantInfo?: ItemVariantInfo[]): string {
     return (
@@ -505,4 +508,83 @@ export function replaceSimilarResultWithCurrentResultInButtonList({
             }
         }
     }
+}
+
+function calculateStatDiffs(item1Stats: ItemStats, item2Stats: ItemStats): [ItemStats, ItemStats] {
+    const item1StatDiff: ItemStats = {};
+    const item2StatDiff: ItemStats = {};
+    for (const bonus in item1Stats) {
+        const statDiff: number = item1Stats[bonus] - (item2Stats[bonus] ?? 0);
+        if (statDiff === 0) continue;
+        item1StatDiff[bonus] = statDiff;
+    }
+    for (const bonus in item2Stats) {
+        const statDiff: number = item2Stats[bonus] - (item1Stats[bonus] ?? 0);
+        if (statDiff === 0) continue;
+        item2StatDiff[bonus] = statDiff;
+    }
+    return [item1StatDiff, item2StatDiff];
+}
+
+export async function getCompareResultMessage({
+    term1,
+    term2,
+    itemSearchCategory,
+}: {
+    term1: string;
+    term2: string;
+    itemSearchCategory: SearchableItemCategory;
+}): Promise<Pick<MessageOptions, 'embeds'>> {
+    const item1SearchResultResponseBody = await fetchItemSearchResult({
+        term: term1,
+        itemSearchCategory: itemSearchCategory,
+    });
+    const item1SearchResult = (item1SearchResultResponseBody.hits?.hits ?? [])[0]?._source;
+    if (!item1SearchResult) throw new ValidationError(`Search results for ${term1} not found.`);
+
+    const item2SearchResultResponseBody = await fetchItemSearchResult({
+        term: term2,
+        itemSearchCategory: itemSearchCategory,
+    });
+    const item2SearchResult = (item2SearchResultResponseBody.hits?.hits ?? [])[0]?._source;
+    if (!item2SearchResult) throw new ValidationError(`Search results for ${term2} not found.`);
+
+    const [item1BonusDiff, item2BonusDiff]: [ItemStats, ItemStats] = calculateStatDiffs(
+        item1SearchResult.bonuses,
+        item2SearchResult.bonuses
+    );
+    const [item1ResistDiff, item2ResistDiff]: [ItemStats, ItemStats] = calculateStatDiffs(
+        item1SearchResult.resists,
+        item2SearchResult.resists
+    );
+
+    const item1Diff: string =
+        `**Tags:** ${getFormattedListOfItemTags(item1SearchResult.variant_info)}\n` +
+        `**Bonuses:** ${getFormattedBonusesOrResists(item1BonusDiff)}\n` +
+        `**Resists:** ${getFormattedBonusesOrResists(item1ResistDiff)}`;
+
+    const item2Diff: string =
+        `**Tags:** ${getFormattedListOfItemTags(item2SearchResult.variant_info)}\n` +
+        `**Bonuses:** ${getFormattedBonusesOrResists(item2BonusDiff)}\n` +
+        `**Resists:** ${getFormattedBonusesOrResists(item2ResistDiff)}`;
+
+    return {
+        embeds: [
+            {
+                title: `Item Comparison`,
+                fields: [
+                    {
+                        name: `__**${item1SearchResult.full_title}**__`,
+                        value: item1Diff,
+                        inline: true,
+                    },
+                    {
+                        name: `__**${item2SearchResult.full_title}**__`,
+                        value: item2Diff,
+                        inline: true,
+                    },
+                ],
+            },
+        ],
+    };
 }

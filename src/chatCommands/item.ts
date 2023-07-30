@@ -9,39 +9,10 @@ import {
 import { unaliasItemType } from '../interactionLogic/search/utils';
 import { embed } from '../utils/misc';
 import { botResponseCache } from '../utils/store';
-
-const commandNames: (SearchableItemCategory | SearchableItemCategoryAlias)[] = [
-    'item',
-    'wep',
-    'weap',
-    'weapon',
-    'sword',
-    'axe',
-    'mace',
-    'staff',
-    'wand',
-    'dagger',
-    'scythe',
-    'acc',
-    'accessory',
-    'cape',
-    'cloak',
-    'wings',
-    'wing',
-    'helm',
-    'helmet',
-    'belt',
-    'necklace',
-    'neck',
-    'ring',
-    'trinket',
-    'bracer',
-    'pet',
-    'cosmetic',
-];
+import { searchCommandOptions } from '../interactionLogic/search/commandOptions';
 
 const command: ChatCommandData = {
-    names: commandNames,
+    names: searchCommandOptions,
     run: async (
         message: Message,
         itemNameToSearchFor: string,

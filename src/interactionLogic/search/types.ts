@@ -29,6 +29,8 @@ export type ItemVariantInfo = { tags: ItemTag[]; locations: Location[] };
 
 export type Stats = { [key: string]: string | number };
 
+export type ItemStats = { [key: string]: number };
+
 export type PetAttack = { appearance?: string | string[]; description: string };
 
 export type SearchableItemCategoryAlias =
