@@ -4,8 +4,8 @@ import {
     ApplicationCommandOptionData,
     ModalOptions,
 } from 'discord.js';
-import { ItemTag, PRETTY_TAG_NAMES } from '../../utils/itemTypeData';
-import { ITEM_TAG_FILTER_OPTION_NAMES, PRETTY_ITEM_TYPES } from './constants';
+import { ItemTag, PRETTY_ITEM_TYPES, PRETTY_TAG_NAMES } from '../../utils/itemTypeData';
+import { ITEM_TAG_FILTER_OPTION_NAMES } from './constants';
 import { SortCommandParams, SortItemTypeOption } from './types';
 
 function getItemTagFilterOptions(): ApplicationCommandNonOptionsData[] {

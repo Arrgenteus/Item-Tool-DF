@@ -12,10 +12,14 @@ import {
     MessageSelectOptionData,
 } from 'discord.js';
 import { INTERACTION_ID_ARG_SEPARATOR, MAX_EMBED_DESC_LENGTH } from '../../utils/constants';
-import { ItemTag, ItemType, PRETTY_TAG_NAMES } from '../../utils/itemTypeData';
 import {
+    ItemTag,
+    ItemType,
     PRETTY_ITEM_TYPES,
+    PRETTY_TAG_NAMES,
     PRETTY_TO_BASE_ITEM_TYPE,
+} from '../../utils/itemTypeData';
+import {
     QUERY_RESULT_LIMIT,
     QUERY_SHORT_RESULT_LIMIT,
     SORTABLE_TAGS,

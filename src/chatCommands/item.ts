@@ -1,4 +1,4 @@
-import { Message, MessageOptions, TextChannel } from 'discord.js';
+import { Message, MessageOptions, GuildTextBasedChannel } from 'discord.js';
 import config from '../config';
 import { ChatCommandData } from '../eventHandlerTypes';
 import { getSearchResultMessagewithButtons } from '../interactionLogic/search/search';
@@ -49,7 +49,7 @@ const command: ChatCommandData = {
     ): Promise<void> => {
         const itemSearchCategory: SearchableItemCategory = unaliasItemType(commandName);
 
-        const channel: TextChannel = message.channel as TextChannel;
+        const channel: GuildTextBasedChannel = message.channel as GuildTextBasedChannel;
 
         if (!itemNameToSearchFor) {
             await channel.send(

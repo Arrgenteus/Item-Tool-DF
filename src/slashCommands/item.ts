@@ -10,6 +10,7 @@ import {
     SearchableItemCategoryAlias,
 } from '../interactionLogic/search/types';
 import { unaliasItemType } from '../interactionLogic/search/utils';
+import { searchCommandOptions } from '../interactionLogic/search/commandOptions';
 
 function createSearchSlashCommand(
     commandName: SearchableItemCategory | SearchableItemCategoryAlias
@@ -78,26 +79,6 @@ function createSearchSlashCommand(
     };
 }
 
-const categories: (SearchableItemCategory | SearchableItemCategoryAlias)[] = [
-    'item',
-    'wep',
-    'sword',
-    'axe',
-    'mace',
-    'staff',
-    'wand',
-    'dagger',
-    'scythe',
-    'acc',
-    'cape',
-    'helm',
-    'belt',
-    'necklace',
-    'ring',
-    'trinket',
-    'bracer',
-    'cosmetic',
-];
-const commands: SlashCommandData[] = categories.map(createSearchSlashCommand);
+const commands: SlashCommandData[] = searchCommandOptions.map(createSearchSlashCommand);
 
 export default commands;
