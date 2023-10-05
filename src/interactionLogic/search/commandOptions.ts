@@ -23,4 +23,4 @@ export const searchCommandOptions: (SearchableItemCategory | SearchableItemCateg
 ];
 
 export const compareCommandCategoryList: (SearchableItemCategory | SearchableItemCategoryAlias)[] =
-    ['wep', 'belt', 'bracer', 'cape', 'helm', 'necklace', 'ring'];
+    ['weapon', 'belt', 'bracer', 'cape', 'helm', 'necklace', 'ring', 'trinket'];

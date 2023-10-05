@@ -510,21 +510,37 @@ export function replaceSimilarResultWithCurrentResultInButtonList({
     }
 }
 
-function calculateStatDiffs(item1Stats: ItemStats, item2Stats: ItemStats): [ItemStats, ItemStats] {
-    const item1StatDiff: ItemStats = {};
-    const item2StatDiff: ItemStats = {};
-    for (const bonus in item1Stats) {
-        const statDiff: number = item1Stats[bonus] - (item2Stats[bonus] ?? 0);
-        if (statDiff === 0) continue;
-        item1StatDiff[bonus] = statDiff;
+function getGreaterLesserAndSameStats(item1Stats: ItemStats, item2Stats: ItemStats) {
+    const greaterStats: ItemStats = {};
+    const lesserStats: ItemStats = {};
+    const equalStats: ItemStats = {};
+    for (const statName in item1Stats) {
+        const item1Stat: number = item1Stats[statName];
+        const item2Stat: number = item2Stats[statName] ?? 0;
+        if (item1Stat > item2Stat) {
+            greaterStats[statName] = item1Stats[statName];
+        } else if (item1Stat < item2Stat) {
+            lesserStats[statName] = item1Stats[statName];
+        } else {
+            equalStats[statName] = item1Stats[statName];
+        }
     }
-    for (const bonus in item2Stats) {
-        const statDiff: number = item2Stats[bonus] - (item1Stats[bonus] ?? 0);
-        if (statDiff === 0) continue;
-        item2StatDiff[bonus] = statDiff;
-    }
-    return [item1StatDiff, item2StatDiff];
+    return [greaterStats, lesserStats, equalStats];
 }
+
+// function calculateStatDiffs(item1Stats: ItemStats, item2Stats: ItemStats): [ItemStats, ItemStats] {
+//     const item1StatDiff: ItemStats = {};
+//     const item2StatDiff: ItemStats = {};
+//     for (const bonus in item1Stats) {
+//         item1StatDiff[bonus] = statDiff;
+//     }
+//     for (const bonus in item2Stats) {
+//         const statDiff: number = item2Stats[bonus] - (item1Stats[bonus] ?? 0);
+//         if (statDiff === 0) continue;
+//         item2StatDiff[bonus] = statDiff;
+//     }
+//     return [item1StatDiff, item2StatDiff];
+// }
 
 export async function getCompareResultMessage({
     term1,
@@ -552,25 +568,44 @@ export async function getCompareResultMessage({
     const item2SearchResult = (item2SearchResultResponseBody.hits?.hits ?? [])[0]?._source;
     if (!item2SearchResult) throw new ValidationError(`Search results for ${term2} not found.`);
 
-    const [item1BonusDiff, item2BonusDiff]: [ItemStats, ItemStats] = calculateStatDiffs(
+    const [item1GreaterBonuses, item1LesserBonuses, equalBonuses] = getGreaterLesserAndSameStats(
         item1SearchResult.bonuses,
         item2SearchResult.bonuses
     );
-    const [item1ResistDiff, item2ResistDiff]: [ItemStats, ItemStats] = calculateStatDiffs(
+    const [item2GreaterBonuses, item2LesserBonuses] = getGreaterLesserAndSameStats(
+        item2SearchResult.bonuses,
+        item1SearchResult.bonuses
+    );
+    const [item1GreaterResists, item1LesserResists, equalResists] = getGreaterLesserAndSameStats(
         item1SearchResult.resists,
         item2SearchResult.resists
     );
+    const [item2GreaterResists, item2LesserResists] = getGreaterLesserAndSameStats(
+        item2SearchResult.resists,
+        item1SearchResult.resists
+    );
 
     const item1Diff: string =
-        `**Tags:** ${getFormattedListOfItemTags(item1SearchResult.variant_info)}\n` +
-        `**Bonuses:** ${getFormattedBonusesOrResists(item1BonusDiff)}\n` +
-        `**Resists:** ${getFormattedBonusesOrResists(item1ResistDiff)}`;
+        `**Tags:** ${getFormattedListOfItemTags(item1SearchResult.variant_info)}\n\n` +
+        `__Greater Stats__\n` +
+        `**Bonuses:** ${getFormattedBonusesOrResists(item1GreaterBonuses)}\n` +
+        `**Resists:** ${getFormattedBonusesOrResists(item1GreaterResists)}\n` +
+        `__Lower Stats__\n` +
+        `**Bonuses:** ${getFormattedBonusesOrResists(item1LesserBonuses)}\n` +
+        `**Resists:** ${getFormattedBonusesOrResists(item1LesserResists)}\n`;
 
     const item2Diff: string =
-        `**Tags:** ${getFormattedListOfItemTags(item2SearchResult.variant_info)}\n` +
-        `**Bonuses:** ${getFormattedBonusesOrResists(item2BonusDiff)}\n` +
-        `**Resists:** ${getFormattedBonusesOrResists(item2ResistDiff)}`;
+        `**Tags:** ${getFormattedListOfItemTags(item2SearchResult.variant_info)}\n\n` +
+        `__Greater Stats__\n` +
+        `**Bonuses:** ${getFormattedBonusesOrResists(item2GreaterBonuses)}\n` +
+        `**Resists:** ${getFormattedBonusesOrResists(item2GreaterResists)}\n` +
+        `__Lower Stats__\n` +
+        `**Bonuses:** ${getFormattedBonusesOrResists(item2LesserBonuses)}\n` +
+        `**Resists:** ${getFormattedBonusesOrResists(item2LesserResists)}\n`;
 
+    const sameStatDesc: string =
+        `**Bonuses:** ${getFormattedBonusesOrResists(equalBonuses)}\n` +
+        `**Resists:** ${getFormattedBonusesOrResists(equalResists)}\n`;
     return {
         embeds: [
             {
@@ -585,6 +620,11 @@ export async function getCompareResultMessage({
                         name: `__**${item2SearchResult.full_title}**__`,
                         value: item2Diff,
                         inline: true,
+                    },
+                    {
+                        name: '__Equal stats__',
+                        value: sameStatDesc,
+                        inline: false,
                     },
                 ],
             },

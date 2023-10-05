@@ -12,7 +12,7 @@ const itemNameAutocompleteInteration: NonCommandInteractionData = {
             await fetchAutocompleteItemResults({
                 term: interaction.options.getFocused(),
                 itemSearchCategory:
-                    handlerName === 'compare-wep'
+                    handlerName === 'compare-weapon'
                         ? 'weapon'
                         : (handlerName.slice('compare-'.length) as SearchableItemCategory),
             });
