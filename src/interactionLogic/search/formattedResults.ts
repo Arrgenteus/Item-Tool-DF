@@ -70,6 +70,22 @@ function getFormattedBonusesOrResists(searchResultStats?: Stats) {
     );
 }
 
+function getFormattedDamageRange(searchResult: any) {
+    if (
+        searchResult.scaled_damage === undefined &&
+        searchResult.min_damage === undefined &&
+        searchResult.max_damage === undefined
+    ) {
+        return '';
+    }
+    return (
+        '**Damage:** ' +
+        (searchResult.scaled_damage
+            ? 'Scaled'
+            : `${searchResult.min_damage}-${searchResult.max_damage}`)
+    );
+}
+
 function getFormattedColorCustomInfo(searchResultColorCustomInfo?: string[]): string | undefined {
     if (!searchResultColorCustomInfo?.length) return;
 
@@ -349,11 +365,7 @@ function formatWeaponQueryResponse(searchResult: any): MessageEmbedOptions {
 
     const isCosmetic: boolean = searchResult.common_tags.includes('cosmetic');
     if (!isCosmetic) {
-        embedBody +=
-            `\n**Damage:** ` +
-            (searchResult.scaled_damage
-                ? 'Scaled'
-                : `${searchResult.min_damage}-${searchResult.max_damage}`);
+        embedBody += '\n' + getFormattedDamageRange(searchResult);
     }
 
     embedBody += `\n**Element:** ${
@@ -585,8 +597,10 @@ export async function getCompareResultMessage({
         item1SearchResult.resists
     );
 
+    const item1DamageDiff: string = getFormattedDamageRange(item1SearchResult);
     const item1Diff: string =
-        `**Tags:** ${getFormattedListOfItemTags(item1SearchResult.variant_info)}\n\n` +
+        `**Tags:** ${getFormattedListOfItemTags(item1SearchResult.variant_info)}\n` +
+        (item1DamageDiff ? item1DamageDiff + '\n' : '') +
         `__Greater Stats__\n` +
         `**Bonuses:** ${getFormattedBonusesOrResists(item1GreaterBonuses)}\n` +
         `**Resists:** ${getFormattedBonusesOrResists(item1GreaterResists)}\n` +
@@ -594,8 +608,10 @@ export async function getCompareResultMessage({
         `**Bonuses:** ${getFormattedBonusesOrResists(item1LesserBonuses)}\n` +
         `**Resists:** ${getFormattedBonusesOrResists(item1LesserResists)}\n`;
 
+    const item2DamageDiff: string = getFormattedDamageRange(item2SearchResult);
     const item2Diff: string =
-        `**Tags:** ${getFormattedListOfItemTags(item2SearchResult.variant_info)}\n\n` +
+        `**Tags:** ${getFormattedListOfItemTags(item2SearchResult.variant_info)}\n` +
+        (item2DamageDiff ? item2DamageDiff + '\n' : '') +
         `__Greater Stats__\n` +
         `**Bonuses:** ${getFormattedBonusesOrResists(item2GreaterBonuses)}\n` +
         `**Resists:** ${getFormattedBonusesOrResists(item2GreaterResists)}\n` +
