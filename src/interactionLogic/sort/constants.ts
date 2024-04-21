@@ -35,19 +35,3 @@ export const SORTABLE_TAGS: ItemTag[] = [
     'temp',
     'none',
 ];
-
-export const PRETTY_ITEM_TYPES: { [key in ItemType]: string } = {
-    weapon: 'Weapons',
-    belt: 'Belts',
-    capeOrWings: 'Capes/Wings',
-    ring: 'Rings',
-    necklace: 'Necklaces',
-    helm: 'Helms',
-    bracer: 'Bracers',
-    trinket: 'Trinkets',
-};
-
-export const PRETTY_TO_BASE_ITEM_TYPE: { [key: string]: ItemType } = {};
-for (const itemType in PRETTY_ITEM_TYPES) {
-    PRETTY_TO_BASE_ITEM_TYPE[PRETTY_ITEM_TYPES[itemType as ItemType]] = itemType as ItemType;
-}

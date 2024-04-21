@@ -387,7 +387,7 @@ export async function fetchAutocompleteItemResults({
     );
 }
 
-async function fetchItemSearchResult({
+export async function fetchItemSearchResult({
     term,
     itemSearchCategory,
     maxLevel,
@@ -628,10 +628,10 @@ async function fetchItemSearchResult({
 
     // If the result was empty, check if the search query matches the family names
     // of other items
-    if (!responseBody.hits?.hits?.length) {
-        query.bool.should = getMatchQueryBody(unaliasedTokens, itemSearchCategory, true);
-        responseBody = (await elasticClient.search(searchQuery)).body;
-    }
+    // if (!responseBody.hits?.hits?.length) {
+    //     query.bool.should = getMatchQueryBody(unaliasedTokens, itemSearchCategory, true);
+    //     responseBody = (await elasticClient.search(searchQuery)).body;
+    // }
 
     return responseBody;
 }
