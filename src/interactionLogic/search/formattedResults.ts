@@ -127,16 +127,22 @@ function getFormattedTrinketSkillInfo(searchResultTrinketSkill: {
 
 function getEmbedsForFormattedWeaponSpecialInfo(
     searchResultWeaponSpecials: {
+        type: string;
+        effect: string;
+        charge_time: string;
+        cooldown: string;
+    }[],
+    searchResultOldWeaponSpecials: {
         activation: string;
         effect: string;
         elements?: string[];
         rate: number;
     }[]
 ): EmbedFieldData[] | undefined {
-    if (!searchResultWeaponSpecials?.length) return;
+    if (!searchResultWeaponSpecials?.length && !searchResultOldWeaponSpecials?.length) return;
 
     const embedFields: EmbedFieldData[] = [];
-    for (const weaponSpecial of searchResultWeaponSpecials) {
+    for (const weaponSpecial of searchResultOldWeaponSpecials ?? []) {
         let weaponSpecialDesc =
             `**Activation:** ${capitalize(weaponSpecial.activation)}\n` +
             `**Effect:** ${weaponSpecial.effect}`;
@@ -150,6 +156,19 @@ function getEmbedsForFormattedWeaponSpecialInfo(
         }
         embedFields.push({
             name: 'Weapon Special',
+            value: weaponSpecialDesc,
+            inline: true,
+        });
+    }
+
+    for (const weaponSpecial of searchResultWeaponSpecials ?? []) {
+        let weaponSpecialDesc = `**Effect:** ${weaponSpecial.effect}`;
+        if (weaponSpecial.type === 'On-Demand') {
+            weaponSpecialDesc += `\n**Charge Time:** ${weaponSpecial.charge_time}`;
+            weaponSpecialDesc += `\n**Cooldown:** ${weaponSpecial.cooldown}`;
+        }
+        embedFields.push({
+            name: weaponSpecial.type + ' Weapon Special',
             value: weaponSpecialDesc,
             inline: true,
         });
@@ -387,7 +406,10 @@ function formatWeaponQueryResponse(searchResult: any): MessageEmbedOptions {
         title: searchResult.full_title,
         description: embedBody,
         image: { url: (searchResult.images || [])[0] },
-        fields: getEmbedsForFormattedWeaponSpecialInfo(searchResult.weapon_specials),
+        fields: getEmbedsForFormattedWeaponSpecialInfo(
+            searchResult.new_weapon_specials,
+            searchResult.weapon_specials
+        ),
     };
 }
 
