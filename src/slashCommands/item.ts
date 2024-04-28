@@ -79,6 +79,5 @@ function createSearchSlashCommand(
     };
 }
 
-const commands: SlashCommandData[] = searchCommandOptions.map(createSearchSlashCommand);
-
-export default commands;
+export const itemSearchCommands: SlashCommandData[] =
+    searchCommandOptions.map(createSearchSlashCommand);

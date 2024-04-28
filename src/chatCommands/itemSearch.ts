@@ -40,7 +40,7 @@ const commandNames: (SearchableItemCategory | SearchableItemCategoryAlias)[] = [
     'cosmetic',
 ];
 
-const command: ChatCommandData = {
+export const itemSearchCommand: ChatCommandData = {
     names: commandNames,
     run: async (
         message: Message,
@@ -130,5 +130,3 @@ const command: ChatCommandData = {
         botResponseCache.set(message.id, sentMessage);
     },
 };
-
-export default command;

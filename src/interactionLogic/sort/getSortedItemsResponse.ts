@@ -31,6 +31,12 @@ const ITEM_LIST_DELIMITER = ', `';
 const itemCollection: Promise<MongoCollection> = dbConnection.then((db: Db) =>
     db.collection(config.DB_COLLECTION)
 );
+const allValidResists: Promise<any> = itemCollection.then((collection: MongoCollection) =>
+    collection.aggregate([
+        { $unwind: '$resists' },
+        { $group: { _id: null, keys: { $addToSet: '$resists.k' } } },
+    ])
+);
 
 function getFiltersUsedText({
     ascending,

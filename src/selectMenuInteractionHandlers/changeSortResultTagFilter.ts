@@ -9,7 +9,7 @@ import { SORT_ACTIONS } from '../interactionLogic/sort/constants';
 import { getSortResultsMessageUsingMessageFilters } from '../interactionLogic/sort/getSortedItemsResponse';
 import { ItemTag } from '../utils/itemTypeData';
 
-const selectMenuInteration: NonCommandInteractionData = {
+export const changeSortResultTagFilterSelectMenu: NonCommandInteractionData = {
     names: [SORT_ACTIONS.TAG_SELECTION],
     preferEphemeralErrorMessage: true,
     run: async (interaction: SelectMenuInteraction): Promise<void> => {
@@ -31,5 +31,3 @@ const selectMenuInteration: NonCommandInteractionData = {
         }
     },
 };
-
-export default selectMenuInteration;

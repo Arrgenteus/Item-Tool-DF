@@ -16,7 +16,7 @@ import {
 } from '../interactionLogic/sort/types';
 import { ItemTag } from '../utils/itemTypeData';
 
-const command: SlashCommandData = {
+export const sortCommand: SlashCommandData = {
     preferEphemeralErrorMessage: true,
     structure: {
         name: 'sort',
@@ -85,5 +85,3 @@ const command: SlashCommandData = {
         await interaction.reply(sortedItemMessage);
     },
 };
-
-export default command;

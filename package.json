@@ -2,9 +2,13 @@
     "name": "item-bot-df",
     "version": "1.0.0",
     "description": "",
-    "main": "app.js",
+    "exports": "./app.js",
+    "type": "module",
     "scripts": {
         "start": "tsc && node dist/run.js"
+    },
+    "engines": {
+        "node": ">=16"
     },
     "author": "Arrgenteus",
     "license": "gpl-3.0",

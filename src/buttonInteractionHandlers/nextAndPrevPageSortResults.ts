@@ -9,7 +9,7 @@ import { SORT_ACTIONS } from '../interactionLogic/sort/constants';
 import { getSortResultsMessageUsingMessageFilters } from '../interactionLogic/sort/getSortedItemsResponse';
 import { ItemTag } from '../utils/itemTypeData';
 
-const buttonInteration: NonCommandInteractionData = {
+export const nextAndPrevPageSortResultsButton: NonCommandInteractionData = {
     // previous page sort results, next page sort results
     names: [SORT_ACTIONS.PREV_PAGE, SORT_ACTIONS.NEXT_PAGE],
     preferEphemeralErrorMessage: true,
@@ -43,5 +43,3 @@ const buttonInteration: NonCommandInteractionData = {
         }
     },
 };
-
-export default buttonInteration;

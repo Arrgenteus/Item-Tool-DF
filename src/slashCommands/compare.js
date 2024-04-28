@@ -1,19 +1,9 @@
-import { ApplicationCommandOptionData, CommandInteraction } from 'discord.js';
-import { SlashCommandData } from '../eventHandlerTypes';
 import { getCompareResultMessage } from '../interactionLogic/search/formattedResults';
-import {
-    SearchableItemCategory,
-    SearchableItemCategoryAlias,
-} from '../interactionLogic/search/types';
 import { unaliasItemType } from '../interactionLogic/search/utils';
 import { compareCommandCategoryList } from '../interactionLogic/search/commandOptions';
-
-function createCompareSlashCommand(
-    inputItemCategory: SearchableItemCategory | SearchableItemCategoryAlias
-): SlashCommandData {
-    const itemCategory: SearchableItemCategory = unaliasItemType(inputItemCategory);
-
-    const commandOptions: ApplicationCommandOptionData[] = [
+function createCompareSlashCommand(inputItemCategory) {
+    const itemCategory = unaliasItemType(inputItemCategory);
+    const commandOptions = [
         {
             type: 'STRING',
             name: `${itemCategory}-1`,
@@ -29,7 +19,6 @@ function createCompareSlashCommand(
             autocomplete: true,
         },
     ];
-
     return {
         preferEphemeralErrorMessage: true,
         structure: {
@@ -37,18 +26,14 @@ function createCompareSlashCommand(
             description: `Compare the bonuses and resists of two ${itemCategory}s`,
             options: commandOptions,
         },
-
-        run: async (interaction: CommandInteraction) => {
+        run: async (interaction) => {
             const compareResultMessage = await getCompareResultMessage({
                 term1: interaction.options.getString(`${itemCategory}-1`, true),
                 term2: interaction.options.getString(`${itemCategory}-2`, true),
                 itemSearchCategory: itemCategory,
             });
-
             await interaction.reply(compareResultMessage);
         },
     };
 }
-
-export const compareCommands: SlashCommandData[] =
-    compareCommandCategoryList.map(createCompareSlashCommand);
+export const compareCommands = compareCommandCategoryList.map(createCompareSlashCommand);

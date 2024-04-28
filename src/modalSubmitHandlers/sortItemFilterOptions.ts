@@ -5,7 +5,7 @@ import { NonCommandInteractionData } from '../eventHandlerTypes';
 import { getSortResultsMessage } from '../interactionLogic/sort/getSortedItemsResponse';
 import { parseSortExpression } from '../interactionLogic/sort/sortExpressionParser';
 
-const modalSubmitInteration: NonCommandInteractionData = {
+export const sortItemFilterOptionsModal: NonCommandInteractionData = {
     names: ['sort-filters'],
     preferEphemeralErrorMessage: true,
     run: async (interaction: ModalSubmitInteraction): Promise<void> => {
@@ -41,5 +41,3 @@ const modalSubmitInteration: NonCommandInteractionData = {
         await interaction.reply(sortedItemMessage);
     },
 };
-
-export default modalSubmitInteration;

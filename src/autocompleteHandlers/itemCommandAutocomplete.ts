@@ -8,7 +8,7 @@ import {
 import { unaliasItemType } from '../interactionLogic/search/utils';
 import { searchCommandOptions } from '../interactionLogic/search/commandOptions';
 
-const itemNameAutocompleteInteration: NonCommandInteractionData = {
+export const itemCommandAutocomplete: NonCommandInteractionData = {
     names: searchCommandOptions,
     preferEphemeralErrorMessage: true,
     run: async (
@@ -29,5 +29,3 @@ const itemNameAutocompleteInteration: NonCommandInteractionData = {
         await interaction.respond(autocompleteChoices);
     },
 };
-
-export default itemNameAutocompleteInteration;

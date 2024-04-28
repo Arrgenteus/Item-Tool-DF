@@ -1,0 +1,22 @@
+export const searchCommandOptions = [
+    'item',
+    'wep',
+    'sword',
+    'axe',
+    'mace',
+    'staff',
+    'wand',
+    'dagger',
+    'scythe',
+    'acc',
+    'cape',
+    'helm',
+    'belt',
+    'necklace',
+    'ring',
+    'trinket',
+    'bracer',
+    'cosmetic',
+    'pet',
+];
+export const compareCommandCategoryList = ['weapon', 'belt', 'bracer', 'cape', 'helm', 'necklace', 'ring', 'trinket'];

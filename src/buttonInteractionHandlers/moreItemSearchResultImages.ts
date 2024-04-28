@@ -6,7 +6,7 @@ import {
     SearchableItemCategory,
 } from '../interactionLogic/search/types';
 
-const buttonInteration: NonCommandInteractionData = {
+export const moreItemSearchResultImagesButton: NonCommandInteractionData = {
     names: [MORE_SEARCH_RESULT_IMAGES_INTERACTION_ID],
     preferEphemeralErrorMessage: true,
     run: async (interaction: ButtonInteraction, args: string[]): Promise<void> => {
@@ -28,5 +28,3 @@ const buttonInteration: NonCommandInteractionData = {
         });
     },
 };
-
-export default buttonInteration;
