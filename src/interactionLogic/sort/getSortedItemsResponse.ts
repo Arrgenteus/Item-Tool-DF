@@ -10,6 +10,7 @@ import {
     MessageActionRowOptions,
     MessageOptions,
     MessageSelectOptionData,
+    Util,
 } from 'discord.js';
 import { INTERACTION_ID_ARG_SEPARATOR, MAX_EMBED_DESC_LENGTH } from '../../utils/constants.js';
 import {
@@ -28,14 +29,17 @@ import {
 import { ValidationError } from '../../errors.js';
 
 const ITEM_LIST_DELIMITER = ', `';
-const itemCollection: Promise<MongoCollection> = dbConnection.then((db: Db) =>
-    db.collection(config.DB_COLLECTION)
-);
-const allValidResists: Promise<any> = itemCollection.then((collection: MongoCollection) =>
-    collection.aggregate([
-        { $unwind: '$resists' },
-        { $group: { _id: null, keys: { $addToSet: '$resists.k' } } },
-    ])
+const itemCollection: MongoCollection = dbConnection.collection(config.DB_COLLECTION);
+
+const allValidWeaponElements: Set<string> = new Set(
+    (
+        (await itemCollection
+            .aggregate([
+                { $unwind: { path: '$elements' } },
+                { $group: { _id: null, elements: { $addToSet: '$elements' } } },
+            ])
+            .next()) ?? {}
+    ).elements ?? []
 );
 
 function getFiltersUsedText({
@@ -198,10 +202,14 @@ export async function getSortedItemListMessage(
 ): Promise<Pick<MessageOptions, 'embeds' | 'components'>> {
     if (sortFilterParams.weaponElement) {
         sortFilterParams.weaponElement = unaliasBonusName(sortFilterParams.weaponElement);
+        if (!allValidWeaponElements.has(sortFilterParams.weaponElement)) {
+            throw new ValidationError(
+                `No weapons with the element '${sortFilterParams.weaponElement}' exist.`
+            );
+        }
     }
-
     const pipeline = await getSortQueryPipeline(sortFilterParams, returnShortResult);
-    const sortResults: AggregationCursor = (await itemCollection).aggregate(pipeline);
+    const sortResults: AggregationCursor = itemCollection.aggregate(pipeline);
 
     let itemGroup: {
         customSortValue: number;

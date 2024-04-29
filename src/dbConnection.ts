@@ -3,7 +3,7 @@ import config from './config.js';
 import { Client as ElasticClient } from '@elastic/elasticsearch/index';
 import { Db, MongoClient } from 'mongodb';
 
-export const dbConnection: Promise<Db> = MongoClient.connect(
+export const dbConnection: Db = await MongoClient.connect(
     format(
         'mongodb://%s:%s@%s:%s/?authMechanism=%s&authSource=%s',
         config.DB_USER,
