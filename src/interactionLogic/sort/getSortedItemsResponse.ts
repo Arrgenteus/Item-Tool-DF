@@ -1,35 +1,41 @@
 import { AggregationCursor, Collection as MongoCollection, Db } from 'mongodb';
-import config from '../../config';
-import { dbConnection } from '../../dbConnection';
-import { capitalize } from '../../utils/misc';
-import { getSortQueryPipeline } from './queryBuilder';
-import { SortExpressionData, SortFilterParams, SortItemTypeOption } from './types';
-import { parseSortExpression, unaliasBonusName } from './sortExpressionParser';
+import config from '../../config.js';
+import { dbConnection } from '../../dbConnection.js';
+import { capitalize } from '../../utils/misc.js';
+import { getSortQueryPipeline } from './queryBuilder.js';
+import { SortExpressionData, SortFilterParams, SortItemTypeOption } from './types.js';
+import { parseSortExpression, unaliasBonusName } from './sortExpressionParser.js';
 import {
     MessageActionRowComponentResolvable,
     MessageActionRowOptions,
     MessageOptions,
     MessageSelectOptionData,
 } from 'discord.js';
-import { INTERACTION_ID_ARG_SEPARATOR, MAX_EMBED_DESC_LENGTH } from '../../utils/constants';
+import { INTERACTION_ID_ARG_SEPARATOR, MAX_EMBED_DESC_LENGTH } from '../../utils/constants.js';
 import {
     ItemTag,
     ItemType,
     PRETTY_ITEM_TYPES,
     PRETTY_TAG_NAMES,
     PRETTY_TO_BASE_ITEM_TYPE,
-} from '../../utils/itemTypeData';
+} from '../../utils/itemTypeData.js';
 import {
     QUERY_RESULT_LIMIT,
     QUERY_SHORT_RESULT_LIMIT,
     SORTABLE_TAGS,
     SORT_ACTIONS,
-} from './constants';
-import { ValidationError } from '../../errors';
+} from './constants.js';
+import { ValidationError } from '../../errors.js';
 
 const ITEM_LIST_DELIMITER = ', `';
 const itemCollection: Promise<MongoCollection> = dbConnection.then((db: Db) =>
     db.collection(config.DB_COLLECTION)
+);
+const allValidResists: Promise<any> = itemCollection.then((collection: MongoCollection) =>
+    collection.aggregate([
+        { $unwind: '$resists' },
+        { $group: { _id: null, keys: { $addToSet: '$resists.k' } } },
+    ])
 );
 
 function getFiltersUsedText({

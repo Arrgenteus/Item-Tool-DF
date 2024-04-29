@@ -1,10 +1,10 @@
 import { Client as DiscordClient, Guild, Intents } from 'discord.js';
-import config from './config';
-import { SlashCommandData } from './eventHandlerTypes';
-import interactionEventHandler from './events/interaction';
-import messageCreateEventHandler from './events/messageCreate';
-import messageDeleteEventHandler from './events/messageDelete';
-import slashCommands from './handlerStorage/slashCommands';
+import config from './config.js';
+import { SlashCommandData } from './eventHandlerTypes.js';
+import interactionEventHandler from './events/interaction.js';
+import messageCreateEventHandler from './events/messageCreate.js';
+import messageDeleteEventHandler from './events/messageDelete.js';
+import { slashCommandHandlerMap } from './interactionHandlerMap.js';
 
 const client = new DiscordClient({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES] });
 
@@ -26,7 +26,7 @@ client.login(config.BOT_TOKEN).then(async () => {
 
     const [commandArg] = process.argv.slice(2);
     if (commandArg === 'register-slash') {
-        const slashCommandStructures = slashCommands.map(
+        const slashCommandStructures = slashCommandHandlerMap.map(
             (command: SlashCommandData) => command.structure
         );
         await Promise.all(

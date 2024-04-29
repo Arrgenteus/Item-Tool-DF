@@ -1,8 +1,8 @@
 import cheerio, { CheerioAPI } from 'cheerio';
+import { ValidationError } from '../../errors.js';
+import { EphemeralMap } from '../../utils/EphemeralMap.js';
+import { CharLevelAndItems } from './types.js';
 import got from 'got';
-import { ValidationError } from '../../errors';
-import { EphemeralMap } from '../../utils/EphemeralMap';
-import { CharLevelAndItems } from './types';
 
 const FETCH_TIMEOUT = 3 * 1000; // 3 seconds
 const CHAR_INV_EXPIRATION_TIME = 5 * 60 * 1000; // 5 minutes

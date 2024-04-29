@@ -1,7 +1,7 @@
-import { ItemTag, ItemType } from '../../utils/itemTypeData';
-import { getCharLevelAndItems } from './characterInventory';
-import { QUERY_RESULT_LIMIT, QUERY_SHORT_RESULT_LIMIT } from './constants';
-import { CharLevelAndItems, ItemTypeMongoFilter, SortFilterParams } from './types';
+import { ItemTag, ItemType } from '../../utils/itemTypeData.js';
+import { getCharLevelAndItems } from './characterInventory.js';
+import { QUERY_RESULT_LIMIT, QUERY_SHORT_RESULT_LIMIT } from './constants.js';
+import { CharLevelAndItems, ItemTypeMongoFilter, SortFilterParams } from './types.js';
 
 function getItemTypeFilter(itemType: ItemType): ItemTypeMongoFilter {
     if (itemType === 'weapon') return { category: 'weapon' };

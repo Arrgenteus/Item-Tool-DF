@@ -1,4 +1,4 @@
-import { ItemTag, ItemType } from '../../utils/itemTypeData';
+import { ItemTag, ItemType } from '../../utils/itemTypeData.js';
 
 export const enum SortCommandParams {
     ITEM_TYPE = 'item-type',

@@ -1,7 +1,7 @@
 import { Util } from 'discord.js';
-import { InvalidExpressionError, ValueError } from '../../errors';
-import { capitalize, isResist } from '../../utils/misc';
-import { MongoSortExpression, SortExpressionData } from './types';
+import { InvalidExpressionError, ValueError } from '../../errors.js';
+import { capitalize, isResist } from '../../utils/misc.js';
+import { MongoSortExpression, SortExpressionData } from './types.js';
 
 const MAX_OPERATORS: number = 20;
 const MAX_OPERAND_LENGTH: number = 20;

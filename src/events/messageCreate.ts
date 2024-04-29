@@ -1,8 +1,8 @@
 import { Message, MessageOptions } from 'discord.js';
-import config from '../config';
-import { ValidationError } from '../errors';
-import { ChatCommandData, ClientEventHandler } from '../eventHandlerTypes';
-import chatCommands from '../handlerStorage/chatCommands';
+import config from '../config.js';
+import { ValidationError } from '../errors.js';
+import { ChatCommandData, ClientEventHandler } from '../eventHandlerTypes.js';
+import { chatCommandHandlerMap } from '../interactionHandlerMap.js';
 
 const messageCreateEventHandler: ClientEventHandler = {
     eventName: 'messageCreate',
@@ -17,7 +17,7 @@ const messageCreateEventHandler: ClientEventHandler = {
         let commandName = message.content.split(' ')[0].slice(1);
         const args = message.content.slice(commandName.length + 2).trim();
 
-        const command: ChatCommandData | undefined = chatCommands.get(commandName);
+        const command: ChatCommandData | undefined = chatCommandHandlerMap.get(commandName);
         if (!command) return;
 
         try {

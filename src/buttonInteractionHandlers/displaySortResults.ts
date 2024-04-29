@@ -4,12 +4,12 @@ import {
     InteractionUpdateOptions,
     Message,
 } from 'discord.js';
-import { NonCommandInteractionData } from '../eventHandlerTypes';
-import { SORT_ACTIONS } from '../interactionLogic/sort/constants';
-import { getSortResultsMessageUsingMessageFilters } from '../interactionLogic/sort/getSortedItemsResponse';
-import { ItemTag, ItemType } from '../utils/itemTypeData';
+import { NonCommandInteractionData } from '../eventHandlerTypes.js';
+import { SORT_ACTIONS } from '../interactionLogic/sort/constants.js';
+import { getSortResultsMessageUsingMessageFilters } from '../interactionLogic/sort/getSortedItemsResponse.js';
+import { ItemTag, ItemType } from '../utils/itemTypeData.js';
 
-const buttonInteration: NonCommandInteractionData = {
+export const displaySortResultsButton: NonCommandInteractionData = {
     names: [SORT_ACTIONS.SHOW_RESULTS],
     preferEphemeralErrorMessage: true,
     run: async (interaction: ButtonInteraction, args: string[]): Promise<void> => {
@@ -33,5 +33,3 @@ const buttonInteration: NonCommandInteractionData = {
         }
     },
 };
-
-export default buttonInteration;

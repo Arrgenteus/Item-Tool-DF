@@ -6,14 +6,14 @@ import {
     MessageOptions,
     Snowflake,
 } from 'discord.js';
-import { elasticClient } from '../../dbConnection';
+import { elasticClient } from '../../dbConnection.js';
 import {
     formatQueryResponse,
     getButtonForMoreItemImages,
     getButtonListForSimilarResults,
-} from './formattedResults';
-import { SearchableItemCategory } from './types';
-import { getIndexNames, getVariantAndUnaliasTokens, romanIntToInt } from './utils';
+} from './formattedResults.js';
+import { SearchableItemCategory } from './types.js';
+import { getIndexNames, getVariantAndUnaliasTokens, romanIntToInt } from './utils.js';
 
 export function getSpecificCategoryFilterQuery(
     itemSearchCategory: SearchableItemCategory

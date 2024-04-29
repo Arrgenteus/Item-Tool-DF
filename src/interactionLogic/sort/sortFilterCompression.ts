@@ -1,7 +1,7 @@
-// import { ItemType } from '../../utils/itemTypeData';
-// import { ValueError } from '../../errors';
-// import { parseCompressedSortExpression } from './sortExpressionParser';
-// import { SortExpressionData, SortFilterParams } from './types';
+// import { ItemType } from '../../utils/itemTypeData.js';
+// import { ValueError } from '../../errors.js';
+// import { parseCompressedSortExpression } from './sortExpressionParser.js';
+// import { SortExpressionData, SortFilterParams } from './types.js';
 
 // const compressedItemTypeMapping: {
 //     [itemType: string]: ItemType;

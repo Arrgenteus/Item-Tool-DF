@@ -1,14 +1,14 @@
 import { ApplicationCommandOptionChoiceData, AutocompleteInteraction } from 'discord.js';
-import { NonCommandInteractionData } from '../eventHandlerTypes';
-import { fetchAutocompleteItemResults } from '../interactionLogic/search/search';
+import { NonCommandInteractionData } from '../eventHandlerTypes.js';
+import { fetchAutocompleteItemResults } from '../interactionLogic/search/search.js';
 import {
     SearchableItemCategory,
     SearchableItemCategoryAlias,
-} from '../interactionLogic/search/types';
-import { unaliasItemType } from '../interactionLogic/search/utils';
-import { searchCommandOptions } from '../interactionLogic/search/commandOptions';
+} from '../interactionLogic/search/types.js';
+import { unaliasItemType } from '../interactionLogic/search/utils.js';
+import { searchCommandOptions } from '../interactionLogic/search/commandOptions.js';
 
-const itemNameAutocompleteInteration: NonCommandInteractionData = {
+export const itemCommandAutocomplete: NonCommandInteractionData = {
     names: searchCommandOptions,
     preferEphemeralErrorMessage: true,
     run: async (
@@ -29,5 +29,3 @@ const itemNameAutocompleteInteration: NonCommandInteractionData = {
         await interaction.respond(autocompleteChoices);
     },
 };
-
-export default itemNameAutocompleteInteration;

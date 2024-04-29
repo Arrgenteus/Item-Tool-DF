@@ -5,15 +5,17 @@ import {
     ModalSubmitInteraction,
     SelectMenuInteraction,
 } from 'discord.js';
-import config from '../config';
-import { ValidationError } from '../errors';
-import { NonCommandInteractionData, ClientEventHandler } from '../eventHandlerTypes';
-import autocompleteHandlers from '../handlerStorage/autocompleteHandlers';
-import buttonInteractionHandlers from '../handlerStorage/buttonInteractionHandlers';
-import modalSubmitHandlers from '../handlerStorage/modalSubmitHandlers';
-import selectMenuInteractionHandlers from '../handlerStorage/selectMenuInteractionHandlers';
-import slashCommands from '../handlerStorage/slashCommands';
-import { INTERACTION_ID_ARG_SEPARATOR } from '../utils/constants';
+import config from '../config.js';
+import { ValidationError } from '../errors.js';
+import { NonCommandInteractionData, ClientEventHandler } from '../eventHandlerTypes.js';
+import { INTERACTION_ID_ARG_SEPARATOR } from '../utils/constants.js';
+import {
+    autocompleteHandlerMap,
+    buttonInteractionHandlerMap,
+    modalSubmitHandlerMap,
+    selectMenuInteractionHandlerMap,
+    slashCommandHandlerMap,
+} from '../interactionHandlerMap.js';
 
 async function interactionErrorHandler(
     err: Error,
@@ -60,7 +62,7 @@ async function interactionErrorHandler(
 }
 
 async function slashCommandHandler(interaction: CommandInteraction): Promise<void> {
-    const command = slashCommands.get(interaction.commandName);
+    const command = slashCommandHandlerMap.get(interaction.commandName);
     if (!command) return;
 
     try {
@@ -75,7 +77,7 @@ async function slashCommandHandler(interaction: CommandInteraction): Promise<voi
 }
 
 async function autocompleteHandler(interaction: AutocompleteInteraction): Promise<void> {
-    const handler: NonCommandInteractionData | undefined = autocompleteHandlers.get(
+    const handler: NonCommandInteractionData | undefined = autocompleteHandlerMap.get(
         interaction.commandName
     );
     if (!handler) {
@@ -102,9 +104,9 @@ async function widgetInteractionHandler(
     let handlerName: string = interaction.customId.slice(0, separatorIndex);
 
     const handlers = {
-        ButtonInteraction: buttonInteractionHandlers,
-        SelectMenuInteraction: selectMenuInteractionHandlers,
-        ModalSubmitInteraction: modalSubmitHandlers,
+        ButtonInteraction: buttonInteractionHandlerMap,
+        SelectMenuInteraction: selectMenuInteractionHandlerMap,
+        ModalSubmitInteraction: modalSubmitHandlerMap,
     }[interaction.constructor.name];
     if (!handlers) return;
 

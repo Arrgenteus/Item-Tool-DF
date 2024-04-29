@@ -1,12 +1,12 @@
 import { GuildTextBasedChannel, Message } from 'discord.js';
-import { ChatCommandData } from '../eventHandlerTypes';
+import { ChatCommandData } from '../eventHandlerTypes.js';
 import {
     SearchableItemCategory,
     SearchableItemCategoryAlias,
-} from '../interactionLogic/search/types';
-import { unaliasItemType } from '../interactionLogic/search/utils';
-import { ValidationError } from '../errors';
-import { getCompareResultMessage } from '../interactionLogic/search/formattedResults';
+} from '../interactionLogic/search/types.js';
+import { unaliasItemType } from '../interactionLogic/search/utils.js';
+import { ValidationError } from '../errors.js';
+import { getCompareResultMessage } from '../interactionLogic/search/formattedResults.js';
 
 const commandCategories: (SearchableItemCategory | SearchableItemCategoryAlias)[] = [
     'wep',
@@ -25,7 +25,7 @@ const commandCategories: (SearchableItemCategory | SearchableItemCategoryAlias)[
     'bracer',
 ];
 
-const command: ChatCommandData = {
+export const compareCommand: ChatCommandData = {
     names: commandCategories
         .map((category) => 'compare-' + category)
         .concat(commandCategories.map((category) => 'compare' + category))
@@ -58,5 +58,3 @@ const command: ChatCommandData = {
         await channel.send(compareResultMessage);
     },
 };
-
-export default command;

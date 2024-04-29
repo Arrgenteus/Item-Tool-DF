@@ -1,14 +1,14 @@
 import { Message, TextChannel } from 'discord.js';
-import { ChatCommandData } from '../eventHandlerTypes';
-import { getRandomItem } from '../interactionLogic/search/random';
+import { ChatCommandData } from '../eventHandlerTypes.js';
+import { getRandomItem } from '../interactionLogic/search/random.js';
 import {
     SearchableItemCategory,
     SearchableItemCategoryAlias,
-} from '../interactionLogic/search/types';
-import { unaliasItemType } from '../interactionLogic/search/utils';
-import { botResponseCache } from '../utils/store';
+} from '../interactionLogic/search/types.js';
+import { unaliasItemType } from '../interactionLogic/search/utils.js';
+import { botResponseCache } from '../utils/store.js';
 
-const command: ChatCommandData = {
+export const randomItemCommand: ChatCommandData = {
     names: [
         'randomitem',
         'random-item',
@@ -56,5 +56,3 @@ const command: ChatCommandData = {
         botResponseCache.set(message.id, sentMessage);
     },
 };
-
-export default command;

@@ -1,4 +1,4 @@
-import { SearchableItemCategory, SearchableItemCategoryAlias } from './types';
+import { SearchableItemCategory, SearchableItemCategoryAlias } from './types.js';
 
 export const searchCommandOptions: (SearchableItemCategory | SearchableItemCategoryAlias)[] = [
     'item',

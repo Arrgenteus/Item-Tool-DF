@@ -1,7 +1,7 @@
-import { Client as ElasticClient } from '@elastic/elasticsearch';
-import { Db, MongoClient } from 'mongodb';
 import { format } from 'util';
-import config from './config';
+import config from './config.js';
+import { Client as ElasticClient } from '@elastic/elasticsearch/index';
+import { Db, MongoClient } from 'mongodb';
 
 export const dbConnection: Promise<Db> = MongoClient.connect(
     format(
@@ -12,11 +12,7 @@ export const dbConnection: Promise<Db> = MongoClient.connect(
         config.DB_PORT,
         config.DB_AUTH_MECHANISM,
         config.DB_NAME
-    ),
-    {
-        useUnifiedTopology: true,
-        useNewUrlParser: true,
-    }
+    )
 ).then((client) => client.db(config.DB_NAME));
 
 export const elasticClient: ElasticClient = new ElasticClient({

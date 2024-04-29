@@ -3,14 +3,14 @@ import {
     CommandInteraction,
     InteractionReplyOptions,
 } from 'discord.js';
-import { SlashCommandData } from '../eventHandlerTypes';
-import { getSearchResultMessagewithButtons } from '../interactionLogic/search/search';
+import { SlashCommandData } from '../eventHandlerTypes.js';
+import { getSearchResultMessagewithButtons } from '../interactionLogic/search/search.js';
 import {
     SearchableItemCategory,
     SearchableItemCategoryAlias,
-} from '../interactionLogic/search/types';
-import { unaliasItemType } from '../interactionLogic/search/utils';
-import { searchCommandOptions } from '../interactionLogic/search/commandOptions';
+} from '../interactionLogic/search/types.js';
+import { unaliasItemType } from '../interactionLogic/search/utils.js';
+import { searchCommandOptions } from '../interactionLogic/search/commandOptions.js';
 
 function createSearchSlashCommand(
     commandName: SearchableItemCategory | SearchableItemCategoryAlias
@@ -79,6 +79,5 @@ function createSearchSlashCommand(
     };
 }
 
-const commands: SlashCommandData[] = searchCommandOptions.map(createSearchSlashCommand);
-
-export default commands;
+export const itemSearchCommands: SlashCommandData[] =
+    searchCommandOptions.map(createSearchSlashCommand);
