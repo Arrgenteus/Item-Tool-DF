@@ -1,2 +1,2 @@
-export { compareCommandAutocomplete } from './compareCommandAutocomplete';
-export { itemCommandAutocomplete } from './itemCommandAutocomplete';
+export { compareCommandAutocomplete } from './compareCommandAutocomplete.js';
+export { itemCommandAutocomplete } from './itemCommandAutocomplete.js';

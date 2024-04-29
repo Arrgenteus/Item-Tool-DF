@@ -1,4 +1,4 @@
-export { displaySortResultsButton } from './displaySortResults';
-export { nextAndPrevPageSortResultsButton } from './nextAndPrevPageSortResults';
-export { moreItemSearchResultImagesButton } from './moreItemSearchResultImages';
-export { differentItemSearchResultButton } from './differentSearchResult';
+export { displaySortResultsButton } from './displaySortResults.js';
+export { nextAndPrevPageSortResultsButton } from './nextAndPrevPageSortResults.js';
+export { moreItemSearchResultImagesButton } from './moreItemSearchResultImages.js';
+export { differentItemSearchResultButton } from './differentSearchResult.js';

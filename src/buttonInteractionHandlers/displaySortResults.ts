@@ -4,10 +4,10 @@ import {
     InteractionUpdateOptions,
     Message,
 } from 'discord.js';
-import { NonCommandInteractionData } from '../eventHandlerTypes';
-import { SORT_ACTIONS } from '../interactionLogic/sort/constants';
-import { getSortResultsMessageUsingMessageFilters } from '../interactionLogic/sort/getSortedItemsResponse';
-import { ItemTag, ItemType } from '../utils/itemTypeData';
+import { NonCommandInteractionData } from '../eventHandlerTypes.js';
+import { SORT_ACTIONS } from '../interactionLogic/sort/constants.js';
+import { getSortResultsMessageUsingMessageFilters } from '../interactionLogic/sort/getSortedItemsResponse.js';
+import { ItemTag, ItemType } from '../utils/itemTypeData.js';
 
 export const displaySortResultsButton: NonCommandInteractionData = {
     names: [SORT_ACTIONS.SHOW_RESULTS],

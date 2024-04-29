@@ -4,10 +4,10 @@ import {
     InteractionUpdateOptions,
     Message,
 } from 'discord.js';
-import { NonCommandInteractionData } from '../eventHandlerTypes';
-import { SORT_ACTIONS } from '../interactionLogic/sort/constants';
-import { getSortResultsMessageUsingMessageFilters } from '../interactionLogic/sort/getSortedItemsResponse';
-import { ItemTag } from '../utils/itemTypeData';
+import { NonCommandInteractionData } from '../eventHandlerTypes.js';
+import { SORT_ACTIONS } from '../interactionLogic/sort/constants.js';
+import { getSortResultsMessageUsingMessageFilters } from '../interactionLogic/sort/getSortedItemsResponse.js';
+import { ItemTag } from '../utils/itemTypeData.js';
 
 export const nextAndPrevPageSortResultsButton: NonCommandInteractionData = {
     // previous page sort results, next page sort results

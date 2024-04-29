@@ -2,7 +2,7 @@ import {
     MAX_EMBED_DESC_LENGTH,
     MAX_EMBED_FOOTER_LENGTH,
     MAX_SPLIT_EMBED_DESC_LENGTH,
-} from './constants';
+} from './constants.js';
 
 export default class SplitEmbed {
     private maxLength: number;

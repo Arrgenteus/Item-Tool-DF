@@ -1,12 +1,12 @@
 import { ApplicationCommandOptionData, CommandInteraction } from 'discord.js';
-import { SlashCommandData } from '../eventHandlerTypes';
-import { getCompareResultMessage } from '../interactionLogic/search/formattedResults';
+import { SlashCommandData } from '../eventHandlerTypes.js';
+import { getCompareResultMessage } from '../interactionLogic/search/formattedResults.js';
 import {
     SearchableItemCategory,
     SearchableItemCategoryAlias,
-} from '../interactionLogic/search/types';
-import { unaliasItemType } from '../interactionLogic/search/utils';
-import { compareCommandCategoryList } from '../interactionLogic/search/commandOptions';
+} from '../interactionLogic/search/types.js';
+import { unaliasItemType } from '../interactionLogic/search/utils.js';
+import { compareCommandCategoryList } from '../interactionLogic/search/commandOptions.js';
 
 function createCompareSlashCommand(
     inputItemCategory: SearchableItemCategory | SearchableItemCategoryAlias

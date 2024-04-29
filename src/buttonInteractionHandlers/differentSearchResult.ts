@@ -6,17 +6,17 @@ import {
     Message,
     MessageActionRowOptions,
 } from 'discord.js';
-import { NonCommandInteractionData } from '../eventHandlerTypes';
+import { NonCommandInteractionData } from '../eventHandlerTypes.js';
 import {
     deleteMoreImagesButtonInButtonList,
     replaceSimilarResultWithCurrentResultInButtonList,
     updateMoreImagesButtonInButtonList,
-} from '../interactionLogic/search/formattedResults';
-import { getSearchResultMessage } from '../interactionLogic/search/search';
+} from '../interactionLogic/search/formattedResults.js';
+import { getSearchResultMessage } from '../interactionLogic/search/search.js';
 import {
     DIFFERENT_SEARCH_RESULT_INTERACTION_ID,
     SearchableItemCategory,
-} from '../interactionLogic/search/types';
+} from '../interactionLogic/search/types.js';
 
 export const differentItemSearchResultButton: NonCommandInteractionData = {
     names: [DIFFERENT_SEARCH_RESULT_INTERACTION_ID],

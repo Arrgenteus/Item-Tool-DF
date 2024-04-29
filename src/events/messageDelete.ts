@@ -1,6 +1,6 @@
 import { Message } from 'discord.js';
-import { ClientEventHandler } from '../eventHandlerTypes';
-import { botResponseCache } from '../utils/store';
+import { ClientEventHandler } from '../eventHandlerTypes.js';
+import { botResponseCache } from '../utils/store.js';
 
 const messageDeleteEventHandler: ClientEventHandler = {
     eventName: 'messageDelete',

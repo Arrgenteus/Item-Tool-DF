@@ -1,3 +1,3 @@
-export { compareCommand } from './compare';
-export { itemSearchCommand } from './itemSearch';
-export { randomItemCommand } from './randomItem';
+export { compareCommand } from './compare.js';
+export { itemSearchCommand } from './itemSearch.js';
+export { randomItemCommand } from './randomItem.js';

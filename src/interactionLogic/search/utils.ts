@@ -1,12 +1,12 @@
-import config from '../../config';
-import { WEAPON_TYPES } from '../../utils/itemTypeData';
-import { ACCESSORY_ALIASES, PET_ALIASES, WEAPON_ALIASES } from './aliases';
+import config from '../../config.js';
+import { WEAPON_TYPES } from '../../utils/itemTypeData.js';
+import { ACCESSORY_ALIASES, PET_ALIASES, WEAPON_ALIASES } from './aliases.js';
 import {
     categoryAliasMapping,
     ItemCategoryTypes,
     SearchableItemCategory,
     SearchableItemCategoryAlias,
-} from './types';
+} from './types.js';
 
 const ITEM_CATEGORY_TYPE_TO_INDEX_NAMES = {
     [ItemCategoryTypes.GEAR]: [config.WEAPON_INDEX_NAME, config.ACCESSORY_INDEX_NAME],

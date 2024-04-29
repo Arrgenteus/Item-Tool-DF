@@ -1,1 +1,0 @@
-export { sortItemFilterOptionsModal } from './sortItemFilterOptions';

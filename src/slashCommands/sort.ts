@@ -1,20 +1,20 @@
 import { CommandInteraction } from 'discord.js';
-import config from '../config';
-import { ValidationError } from '../errors';
-import { SlashCommandData } from '../eventHandlerTypes';
-import { ITEM_TAG_FILTER_OPTION_NAMES } from '../interactionLogic/sort/constants';
+import config from '../config.js';
+import { ValidationError } from '../errors.js';
+import { SlashCommandData } from '../eventHandlerTypes.js';
+import { ITEM_TAG_FILTER_OPTION_NAMES } from '../interactionLogic/sort/constants.js';
 import {
     getSortCommandInputModal,
     getSortCommandOptions,
-} from '../interactionLogic/sort/commandOptions';
-import { getSortResultsMessage } from '../interactionLogic/sort/getSortedItemsResponse';
-import { parseSortExpression } from '../interactionLogic/sort/sortExpressionParser';
+} from '../interactionLogic/sort/commandOptions.js';
+import { getSortResultsMessage } from '../interactionLogic/sort/getSortedItemsResponse.js';
+import { parseSortExpression } from '../interactionLogic/sort/sortExpressionParser.js';
 import {
     SortCommandParams,
     SortExpressionData,
     SortItemTypeOption,
-} from '../interactionLogic/sort/types';
-import { ItemTag } from '../utils/itemTypeData';
+} from '../interactionLogic/sort/types.js';
+import { ItemTag } from '../utils/itemTypeData.js';
 
 export const sortCommand: SlashCommandData = {
     preferEphemeralErrorMessage: true,

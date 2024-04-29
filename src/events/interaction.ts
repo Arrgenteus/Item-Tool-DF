@@ -5,17 +5,17 @@ import {
     ModalSubmitInteraction,
     SelectMenuInteraction,
 } from 'discord.js';
-import config from '../config';
-import { ValidationError } from '../errors';
-import { NonCommandInteractionData, ClientEventHandler } from '../eventHandlerTypes';
-import { INTERACTION_ID_ARG_SEPARATOR } from '../utils/constants';
+import config from '../config.js';
+import { ValidationError } from '../errors.js';
+import { NonCommandInteractionData, ClientEventHandler } from '../eventHandlerTypes.js';
+import { INTERACTION_ID_ARG_SEPARATOR } from '../utils/constants.js';
 import {
     autocompleteHandlerMap,
     buttonInteractionHandlerMap,
     modalSubmitHandlerMap,
     selectMenuInteractionHandlerMap,
     slashCommandHandlerMap,
-} from '../interactionHandlerMap';
+} from '../interactionHandlerMap.js';
 
 async function interactionErrorHandler(
     err: Error,

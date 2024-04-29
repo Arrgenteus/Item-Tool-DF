@@ -2,6 +2,7 @@ import yaml from 'js-yaml';
 import fs from 'fs';
 import { Snowflake } from 'discord.js';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
 export interface Config {
     BOT_TOKEN: string;
@@ -23,7 +24,8 @@ export interface Config {
     LONG_RESULT_CHANNELS?: string[];
 }
 
-const CONFIG_DIR = path.resolve(__dirname, '../config.yml');
+const dirname = fileURLToPath(new URL('.', import.meta.url));
+const CONFIG_DIR = path.resolve(dirname, '../config.yml');
 const config: Config = yaml.load(fs.readFileSync(CONFIG_DIR, 'utf8')) as Config;
 
 const requiredConfigValues: (keyof Config)[] = [

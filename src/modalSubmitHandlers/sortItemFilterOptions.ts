@@ -1,9 +1,9 @@
 import { ModalSubmitInteraction } from 'discord.js';
-import config from '../config';
-import { ValidationError } from '../errors';
-import { NonCommandInteractionData } from '../eventHandlerTypes';
-import { getSortResultsMessage } from '../interactionLogic/sort/getSortedItemsResponse';
-import { parseSortExpression } from '../interactionLogic/sort/sortExpressionParser';
+import config from '../config.js';
+import { ValidationError } from '../errors.js';
+import { NonCommandInteractionData } from '../eventHandlerTypes.js';
+import { getSortResultsMessage } from '../interactionLogic/sort/getSortedItemsResponse.js';
+import { parseSortExpression } from '../interactionLogic/sort/sortExpressionParser.js';
 
 export const sortItemFilterOptionsModal: NonCommandInteractionData = {
     names: ['sort-filters'],

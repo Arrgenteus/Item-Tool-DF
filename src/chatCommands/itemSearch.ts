@@ -1,14 +1,14 @@
 import { Message, MessageOptions, GuildTextBasedChannel } from 'discord.js';
-import config from '../config';
-import { ChatCommandData } from '../eventHandlerTypes';
-import { getSearchResultMessagewithButtons } from '../interactionLogic/search/search';
+import config from '../config.js';
+import { ChatCommandData } from '../eventHandlerTypes.js';
+import { getSearchResultMessagewithButtons } from '../interactionLogic/search/search.js';
 import {
     SearchableItemCategory,
     SearchableItemCategoryAlias,
-} from '../interactionLogic/search/types';
-import { unaliasItemType } from '../interactionLogic/search/utils';
-import { embed } from '../utils/misc';
-import { botResponseCache } from '../utils/store';
+} from '../interactionLogic/search/types.js';
+import { unaliasItemType } from '../interactionLogic/search/utils.js';
+import { embed } from '../utils/misc.js';
+import { botResponseCache } from '../utils/store.js';
 
 const commandNames: (SearchableItemCategory | SearchableItemCategoryAlias)[] = [
     'item',

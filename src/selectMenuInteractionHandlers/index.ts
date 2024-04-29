@@ -1,1 +1,1 @@
-export { changeSortResultTagFilterSelectMenu } from './changeSortResultTagFilter';
+export { changeSortResultTagFilterSelectMenu } from './changeSortResultTagFilter.js';

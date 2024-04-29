@@ -1,10 +1,10 @@
 import { Client as DiscordClient, Guild, Intents } from 'discord.js';
-import config from './config';
-import { SlashCommandData } from './eventHandlerTypes';
-import interactionEventHandler from './events/interaction';
-import messageCreateEventHandler from './events/messageCreate';
-import messageDeleteEventHandler from './events/messageDelete';
-import { slashCommandHandlerMap } from './interactionHandlerMap';
+import config from './config.js';
+import { SlashCommandData } from './eventHandlerTypes.js';
+import interactionEventHandler from './events/interaction.js';
+import messageCreateEventHandler from './events/messageCreate.js';
+import messageDeleteEventHandler from './events/messageDelete.js';
+import { slashCommandHandlerMap } from './interactionHandlerMap.js';
 
 const client = new DiscordClient({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES] });
 

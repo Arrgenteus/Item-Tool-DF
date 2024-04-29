@@ -1,4 +1,4 @@
-import { AccessoryType, ItemTag, WeaponType } from '../../utils/itemTypeData';
+import { AccessoryType, ItemTag, WeaponType } from '../../utils/itemTypeData.js';
 
 export const DIFFERENT_SEARCH_RESULT_INTERACTION_ID = 'dsr';
 export const MORE_SEARCH_RESULT_IMAGES_INTERACTION_ID = 'msra';

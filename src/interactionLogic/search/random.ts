@@ -1,8 +1,8 @@
-import { elasticClient } from '../../dbConnection';
-import { formatQueryResponse } from './formattedResults';
-import { getSpecificCategoryFilterQuery } from './search';
-import { SearchableItemCategory } from './types';
-import { getIndexNames } from './utils';
+import { elasticClient } from '../../dbConnection.js';
+import { formatQueryResponse } from './formattedResults.js';
+import { getSpecificCategoryFilterQuery } from './search.js';
+import { SearchableItemCategory } from './types.js';
+import { getIndexNames } from './utils.js';
 
 export async function getRandomItem(itemCategory: SearchableItemCategory) {
     const itemIndexes: string[] = getIndexNames(itemCategory);

@@ -1,8 +1,8 @@
 import { Message, MessageOptions } from 'discord.js';
-import config from '../config';
-import { ValidationError } from '../errors';
-import { ChatCommandData, ClientEventHandler } from '../eventHandlerTypes';
-import { chatCommandHandlerMap } from '../interactionHandlerMap';
+import config from '../config.js';
+import { ValidationError } from '../errors.js';
+import { ChatCommandData, ClientEventHandler } from '../eventHandlerTypes.js';
+import { chatCommandHandlerMap } from '../interactionHandlerMap.js';
 
 const messageCreateEventHandler: ClientEventHandler = {
     eventName: 'messageCreate',

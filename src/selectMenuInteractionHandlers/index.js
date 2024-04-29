@@ -1,1 +1,0 @@
-export { changeSortResultTagFilterSelectMenu } from './changeSortResultTagFilter';

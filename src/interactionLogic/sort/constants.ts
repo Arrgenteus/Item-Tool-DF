@@ -1,5 +1,5 @@
-import { ItemTag, ItemType } from '../../utils/itemTypeData';
-import { SortCommandParams } from './types';
+import { ItemTag, ItemType } from '../../utils/itemTypeData.js';
+import { SortCommandParams } from './types.js';
 
 export const QUERY_RESULT_LIMIT = 7;
 export const QUERY_SHORT_RESULT_LIMIT = 4;

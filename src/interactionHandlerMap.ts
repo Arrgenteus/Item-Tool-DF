@@ -1,11 +1,15 @@
 import { Collection } from 'discord.js';
-import { ChatCommandData, NonCommandInteractionData, SlashCommandData } from './eventHandlerTypes';
-import * as autocompleteHandlers from './autocompleteHandlers/index';
-import * as buttonInteractionHandlers from './buttonInteractionHandlers/index';
-import * as modalSubmitHandlers from './modalSubmitHandlers/index';
-import * as selectMenuInteractionHandlers from './buttonInteractionHandlers/index';
-import * as slashCommandHandlers from './slashCommands/index';
-import * as chatCommandHandlers from './chatCommands/index';
+import {
+    ChatCommandData,
+    NonCommandInteractionData,
+    SlashCommandData,
+} from './eventHandlerTypes.js';
+import * as autocompleteHandlers from './autocompleteHandlers/index.js';
+import * as buttonInteractionHandlers from './buttonInteractionHandlers/index.js';
+import * as modalSubmitHandlers from './modalSubmitHandlers/index.js';
+import * as selectMenuInteractionHandlers from './buttonInteractionHandlers/index.js';
+import * as slashCommandHandlers from './slashCommands/index.js';
+import * as chatCommandHandlers from './chatCommands/index.js';
 
 function loadInteractionNameToHandlerMapping(interactionHandlerObjects: {
     [name: string]: NonCommandInteractionData;

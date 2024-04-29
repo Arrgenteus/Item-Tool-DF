@@ -1,1 +1,1 @@
-export { sortItemFilterOptionsModal } from './sortItemFilterOptions';
+export { sortItemFilterOptionsModal } from './sortItemFilterOptions.js';

@@ -10,10 +10,10 @@ import {
     Snowflake,
     Util,
 } from 'discord.js';
-import config from '../../config';
-import { INTERACTION_ID_ARG_SEPARATOR } from '../../utils/constants';
-import { ItemTag, PRETTY_TAG_NAMES } from '../../utils/itemTypeData';
-import { capitalize } from '../../utils/misc';
+import config from '../../config.js';
+import { INTERACTION_ID_ARG_SEPARATOR } from '../../utils/constants.js';
+import { ItemTag, PRETTY_TAG_NAMES } from '../../utils/itemTypeData.js';
+import { capitalize } from '../../utils/misc.js';
 import {
     Location,
     ItemVariantInfo,
@@ -24,9 +24,9 @@ import {
     MORE_SEARCH_RESULT_IMAGES_INTERACTION_ID,
     MORE_SEARCH_RESULT_IMAGES_LABEL,
     ItemStats,
-} from './types';
-import { fetchItemSearchResult } from './search';
-import { ValidationError } from '../../errors';
+} from './types.js';
+import { fetchItemSearchResult } from './search.js';
+import { ValidationError } from '../../errors.js';
 
 function getFormattedListOfItemTags(searchResultVariantInfo?: ItemVariantInfo[]): string {
     return (

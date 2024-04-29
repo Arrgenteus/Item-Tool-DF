@@ -1,3 +1,3 @@
-export { itemSearchCommands } from './item';
-export { sortCommand } from './sort';
-export { compareCommands } from './compare';
+export { itemSearchCommands } from './item.js';
+export { sortCommand } from './sort.js';
+export { compareCommands } from './compare.js';
