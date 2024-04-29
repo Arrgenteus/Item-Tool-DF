@@ -2,6 +2,8 @@ import { Util } from 'discord.js';
 import { InvalidExpressionError, ValueError } from '../../errors.js';
 import { capitalize, isResist } from '../../utils/misc.js';
 import { MongoSortExpression, SortExpressionData } from './types.js';
+import { dbConnection } from '../../dbConnection.js';
+import config from '../../config.js';
 
 const MAX_OPERATORS: number = 20;
 const MAX_OPERAND_LENGTH: number = 20;
@@ -46,6 +48,19 @@ const ALIASES: { [alias: string]: string } = {
     piercedefense: 'pierce def',
     void: '???',
 };
+
+const allValidResists: Set<string> = new Set(
+    (
+        (await dbConnection
+            .collection(config.DB_COLLECTION)
+            .aggregate([
+                { $project: { resists: { $objectToArray: '$resists' } } },
+                { $unwind: { path: '$resists' } },
+                { $group: { _id: null, resists: { $addToSet: '$resists.k' } } },
+            ])
+            .next()) ?? {}
+    ).resists ?? []
+);
 
 function pop(stack: any[]): any {
     if (!stack.length) throw new RangeError('Attempting to pop from empty array');
@@ -130,6 +145,11 @@ function tokenizeExpression(expression: string): (string | number)[] {
             }
             indexPosition -= 1;
             operand = unaliasBonusName(operand.trim());
+            if (isResist(operand) && !allValidResists.has(operand)) {
+                throw new InvalidExpressionError(
+                    `'${operand}' is not a valid name for an elemental resistance.`
+                );
+            }
             const MPMorBPD: { [operand: string]: (string | number)[] } = {
                 mpm: ['(', 'melee def', '+', 'pierce def', '+', 'magic def', ')', '/', 3],
                 bpd: ['(', 'block', '+', 'parry', '+', 'dodge', ')', '/', 3],
@@ -395,10 +415,12 @@ export function parseSortExpression(
         return { baseExpression, pretty, mongo };
     } catch (err) {
         if (err instanceof InvalidExpressionError) {
-            // Display the first 500 characters of their input expression at the max
+            // Display the first 500 characters of their input expression at the max, if it's large enough
             let trimmedExpression: string = baseExpression.slice(0, 500);
-            if (baseExpression.length > 500) trimmedExpression += '...';
-            err.message += `\n\nYour expression: ${Util.escapeMarkdown(trimmedExpression)}`;
+            if (trimmedExpression.length > 25) {
+                if (baseExpression.length > 500) trimmedExpression += '...';
+                err.message += `\n\nYour expression: ${Util.escapeMarkdown(trimmedExpression)}`;
+            }
         }
         throw err;
     }
