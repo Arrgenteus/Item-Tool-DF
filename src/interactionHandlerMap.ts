@@ -7,7 +7,7 @@ import {
 import * as autocompleteHandlers from './autocompleteHandlers/index.js';
 import * as buttonInteractionHandlers from './buttonInteractionHandlers/index.js';
 import * as modalSubmitHandlers from './modalSubmitHandlers/index.js';
-import * as selectMenuInteractionHandlers from './buttonInteractionHandlers/index.js';
+import * as selectMenuInteractionHandlers from './selectMenuInteractionHandlers/index.js';
 import * as slashCommandHandlers from './slashCommands/index.js';
 import * as chatCommandHandlers from './chatCommands/index.js';
 
