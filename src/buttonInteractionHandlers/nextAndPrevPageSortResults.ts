@@ -1,13 +1,12 @@
-import {
-    ButtonInteraction,
-    InteractionReplyOptions,
-    InteractionUpdateOptions,
-    Message,
-} from 'discord.js';
+import { ButtonInteraction, Message } from 'discord.js';
 import { NonCommandInteractionData } from '../eventHandlerTypes.js';
 import { SORT_ACTIONS } from '../interactionLogic/sort/constants.js';
-import { getSortResultsMessageUsingMessageFilters } from '../interactionLogic/sort/getSortedItemsResponse.js';
-import { ItemTag } from '../utils/itemTypeData.js';
+import { getSortResultsMessage } from '../interactionLogic/sort/getSortedItemsResponse.js';
+import {
+    cacheSortQueryFilters,
+    getSortQueryFiltersFromOriginalMessage,
+} from '../interactionLogic/sort/sortResultMessageStore.js';
+import { SortFilterParams } from '../interactionLogic/sort/types.js';
 
 export const nextAndPrevPageSortResultsButton: NonCommandInteractionData = {
     // previous page sort results, next page sort results
@@ -18,28 +17,26 @@ export const nextAndPrevPageSortResultsButton: NonCommandInteractionData = {
         args: string[],
         handlerName: SORT_ACTIONS
     ): Promise<void> => {
-        const [valueLimit, excludedTagList]: string[] = args;
-        const excludedTags: string[] | undefined = excludedTagList
-            ? excludedTagList.split(',')
-            : undefined;
-        const sortedItemResponse: InteractionReplyOptions & InteractionUpdateOptions =
-            await getSortResultsMessageUsingMessageFilters(
-                interaction.message.embeds[0].title!,
-                interaction.message.embeds[0].description ?? undefined,
-                excludedTags as ItemTag[],
-                undefined,
-                {
-                    [handlerName === SORT_ACTIONS.NEXT_PAGE
-                        ? 'nextPageValueLimit'
-                        : 'prevPageValueLimit']: Number(valueLimit),
-                }
-            );
+        const sortFilters: SortFilterParams = getSortQueryFiltersFromOriginalMessage(
+            interaction.message.id
+        );
+        const valueLimit = args[0];
+        sortFilters[
+            handlerName === SORT_ACTIONS.NEXT_PAGE ? 'nextPageValueLimit' : 'prevPageValueLimit'
+        ] = Number(valueLimit);
+
+        const sortedItemResponse = await getSortResultsMessage(sortFilters);
 
         if (interaction.message instanceof Message && interaction.message.flags?.has('EPHEMERAL')) {
             await interaction.update(sortedItemResponse);
+            cacheSortQueryFilters(interaction.message.id, sortFilters);
         } else {
-            sortedItemResponse.ephemeral = true;
-            await interaction.reply(sortedItemResponse);
+            const sentMessage = await interaction.reply({
+                ...sortedItemResponse,
+                ephemeral: true,
+                fetchReply: true,
+            });
+            cacheSortQueryFilters(sentMessage.id, sortFilters);
         }
     },
 };

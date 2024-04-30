@@ -35,8 +35,8 @@ export interface ItemTypeMongoFilter {
     item_type?: DatabaseItemType | { $in: DatabaseItemType[] };
 }
 
-export interface SortFilterParams {
-    itemType: ItemType;
+export type SortFilterParams = {
+    itemType?: ItemType;
     ascending?: boolean;
     sortExpression: SortExpressionData;
     weaponElement?: string;
@@ -44,9 +44,10 @@ export interface SortFilterParams {
     maxLevel?: number;
     charID?: string;
     excludeTags?: Set<ItemTag>;
+    excludeAutoAllRes?: boolean;
     prevPageValueLimit?: number;
     nextPageValueLimit?: number;
-}
+};
 
 export const enum SortItemTagFilterChoices {
     INCLUDE = 1,

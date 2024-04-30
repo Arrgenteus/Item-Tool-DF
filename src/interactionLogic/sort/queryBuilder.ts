@@ -25,7 +25,7 @@ export async function getSortQueryPipeline(
         excludeTags,
         nextPageValueLimit,
         prevPageValueLimit,
-    }: SortFilterParams,
+    }: SortFilterParams & Required<Pick<SortFilterParams, 'itemType'>>,
     returnShortResult: boolean = false
 ): Promise<Object[]> {
     const itemTypeFilter = getItemTypeFilter(itemType);

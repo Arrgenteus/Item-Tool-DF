@@ -12,9 +12,11 @@ import { parseSortExpression } from '../interactionLogic/sort/sortExpressionPars
 import {
     SortCommandParams,
     SortExpressionData,
+    SortFilterParams,
     SortItemTypeOption,
 } from '../interactionLogic/sort/types.js';
 import { ItemTag } from '../utils/itemTypeData.js';
+import { cacheSortQueryFilters } from '../interactionLogic/sort/sortResultMessageStore.js';
 
 export const sortCommand: SlashCommandData = {
     preferEphemeralErrorMessage: true,
@@ -63,7 +65,8 @@ export const sortCommand: SlashCommandData = {
             if (interaction.options.getBoolean(optionName) === false) excludeTags.add(tag);
         }
 
-        const filters = {
+        const filters: SortFilterParams = {
+            itemType: itemTypeInput === 'items' ? undefined : itemTypeInput,
             sortExpression: parsedSortExpression,
             weaponElement: weaponElement?.toLowerCase(),
             maxLevel,
@@ -76,12 +79,9 @@ export const sortCommand: SlashCommandData = {
             !interaction.channel ||
             !(config.LONG_RESULT_CHANNELS || []).includes(interaction.channel.id);
 
-        const sortedItemMessage = await getSortResultsMessage(
-            itemTypeInput,
-            filters,
-            shouldDisplayShortResult
-        );
+        const sortedItemMessage = await getSortResultsMessage(filters, shouldDisplayShortResult);
 
-        await interaction.reply(sortedItemMessage);
+        const sentMessage = await interaction.reply({ ...sortedItemMessage, fetchReply: true });
+        cacheSortQueryFilters(sentMessage.id, filters);
     },
 };

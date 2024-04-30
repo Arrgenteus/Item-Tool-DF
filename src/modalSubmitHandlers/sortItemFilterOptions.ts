@@ -4,6 +4,8 @@ import { ValidationError } from '../errors.js';
 import { NonCommandInteractionData } from '../eventHandlerTypes.js';
 import { getSortResultsMessage } from '../interactionLogic/sort/getSortedItemsResponse.js';
 import { parseSortExpression } from '../interactionLogic/sort/sortExpressionParser.js';
+import { SortFilterParams } from '../interactionLogic/sort/types.js';
+import { cacheSortQueryFilters } from '../interactionLogic/sort/sortResultMessageStore.js';
 
 export const sortItemFilterOptionsModal: NonCommandInteractionData = {
     names: ['sort-filters'],
@@ -22,7 +24,8 @@ export const sortItemFilterOptionsModal: NonCommandInteractionData = {
             throw new ValidationError('The max level you entered is not a valid number.');
         }
 
-        const filters = {
+        const filters: SortFilterParams = {
+            itemType: weaponElement ? 'weapon' : undefined,
             sortExpression: parseSortExpression(inputSortExpression),
             weaponElement: weaponElement?.toLowerCase(),
             maxLevel,
@@ -32,12 +35,9 @@ export const sortItemFilterOptionsModal: NonCommandInteractionData = {
             !interaction.channel ||
             !(config.LONG_RESULT_CHANNELS || []).includes(interaction.channel.id);
 
-        const sortedItemMessage = await getSortResultsMessage(
-            weaponElement ? 'weapon' : 'items',
-            filters,
-            shouldDisplayShortResult
-        );
+        const sortedItemMessage = await getSortResultsMessage(filters, shouldDisplayShortResult);
 
-        await interaction.reply(sortedItemMessage);
+        const sentMessage = await interaction.reply({ ...sortedItemMessage, fetchReply: true });
+        cacheSortQueryFilters(sentMessage.id, filters);
     },
 };

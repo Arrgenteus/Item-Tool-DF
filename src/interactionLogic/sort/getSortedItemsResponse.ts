@@ -6,8 +6,12 @@ import { getSortQueryPipeline } from './queryBuilder.js';
 import { SortExpressionData, SortFilterParams, SortItemTypeOption } from './types.js';
 import { parseSortExpression, unaliasBonusName } from './sortExpressionParser.js';
 import {
+    InteractionReplyOptions,
+    InteractionUpdateOptions,
     MessageActionRowComponentResolvable,
     MessageActionRowOptions,
+    MessageComponentOptions,
+    MessageEmbedOptions,
     MessageOptions,
     MessageSelectOptionData,
     Util,
@@ -178,8 +182,8 @@ function itemButtonList(excludeTags?: Set<ItemTag>): Required<MessageActionRowOp
 }
 
 function getAllItemDisplayMessage(
-    sortFilterParams: Omit<SortFilterParams, 'itemType'>
-): Pick<MessageOptions, 'embeds' | 'components'> {
+    sortFilterParams: SortFilterParams
+): Pick<InteractionReplyOptions, 'embeds' | 'components'> {
     return {
         embeds: [
             {
@@ -199,7 +203,11 @@ function getAllItemDisplayMessage(
 export async function getSortedItemListMessage(
     sortFilterParams: SortFilterParams,
     returnShortResult: boolean
-): Promise<Pick<MessageOptions, 'embeds' | 'components'>> {
+): Promise<Pick<InteractionReplyOptions, 'embeds' | 'components'>> {
+    if (!sortFilterParams.itemType) {
+        return getAllItemDisplayMessage(sortFilterParams);
+    }
+
     if (sortFilterParams.weaponElement) {
         sortFilterParams.weaponElement = unaliasBonusName(sortFilterParams.weaponElement);
         if (!allValidWeaponElements.has(sortFilterParams.weaponElement)) {
@@ -208,7 +216,10 @@ export async function getSortedItemListMessage(
             );
         }
     }
-    const pipeline = await getSortQueryPipeline(sortFilterParams, returnShortResult);
+    const pipeline = await getSortQueryPipeline(
+        sortFilterParams as SortFilterParams & Required<Pick<SortFilterParams, 'itemType'>>,
+        returnShortResult
+    );
     const sortResults: AggregationCursor = itemCollection.aggregate(pipeline);
 
     let itemGroup: {
@@ -334,10 +345,9 @@ export async function getSortedItemListMessage(
 }
 
 export async function getSortResultsMessage(
-    itemTypeOption: SortItemTypeOption,
-    sortFilterParams: Omit<SortFilterParams, 'itemType'>,
+    sortFilterParams: SortFilterParams,
     returnShortResult: boolean = false
-): Promise<Pick<MessageOptions, 'embeds' | 'components'>> {
+): Promise<Pick<InteractionReplyOptions, 'embeds' | 'components'>> {
     if (sortFilterParams.weaponElement?.match(/[^a-z\?]/i)) {
         throw new ValidationError('The weapon element name cannot include special characters.');
     }
@@ -345,14 +355,7 @@ export async function getSortResultsMessage(
         throw new ValidationError('Character IDs must be between 2 and 12 digits long.');
     }
 
-    if (itemTypeOption === 'items') {
-        return getAllItemDisplayMessage(sortFilterParams);
-    }
-
-    return getSortedItemListMessage(
-        { ...sortFilterParams, itemType: itemTypeOption },
-        returnShortResult
-    );
+    return getSortedItemListMessage(sortFilterParams, returnShortResult);
 }
 
 export async function getSortResultsMessageUsingMessageFilters(
@@ -401,5 +404,5 @@ export async function getSortResultsMessageUsingMessageFilters(
         sortFilterParams.ascending = ascending;
     }
 
-    return getSortResultsMessage(itemType, sortFilterParams);
+    return getSortResultsMessage(sortFilterParams);
 }
