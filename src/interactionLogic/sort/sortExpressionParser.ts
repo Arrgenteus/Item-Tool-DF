@@ -145,11 +145,6 @@ function tokenizeExpression(expression: string): (string | number)[] {
             }
             indexPosition -= 1;
             operand = unaliasBonusName(operand.trim());
-            if (isResist(operand) && !allValidResists.has(operand)) {
-                throw new InvalidExpressionError(
-                    `'${operand}' is not a valid name for an elemental resistance.`
-                );
-            }
             const MPMorBPD: { [operand: string]: (string | number)[] } = {
                 mpm: ['(', 'melee def', '+', 'pierce def', '+', 'magic def', ')', '/', 3],
                 bpd: ['(', 'block', '+', 'parry', '+', 'dodge', ')', '/', 3],
@@ -161,6 +156,11 @@ function tokenizeExpression(expression: string): (string | number)[] {
                 }
                 tokenizedExpression.push(...MPMorBPD[operand]);
             } else {
+                if (isResist(operand) && !allValidResists.has(operand)) {
+                    throw new InvalidExpressionError(
+                        `'${operand}' is not a valid name for an elemental resistance.`
+                    );
+                }
                 tokenizedExpression.push(operand);
             }
         } else if (token.match(/[0-9.]+/)) {
