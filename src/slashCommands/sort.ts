@@ -15,6 +15,7 @@ import {
     SortItemTypeOption,
 } from '../interactionLogic/sort/types.js';
 import { ItemTag } from '../utils/itemTypeData.js';
+import { notifyUserOfUpdatedSortBehavior } from '../interactionLogic/sort/notify.js';
 
 export const sortCommand: SlashCommandData = {
     preferEphemeralErrorMessage: true,
@@ -83,5 +84,7 @@ export const sortCommand: SlashCommandData = {
         );
 
         await interaction.reply(sortedItemMessage);
+
+        await notifyUserOfUpdatedSortBehavior(interaction, parsedSortExpression);
     },
 };
