@@ -27,7 +27,8 @@ export async function notifyUserOfUpdatedSortBehavior(
         !parsedSortExpression.pretty.includes('+ All') &&
         !parsedSortExpression.pretty.includes('+ (All') &&
         !parsedSortExpression.pretty.includes('All Res +') &&
-        !parsedSortExpression.pretty.includes('* (All Res)')
+        !parsedSortExpression.pretty.includes('* (All Res)') &&
+        !parsedSortExpression.pretty.includes('(All Res) *')
     ) {
         return;
     }
