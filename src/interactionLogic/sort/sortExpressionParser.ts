@@ -158,7 +158,7 @@ function tokenizeExpression(expression: string): (string | number)[] {
             } else {
                 if (isResist(operand) && !allValidResists.has(operand)) {
                     throw new InvalidExpressionError(
-                        `'${operand}' is not a valid name for an elemental resistance.`
+                        `'${operand}' is not a valid name for an elemental resistance or stat.`
                     );
                 }
                 tokenizedExpression.push(operand);
@@ -381,12 +381,18 @@ function mongoExpression(postfixExpression: (string | number)[]): MongoSortExpre
         } else if (typeof token === 'number') {
             mongoExpStack.push(token);
         } else {
-            let field: string = token;
-            if (token === 'damage') field = '$avg_damage';
-            else if (!isResist(token)) field = '$bonuses.' + field;
-            else field = '$resists.' + field;
-
-            mongoExpStack.push({ $ifNull: [field, 0] });
+            if (token === 'damage') mongoExpStack.push({ $ifNull: ['$avg_damage', 0] });
+            else if (!isResist(token)) mongoExpStack.push({ $ifNull: ['$bonuses.' + token, 0] });
+            else if (token === 'all') {
+                mongoExpStack.push({ $ifNull: ['$resists.all', 0] });
+            } else {
+                mongoExpStack.push({
+                    [OPERATORS['+'].mongoFunc]: [
+                        { $ifNull: ['$resists.' + token, 0] },
+                        { $ifNull: ['$resists.all', 0] },
+                    ],
+                });
+            }
         }
     }
 

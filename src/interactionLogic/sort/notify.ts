@@ -36,11 +36,10 @@ export async function notifyUserOfUpdatedSortBehavior(
         await interaction.followUp({
             content:
                 'Hey, just a heads up:\n' +
-                '- You will no longer need to explicitly add "+ All" when sorting by an elemental resistance to include all res. All res will be included automatically.\n' +
+                '- You will no longer need to explicitly add `+ All` when sorting by an elemental resistance to include all res. All res will be included automatically.\n' +
                 '- This will be the case even while sorting by a combination of resistances. ' +
                 'Eg. sorting by `Ice + Metal` will be equivalent to sorting by `Ice + All + Metal + All`.\n' +
-                "- If you'd like to disable this behavior for whatever reason, set the `exclude-auto-all-res` parameter to True when using the `/sort` command. " +
-                'Or just add `- All` to your sort expression.\n\n' +
+                "- If you'd like to disable this behavior and only look for specific resist, add `- All` to your sort expression.\n\n" +
                 `You shouldn't see this message again. If you do, blame <@${config.DEV_ID}>`,
             ephemeral: true,
         });
