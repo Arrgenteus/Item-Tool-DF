@@ -5,3 +5,13 @@ services:
         image: 'dragonfable/item-search-and-sort'
         network_mode: host
         restart: always
+        volumes:
+            - data-storage:/app/dataStorage
+
+volumes:
+    data-storage:
+        driver: local
+        driver_opts:
+            type: 'none'
+            o: 'bind'
+            device: '$PWD/dataStorage/'

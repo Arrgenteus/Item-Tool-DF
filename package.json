@@ -23,6 +23,7 @@
         "lru-cache": "^7.18.3",
         "mongodb": "^6.5.0",
         "npm": "^10.6.0",
+        "proper-lockfile": "^4.1.2",
         "typescript": "^5.4.5",
         "utf-8-validate": "^5.0.5"
     },
@@ -30,6 +31,7 @@
         "@types/js-yaml": "^4.0.1",
         "@types/mongodb": "^3.6.17",
         "@types/node": "^15.6.1",
+        "@types/proper-lockfile": "^4.1.4",
         "prettier": "^2.3.1"
     }
 }
