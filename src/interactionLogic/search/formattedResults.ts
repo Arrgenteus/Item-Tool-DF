@@ -54,9 +54,9 @@ function getFormattedListOfLocations(searchResultVariantInfo?: ItemVariantInfo[]
     );
 }
 
-function getFormattedBonusesOrResists(searchResultStats?: Stats) {
+function getFormattedBonusesOrResists(itemStats?: Stats): string {
     return (
-        Object.entries(searchResultStats ?? {})
+        Object.entries(itemStats ?? {})
             .map(([statName, statValue]: [string, string | number]) => {
                 if (typeof statValue === 'string') {
                     return `${capitalize(statName)} +[${statValue}]`;
@@ -65,6 +65,29 @@ function getFormattedBonusesOrResists(searchResultStats?: Stats) {
                     return `${capitalize(statName)} ${statValue}`;
                 }
                 return `${capitalize(statName)} +${statValue}`;
+            })
+            .join(', ') || 'None'
+    );
+}
+
+function getFormattedStatsWithStatDiff(
+    mainItemStats: ItemStats,
+    itemStatsToSubtract: ItemStats
+): string {
+    if (!mainItemStats) mainItemStats = {};
+    if (!itemStatsToSubtract) itemStatsToSubtract = {};
+    const statDiffsBetweenItems = calculateStatDiff(mainItemStats, itemStatsToSubtract);
+
+    return (
+        Object.entries(mainItemStats ?? {})
+            .map(([statName, statValue]: [string, number]) => {
+                let statDiff: string = String(statDiffsBetweenItems[statName]);
+                if (statDiffsBetweenItems[statName] > 0) statDiff = '+' + statDiff;
+
+                if (statValue < 0) {
+                    return `${capitalize(statName)} ${statValue} **_(${statDiff})_**`;
+                }
+                return `${capitalize(statName)} +${statValue} **_(${statDiff})_**`;
             })
             .join(', ') || 'None'
     );
@@ -562,19 +585,13 @@ function getGreaterLesserAndSameStats(item1Stats: ItemStats, item2Stats: ItemSta
     return [greaterStats, lesserStats, equalStats];
 }
 
-// function calculateStatDiffs(item1Stats: ItemStats, item2Stats: ItemStats): [ItemStats, ItemStats] {
-//     const item1StatDiff: ItemStats = {};
-//     const item2StatDiff: ItemStats = {};
-//     for (const bonus in item1Stats) {
-//         item1StatDiff[bonus] = statDiff;
-//     }
-//     for (const bonus in item2Stats) {
-//         const statDiff: number = item2Stats[bonus] - (item1Stats[bonus] ?? 0);
-//         if (statDiff === 0) continue;
-//         item2StatDiff[bonus] = statDiff;
-//     }
-//     return [item1StatDiff, item2StatDiff];
-// }
+function calculateStatDiff(mainItemStats: ItemStats, itemStatsToSubtract: ItemStats): ItemStats {
+    const statDiff: ItemStats = { ...mainItemStats };
+    for (const stat in statDiff) {
+        statDiff[stat] -= itemStatsToSubtract[stat] ?? 0;
+    }
+    return statDiff;
+}
 
 export async function getCompareResultMessage({
     term1,
@@ -624,8 +641,8 @@ export async function getCompareResultMessage({
         `**Tags:** ${getFormattedListOfItemTags(item1SearchResult.variant_info)}\n` +
         (item1DamageDiff ? item1DamageDiff + '\n' : '') +
         `__Greater Stats__\n` +
-        `**Bonuses:** ${getFormattedBonusesOrResists(item1GreaterBonuses)}\n` +
-        `**Resists:** ${getFormattedBonusesOrResists(item1GreaterResists)}\n` +
+        `**Bonuses:** ${getFormattedStatsWithStatDiff(item1GreaterBonuses, item2LesserBonuses)}\n` +
+        `**Resists:** ${getFormattedStatsWithStatDiff(item1GreaterResists, item2LesserResists)}\n` +
         `__Lower Stats__\n` +
         `**Bonuses:** ${getFormattedBonusesOrResists(item1LesserBonuses)}\n` +
         `**Resists:** ${getFormattedBonusesOrResists(item1LesserResists)}\n`;
@@ -635,8 +652,8 @@ export async function getCompareResultMessage({
         `**Tags:** ${getFormattedListOfItemTags(item2SearchResult.variant_info)}\n` +
         (item2DamageDiff ? item2DamageDiff + '\n' : '') +
         `__Greater Stats__\n` +
-        `**Bonuses:** ${getFormattedBonusesOrResists(item2GreaterBonuses)}\n` +
-        `**Resists:** ${getFormattedBonusesOrResists(item2GreaterResists)}\n` +
+        `**Bonuses:** ${getFormattedStatsWithStatDiff(item2GreaterBonuses, item1LesserBonuses)}\n` +
+        `**Resists:** ${getFormattedStatsWithStatDiff(item2GreaterResists, item1LesserResists)}\n` +
         `__Lower Stats__\n` +
         `**Bonuses:** ${getFormattedBonusesOrResists(item2LesserBonuses)}\n` +
         `**Resists:** ${getFormattedBonusesOrResists(item2LesserResists)}\n`;
