@@ -7,7 +7,7 @@ export const dbConnection: Db = await MongoClient.connect(
     format(
         'mongodb://%s:%s@%s:%s/?authMechanism=%s&authSource=%s',
         config.DB_USER,
-        config.DB_PASS,
+        encodeURIComponent(config.DB_PASS),
         config.DB_HOST,
         config.DB_PORT,
         config.DB_AUTH_MECHANISM,

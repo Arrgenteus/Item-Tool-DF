@@ -55,21 +55,26 @@ export const sortCommand: SlashCommandData = {
         const charID: string | undefined =
             interaction.options.getString(SortCommandParams.CHAR_ID) ?? undefined;
 
-        const excludeTags: Set<ItemTag> = new Set();
+        const itemTagsToExclude: Set<ItemTag> = new Set();
         if (interaction.options.getBoolean('weakcore')) {
             const weakcoreTags: ItemTag[] = ['dc', 'dm', 'so', 'se', 'rare'];
-            for (const weakcoreTag of weakcoreTags) excludeTags.add(weakcoreTag);
+            for (const weakcoreTag of weakcoreTags) itemTagsToExclude.add(weakcoreTag);
         }
         for (const { optionName, tag } of ITEM_TAG_FILTER_OPTION_NAMES) {
-            if (interaction.options.getBoolean(optionName) === false) excludeTags.add(tag);
+            if (interaction.options.getBoolean(optionName) === false) itemTagsToExclude.add(tag);
         }
 
-        const filters = {
+        // Exclude rare tagged items unless enabled explicitly
+        if (interaction.options.getBoolean(SortCommandParams.RARE_TAG) !== true) {
+            itemTagsToExclude.add('rare')
+        }
+
+        const sortResultFilters = {
             sortExpression: parsedSortExpression,
             weaponElement: weaponElement?.toLowerCase(),
             maxLevel,
             charID,
-            excludeTags,
+            excludeTags: itemTagsToExclude,
             ascending: interaction.options.getBoolean(SortCommandParams.ASCENDING) === true,
         };
 
@@ -79,7 +84,7 @@ export const sortCommand: SlashCommandData = {
 
         const sortedItemMessage = await getSortResultsMessage(
             itemTypeInput,
-            filters,
+            sortResultFilters,
             shouldDisplayShortResult
         );
 
