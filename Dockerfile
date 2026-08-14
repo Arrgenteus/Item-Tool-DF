@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM node:24-slim
+FROM node:24.19.0-slim
 WORKDIR /app
 
 COPY package.json /app/package.json
