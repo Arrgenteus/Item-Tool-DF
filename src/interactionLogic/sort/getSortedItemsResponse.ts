@@ -6,11 +6,12 @@ import { getSortQueryPipeline } from './queryBuilder.js';
 import { SortExpressionData, SortFilterParams, SortItemTypeOption } from './types.js';
 import { parseSortExpression, unaliasBonusName } from './sortExpressionParser.js';
 import {
-    MessageActionRowComponentResolvable,
-    MessageActionRowOptions,
-    MessageOptions,
-    MessageSelectOptionData,
-    Util,
+    APIActionRowComponent,
+    APIComponentInMessageActionRow,
+    APISelectMenuOption,
+    BaseMessageOptions,
+    ButtonStyle,
+    ComponentType,
 } from 'discord.js';
 import { INTERACTION_ID_ARG_SEPARATOR, MAX_EMBED_DESC_LENGTH } from '../../utils/constants.js';
 import {
@@ -29,6 +30,7 @@ import {
 import { ValidationError } from '../../errors.js';
 
 const ITEM_LIST_DELIMITER = ', `';
+type MessageActionRow = APIActionRowComponent<APIComponentInMessageActionRow>;
 const itemCollection: MongoCollection = dbConnection.collection(config.DB_COLLECTION);
 
 const allValidWeaponElements: Set<string> = new Set(
@@ -70,24 +72,22 @@ function getFiltersUsedText({
     return filterText.join('\n');
 }
 
-function getTagFilterDropDownComponent(
-    excludeTags?: Set<ItemTag>
-): [Required<MessageActionRowOptions>] {
+function getTagFilterDropDownComponent(excludeTags?: Set<ItemTag>): [MessageActionRow] {
     return [
         {
-            type: 'ACTION_ROW',
+            type: ComponentType.ActionRow,
             components: [
                 {
-                    customId: SORT_ACTIONS.TAG_SELECTION,
+                    custom_id: SORT_ACTIONS.TAG_SELECTION,
                     placeholder: 'All tags included in results. Click to change',
-                    minValues: 0,
-                    maxValues: SORTABLE_TAGS.length - 1,
-                    type: 'SELECT_MENU',
+                    min_values: 0,
+                    max_values: SORTABLE_TAGS.length - 1,
+                    type: ComponentType.StringSelect,
                     options: SORTABLE_TAGS.map(
-                        (tag: ItemTag): MessageSelectOptionData => ({
+                        (tag: ItemTag): APISelectMenuOption => ({
                             label: 'Exclude ' + PRETTY_TAG_NAMES[tag],
                             value: tag,
-                            default: excludeTags?.has(tag),
+                            default: excludeTags?.has(tag) ?? false,
                         })
                     ),
                 },
@@ -99,19 +99,19 @@ function getTagFilterDropDownComponent(
 function getFullResultsButtonComponent(
     itemType: ItemType,
     excludeTags?: Set<ItemTag>
-): [Required<MessageActionRowOptions>] {
+): [MessageActionRow] {
     const excludeTagsList: string = (excludeTags ? [...excludeTags] : []).join(',');
     return [
         {
-            type: 'ACTION_ROW',
+            type: ComponentType.ActionRow,
             components: [
                 {
-                    type: 'BUTTON',
+                    type: ComponentType.Button,
                     label: 'View full results',
-                    customId: [SORT_ACTIONS.SHOW_RESULTS, itemType, excludeTagsList].join(
+                    custom_id: [SORT_ACTIONS.SHOW_RESULTS, itemType, excludeTagsList].join(
                         INTERACTION_ID_ARG_SEPARATOR
                     ),
-                    style: 'PRIMARY',
+                    style: ButtonStyle.Primary,
                 },
             ],
         },
@@ -122,37 +122,37 @@ function getPrevAndNextSortPageNavigationComponents(
     excludeTags?: Set<ItemTag>,
     prevPageValueLimit?: number | undefined,
     nextPageValueLimit?: number | undefined
-): [Required<MessageActionRowOptions>] | [] {
+): [MessageActionRow] | [] {
     const excludeTagsList: string = (excludeTags ? [...excludeTags] : []).join(',');
 
-    const buttonComponents: MessageActionRowComponentResolvable[] = [];
+    const buttonComponents: APIComponentInMessageActionRow[] = [];
     if (prevPageValueLimit !== undefined) {
         buttonComponents.push({
-            type: 'BUTTON',
+            type: ComponentType.Button,
             label: '\u276e Prev Page',
-            customId: [SORT_ACTIONS.PREV_PAGE, prevPageValueLimit, excludeTagsList].join(
+            custom_id: [SORT_ACTIONS.PREV_PAGE, prevPageValueLimit, excludeTagsList].join(
                 INTERACTION_ID_ARG_SEPARATOR
             ),
-            style: 'PRIMARY',
+            style: ButtonStyle.Primary,
         });
     }
     if (nextPageValueLimit !== undefined) {
         buttonComponents.push({
-            type: 'BUTTON',
+            type: ComponentType.Button,
             label: 'Next Page \u276f',
-            customId: [SORT_ACTIONS.NEXT_PAGE, nextPageValueLimit, excludeTagsList].join(
+            custom_id: [SORT_ACTIONS.NEXT_PAGE, nextPageValueLimit, excludeTagsList].join(
                 INTERACTION_ID_ARG_SEPARATOR
             ),
-            style: 'PRIMARY',
+            style: ButtonStyle.Primary,
         });
     }
 
     if (!buttonComponents.length) return [];
 
-    return [{ type: 'ACTION_ROW', components: buttonComponents }];
+    return [{ type: ComponentType.ActionRow, components: buttonComponents }];
 }
 
-function itemButtonList(excludeTags?: Set<ItemTag>): Required<MessageActionRowOptions>[] {
+function itemButtonList(excludeTags?: Set<ItemTag>): MessageActionRow[] {
     const excludeTagsList: string = (excludeTags ? [...excludeTags] : []).join(',');
 
     // Display item types after the 5th in a separate action row, since a single action row can only contain 5 buttons
@@ -161,16 +161,16 @@ function itemButtonList(excludeTags?: Set<ItemTag>): Required<MessageActionRowOp
         ['ring', 'trinket', 'weapon'],
     ];
     return itemTypeList.map(
-        (itemTypeSubset: ItemType[]): Required<MessageActionRowOptions> => ({
-            type: 'ACTION_ROW',
+        (itemTypeSubset: ItemType[]): MessageActionRow => ({
+            type: ComponentType.ActionRow,
             components: itemTypeSubset.map(
-                (itemType: ItemType): MessageActionRowComponentResolvable => ({
-                    type: 'BUTTON',
+                (itemType: ItemType): APIComponentInMessageActionRow => ({
+                    type: ComponentType.Button,
                     label: PRETTY_ITEM_TYPES[itemType],
-                    customId: [SORT_ACTIONS.SHOW_RESULTS, itemType, excludeTagsList].join(
+                    custom_id: [SORT_ACTIONS.SHOW_RESULTS, itemType, excludeTagsList].join(
                         INTERACTION_ID_ARG_SEPARATOR
                     ),
-                    style: 'PRIMARY',
+                    style: ButtonStyle.Primary,
                 })
             ),
         })
@@ -179,7 +179,7 @@ function itemButtonList(excludeTags?: Set<ItemTag>): Required<MessageActionRowOp
 
 function getAllItemDisplayMessage(
     sortFilterParams: Omit<SortFilterParams, 'itemType'>
-): Pick<MessageOptions, 'embeds' | 'components'> {
+): Pick<BaseMessageOptions, 'embeds' | 'components'> {
     return {
         embeds: [
             {
@@ -199,7 +199,7 @@ function getAllItemDisplayMessage(
 export async function getSortedItemListMessage(
     sortFilterParams: SortFilterParams,
     returnShortResult: boolean
-): Promise<Pick<MessageOptions, 'embeds' | 'components'>> {
+): Promise<Pick<BaseMessageOptions, 'embeds' | 'components'>> {
     if (sortFilterParams.weaponElement) {
         sortFilterParams.weaponElement = unaliasBonusName(sortFilterParams.weaponElement);
         if (!allValidWeaponElements.has(sortFilterParams.weaponElement)) {
@@ -283,7 +283,7 @@ export async function getSortedItemListMessage(
             sortedList = lastResult.slice(0, lastItemIndexBeforeLimit) + ellipses;
     }
 
-    let buttonRow: Required<MessageActionRowOptions>[];
+    let buttonRow: MessageActionRow[];
 
     if (returnShortResult) {
         buttonRow = getFullResultsButtonComponent(
@@ -337,7 +337,7 @@ export async function getSortResultsMessage(
     itemTypeOption: SortItemTypeOption,
     sortFilterParams: Omit<SortFilterParams, 'itemType'>,
     returnShortResult: boolean = false
-): Promise<Pick<MessageOptions, 'embeds' | 'components'>> {
+): Promise<Pick<BaseMessageOptions, 'embeds' | 'components'>> {
     if (sortFilterParams.weaponElement?.match(/[^a-z\?]/i)) {
         throw new ValidationError('The weapon element name cannot include special characters.');
     }
@@ -363,7 +363,7 @@ export async function getSortResultsMessageUsingMessageFilters(
     valueLimit?:
         | Pick<SortFilterParams, 'nextPageValueLimit'>
         | Pick<SortFilterParams, 'prevPageValueLimit'>
-): Promise<Pick<MessageOptions, 'embeds' | 'components'>> {
+): Promise<Pick<BaseMessageOptions, 'embeds' | 'components'>> {
     const sortExpressionMatch: RegExpMatchArray = embedTitle.match(/^Sort ([a-z/]+?) by (.+)$/i)!;
     const itemTypeMatch: string = sortExpressionMatch[1];
     if (!itemType) itemType = PRETTY_TO_BASE_ITEM_TYPE[itemTypeMatch] || 'items';

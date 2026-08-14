@@ -1,4 +1,4 @@
-import { MessageEmbedOptions } from 'discord.js';
+import { APIEmbed } from 'discord.js';
 
 const bonuses: Set<string> = new Set([
     'block',
@@ -71,7 +71,7 @@ export function embed(
     description: string,
     title?: string,
     footerText?: string
-): { embeds: MessageEmbedOptions[] } {
+): { embeds: APIEmbed[] } {
     return {
         embeds: [
             {

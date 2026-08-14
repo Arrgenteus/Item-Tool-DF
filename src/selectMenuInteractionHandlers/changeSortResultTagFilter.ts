@@ -2,7 +2,8 @@ import {
     InteractionReplyOptions,
     InteractionUpdateOptions,
     Message,
-    SelectMenuInteraction,
+    MessageFlags,
+    StringSelectMenuInteraction,
 } from 'discord.js';
 import { NonCommandInteractionData } from '../eventHandlerTypes.js';
 import { SORT_ACTIONS } from '../interactionLogic/sort/constants.js';
@@ -12,7 +13,7 @@ import { ItemTag } from '../utils/itemTypeData.js';
 export const changeSortResultTagFilterSelectMenu: NonCommandInteractionData = {
     names: [SORT_ACTIONS.TAG_SELECTION],
     preferEphemeralErrorMessage: true,
-    run: async (interaction: SelectMenuInteraction): Promise<void> => {
+    run: async (interaction: StringSelectMenuInteraction): Promise<void> => {
         const sortedItemMessage: InteractionUpdateOptions & InteractionReplyOptions =
             await getSortResultsMessageUsingMessageFilters(
                 interaction.message.embeds[0].title!,
@@ -22,12 +23,14 @@ export const changeSortResultTagFilterSelectMenu: NonCommandInteractionData = {
         if (
             interaction.message instanceof Message &&
             (interaction.user.id === interaction.message.interaction?.user.id ||
-                interaction.message.flags?.has('EPHEMERAL'))
+                interaction.message.flags?.has(MessageFlags.Ephemeral))
         ) {
             await interaction.update(sortedItemMessage);
         } else {
-            sortedItemMessage.ephemeral = true;
-            await interaction.reply(sortedItemMessage);
+            await interaction.reply({
+                ...sortedItemMessage,
+                flags: MessageFlags.Ephemeral,
+            });
         }
     },
 };

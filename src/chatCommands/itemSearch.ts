@@ -1,4 +1,4 @@
-import { Message, MessageOptions, GuildTextBasedChannel } from 'discord.js';
+import { BaseMessageOptions, Message, GuildTextBasedChannel } from 'discord.js';
 import config from '../config.js';
 import { ChatCommandData } from '../eventHandlerTypes.js';
 import { getSearchResultMessagewithButtons } from '../interactionLogic/search/search.js';
@@ -110,7 +110,7 @@ export const itemSearchCommand: ChatCommandData = {
             return;
         }
 
-        const itemSearchResult: MessageOptions | undefined =
+        const itemSearchResult: BaseMessageOptions | undefined =
             await getSearchResultMessagewithButtons({
                 term: itemNameToSearchFor,
                 itemSearchCategory,

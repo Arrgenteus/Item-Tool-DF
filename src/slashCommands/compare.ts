@@ -1,4 +1,8 @@
-import { ApplicationCommandOptionData, CommandInteraction } from 'discord.js';
+import {
+    ApplicationCommandOptionData,
+    ApplicationCommandOptionType,
+    ChatInputCommandInteraction,
+} from 'discord.js';
 import { SlashCommandData } from '../eventHandlerTypes.js';
 import { getCompareResultMessage } from '../interactionLogic/search/formattedResults.js';
 import {
@@ -15,14 +19,14 @@ function createCompareSlashCommand(
 
     const commandOptions: ApplicationCommandOptionData[] = [
         {
-            type: 'STRING',
+            type: ApplicationCommandOptionType.String,
             name: `${itemCategory}-1`,
             required: true,
             description: `Name of ${itemCategory} 1 to compare`,
             autocomplete: true,
         },
         {
-            type: 'STRING',
+            type: ApplicationCommandOptionType.String,
             name: `${itemCategory}-2`,
             required: true,
             description: `Name of ${itemCategory} 2 to compare`,
@@ -38,7 +42,7 @@ function createCompareSlashCommand(
             options: commandOptions,
         },
 
-        run: async (interaction: CommandInteraction) => {
+        run: async (interaction: ChatInputCommandInteraction) => {
             const compareResultMessage = await getCompareResultMessage({
                 term1: interaction.options.getString(`${itemCategory}-1`, true),
                 term2: interaction.options.getString(`${itemCategory}-2`, true),

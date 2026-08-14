@@ -1,14 +1,14 @@
 import {
-    BaseMessageComponentOptions,
-    EmbedFieldData,
-    InteractionButtonOptions,
-    MessageActionRowOptions,
-    MessageButton,
-    MessageButtonOptions,
-    MessageEmbedOptions,
-    MessageOptions,
+    APIActionRowComponent,
+    APIButtonComponentWithCustomId,
+    APIEmbed,
+    APIEmbedField,
+    APIComponentInMessageActionRow,
+    BaseMessageOptions,
+    ButtonStyle,
+    ComponentType,
     Snowflake,
-    Util,
+    escapeMarkdown,
 } from 'discord.js';
 import config from '../../config.js';
 import { INTERACTION_ID_ARG_SEPARATOR } from '../../utils/constants.js';
@@ -115,7 +115,7 @@ function getFormattedTrinketSkillInfo(searchResultTrinketSkill: {
     element?: string[];
 }) {
     return (
-        `**Effect:** ${Util.escapeMarkdown(searchResultTrinketSkill.effect)}\n` +
+        `**Effect:** ${escapeMarkdown(searchResultTrinketSkill.effect)}\n` +
         `**Mana Cost:** ${searchResultTrinketSkill.mana_cost}\n` +
         `**Cooldown:** ${searchResultTrinketSkill.cooldown}\n` +
         `**Damage Type:** ${capitalize(searchResultTrinketSkill.damage_type) || 'N/A'}\n` +
@@ -138,10 +138,10 @@ function getEmbedsForFormattedWeaponSpecialInfo(
         elements?: string[];
         rate: number;
     }[]
-): EmbedFieldData[] | undefined {
+): APIEmbedField[] | undefined {
     if (!searchResultWeaponSpecials?.length && !searchResultOldWeaponSpecials?.length) return;
 
-    const embedFields: EmbedFieldData[] = [];
+    const embedFields: APIEmbedField[] = [];
     for (const weaponSpecial of searchResultOldWeaponSpecials ?? []) {
         let weaponSpecialDesc =
             `**Activation:** ${capitalize(weaponSpecial.activation)}\n` +
@@ -188,7 +188,7 @@ export function getButtonListForSimilarResults({
     userId: Snowflake;
     maxLevel?: number;
     minLevel?: number;
-}): (Required<BaseMessageComponentOptions> & MessageButtonOptions)[] {
+}): APIButtonComponentWithCustomId[] {
     const searchResultTitle: string = responseBody.hits.hits[0]._source.full_title;
     const searchResultItemType: string = responseBody.hits.hits[0]._source.item_type;
 
@@ -226,9 +226,9 @@ export function getButtonListForSimilarResults({
         );
 
     return similarResults.map((itemName: string) => ({
-        type: 'BUTTON',
+        type: ComponentType.Button,
         label: itemName,
-        customId: [
+        custom_id: [
             DIFFERENT_SEARCH_RESULT_INTERACTION_ID,
             userId,
             itemName,
@@ -236,7 +236,7 @@ export function getButtonListForSimilarResults({
             maxLevel?.toString(),
             minLevel?.toString(),
         ].join(INTERACTION_ID_ARG_SEPARATOR),
-        style: 'SECONDARY',
+        style: ButtonStyle.Secondary,
     }));
 }
 
@@ -250,18 +250,18 @@ export function getButtonForMoreItemImages({
     itemSearchCategory: SearchableItemCategory;
     maxLevel?: number;
     minLevel?: number;
-}): Required<BaseMessageComponentOptions> & MessageButtonOptions {
+}): APIButtonComponentWithCustomId {
     return {
-        type: 'BUTTON',
+        type: ComponentType.Button,
         label: MORE_SEARCH_RESULT_IMAGES_LABEL,
-        customId: [
+        custom_id: [
             MORE_SEARCH_RESULT_IMAGES_INTERACTION_ID,
             itemName,
             itemSearchCategory,
             maxLevel?.toString(),
             minLevel?.toString(),
         ].join(INTERACTION_ID_ARG_SEPARATOR),
-        style: 'PRIMARY',
+        style: ButtonStyle.Primary,
     };
 }
 
@@ -321,12 +321,12 @@ function getFormattedOtherLevelVariants(
         .join(', ');
 }
 
-function formatPetQueryResponse(searchResult: any): MessageEmbedOptions {
+function formatPetQueryResponse(searchResult: any): APIEmbed {
     const embedBody: string =
         `**Tags:** ${getFormattedListOfItemTags(searchResult.variant_info)}\n` +
         `**Locations:** ${getFormattedListOfLocations(searchResult.variant_info)}\n` +
         `**Level:** ${searchResult.level}\n` +
-        `**Damage:** ${Util.escapeMarkdown(searchResult.damage) || '0-0'}\n` +
+        `**Damage:** ${escapeMarkdown(searchResult.damage) || '0-0'}\n` +
         `**Element:** ${getFormattedItemElements(searchResult.elements)}\n` +
         `**Bonuses:** ${getFormattedBonusesOrResists(searchResult.bonuses)}`;
 
@@ -339,7 +339,7 @@ function formatPetQueryResponse(searchResult: any): MessageEmbedOptions {
     };
 }
 
-function formatAccessoryQueryResponse(searchResult: any): MessageEmbedOptions {
+function formatAccessoryQueryResponse(searchResult: any): APIEmbed {
     let embedBody =
         `**Tags:** ${getFormattedListOfItemTags(searchResult.variant_info)}\n` +
         `**Locations:** ${getFormattedListOfLocations(searchResult.variant_info)}\n` +
@@ -375,7 +375,7 @@ function formatAccessoryQueryResponse(searchResult: any): MessageEmbedOptions {
     };
 }
 
-function formatWeaponQueryResponse(searchResult: any): MessageEmbedOptions {
+function formatWeaponQueryResponse(searchResult: any): APIEmbed {
     let embedBody =
         `**Tags:** ${getFormattedListOfItemTags(searchResult.variant_info)}\n` +
         `**Locations:** ${getFormattedListOfLocations(searchResult.variant_info)}\n` +
@@ -415,7 +415,7 @@ function formatWeaponQueryResponse(searchResult: any): MessageEmbedOptions {
 
 export function formatQueryResponse(
     responseBody: any
-): Pick<MessageOptions, 'components' | 'embeds'> | undefined {
+): Pick<BaseMessageOptions, 'components' | 'embeds'> | undefined {
     const searchResultWithMetadata = responseBody.hits.hits[0];
     const searchResult = searchResultWithMetadata?._source;
 
@@ -423,7 +423,7 @@ export function formatQueryResponse(
 
     const searchResultIndex: string = searchResultWithMetadata._index;
 
-    let itemQueryResponseEmbed: MessageEmbedOptions;
+    let itemQueryResponseEmbed: APIEmbed;
     switch (searchResultIndex) {
         case config.PET_INDEX_NAME:
             itemQueryResponseEmbed = formatPetQueryResponse(searchResult);
@@ -447,9 +447,8 @@ export function formatQueryResponse(
         itemQueryResponseEmbed.fields = [];
     }
 
-    itemQueryResponseEmbed.footer = {
-        text: getFormattedColorCustomInfo(searchResult.color_custom),
-    };
+    const colorCustomInfo = getFormattedColorCustomInfo(searchResult.color_custom);
+    if (colorCustomInfo) itemQueryResponseEmbed.footer = { text: colorCustomInfo };
 
     return {
         embeds: [itemQueryResponseEmbed],
@@ -468,7 +467,7 @@ export function updateMoreImagesButtonInButtonList({
     itemSearchCategory: SearchableItemCategory;
     maxLevel?: number;
     minLevel?: number;
-    messageComponents: MessageActionRowOptions[];
+    messageComponents: APIActionRowComponent<APIComponentInMessageActionRow>[];
 }): void {
     const moreImagesButtonOptions = getButtonForMoreItemImages({
         itemName,
@@ -476,11 +475,11 @@ export function updateMoreImagesButtonInButtonList({
         maxLevel,
         minLevel,
     });
-    const moreImagesButton = new MessageButton(moreImagesButtonOptions);
+    const moreImagesButton = moreImagesButtonOptions;
 
     if (!messageComponents.length) {
         messageComponents.push({
-            type: 'ACTION_ROW',
+            type: ComponentType.ActionRow,
             components: [moreImagesButton],
         });
         return;
@@ -488,11 +487,12 @@ export function updateMoreImagesButtonInButtonList({
 
     const firstActionRowItem = messageComponents[0].components[0];
 
-    if (firstActionRowItem && firstActionRowItem.type !== 'BUTTON') return;
+    if (firstActionRowItem && firstActionRowItem.type !== ComponentType.Button) return;
 
     if (
         !firstActionRowItem ||
-        (firstActionRowItem as InteractionButtonOptions).label !== MORE_SEARCH_RESULT_IMAGES_LABEL
+        !('label' in firstActionRowItem) ||
+        firstActionRowItem.label !== MORE_SEARCH_RESULT_IMAGES_LABEL
     ) {
         messageComponents[0].components.unshift(moreImagesButton);
     } else {
@@ -500,14 +500,17 @@ export function updateMoreImagesButtonInButtonList({
     }
 }
 
-export function deleteMoreImagesButtonInButtonList(messageComponents: MessageActionRowOptions[]) {
+export function deleteMoreImagesButtonInButtonList(
+    messageComponents: APIActionRowComponent<APIComponentInMessageActionRow>[]
+) {
     if (!messageComponents.length) return;
 
     const firstActionRowItem = messageComponents[0].components[0];
     if (
         firstActionRowItem &&
-        firstActionRowItem.type === 'BUTTON' &&
-        (firstActionRowItem as InteractionButtonOptions).label === MORE_SEARCH_RESULT_IMAGES_LABEL
+        firstActionRowItem.type === ComponentType.Button &&
+        'label' in firstActionRowItem &&
+        firstActionRowItem.label === MORE_SEARCH_RESULT_IMAGES_LABEL
     ) {
         messageComponents[0].components.shift();
         if (!messageComponents[0].components.length) messageComponents.shift();
@@ -521,22 +524,24 @@ export function replaceSimilarResultWithCurrentResultInButtonList({
 }: {
     itemNameToReplace: string;
     itemNameReplacement: string;
-    messageComponents: MessageActionRowOptions[];
+    messageComponents: APIActionRowComponent<APIComponentInMessageActionRow>[];
 }): void {
     if (!messageComponents.length) return;
 
     for (const actionRow of messageComponents) {
         for (const component of actionRow.components) {
-            if (component.type !== 'BUTTON') continue;
-            const buttonComponent = component as InteractionButtonOptions;
+            if (component.type !== ComponentType.Button || !('custom_id' in component)) continue;
+            const buttonComponent = component;
             if (buttonComponent.label === itemNameToReplace) {
                 buttonComponent.label = itemNameReplacement;
-                const buttonComponentIdArgs = buttonComponent.customId.split(
+                const buttonComponentIdArgs = buttonComponent.custom_id.split(
                     INTERACTION_ID_ARG_SEPARATOR
                 );
                 // Arg 0 is the handler name, arg 1 is the user ID, arg 2 is the name of the item
                 buttonComponentIdArgs[2] = itemNameReplacement;
-                buttonComponent.customId = buttonComponentIdArgs.join(INTERACTION_ID_ARG_SEPARATOR);
+                buttonComponent.custom_id = buttonComponentIdArgs.join(
+                    INTERACTION_ID_ARG_SEPARATOR
+                );
 
                 return;
             }
@@ -584,7 +589,7 @@ export async function getCompareResultMessage({
     term1: string;
     term2: string;
     itemSearchCategory: SearchableItemCategory;
-}): Promise<Pick<MessageOptions, 'embeds'>> {
+}): Promise<Pick<BaseMessageOptions, 'embeds'>> {
     const [item1SearchResultResponseBody, item2SearchResultResponseBody] = await Promise.all([
         fetchItemSearchResult({
             term: term1,

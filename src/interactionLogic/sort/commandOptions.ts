@@ -2,7 +2,11 @@ import {
     ApplicationCommandNonOptionsData,
     ApplicationCommandOptionChoiceData,
     ApplicationCommandOptionData,
-    ModalOptions,
+    ApplicationCommandOptionType,
+    ActionRowBuilder,
+    ModalBuilder,
+    TextInputBuilder,
+    TextInputStyle,
 } from 'discord.js';
 import { ItemTag, PRETTY_ITEM_TYPES, PRETTY_TAG_NAMES } from '../../utils/itemTypeData.js';
 import { ITEM_TAG_FILTER_OPTION_NAMES } from './constants.js';
@@ -17,7 +21,7 @@ function getItemTagFilterOptions(): ApplicationCommandNonOptionsData[] {
             optionName: SortCommandParams;
             tag: ItemTag;
         }): ApplicationCommandNonOptionsData => ({
-            type: 'BOOLEAN',
+            type: ApplicationCommandOptionType.Boolean,
             description: `Whether to include ${
                 tag === 'none' ? 'untagged items' : ' items with ' + PRETTY_TAG_NAMES[tag] + ' tag'
             } in results`,
@@ -26,7 +30,7 @@ function getItemTagFilterOptions(): ApplicationCommandNonOptionsData[] {
     );
 
     const weakcoreOption: ApplicationCommandNonOptionsData = {
-        type: 'BOOLEAN',
+        type: ApplicationCommandOptionType.Boolean,
         description: 'Only show weakcore options (no DC/DM/Seasonal/Rare/Special Offer items)',
         name: 'weakcore',
     };
@@ -47,44 +51,45 @@ export function getSortCommandOptions(): ApplicationCommandOptionData[] {
         'weapon',
     ];
 
-    const itemTypeChoiceList: ApplicationCommandOptionChoiceData[] = itemTypeChoiceValues.map(
-        (itemTypeChoice: SortItemTypeOption): ApplicationCommandOptionChoiceData => ({
-            name: itemTypeChoice === 'items' ? 'All Items' : PRETTY_ITEM_TYPES[itemTypeChoice],
-            value: itemTypeChoice,
-        })
-    );
+    const itemTypeChoiceList: ApplicationCommandOptionChoiceData<string>[] =
+        itemTypeChoiceValues.map(
+            (itemTypeChoice: SortItemTypeOption): ApplicationCommandOptionChoiceData<string> => ({
+                name: itemTypeChoice === 'items' ? 'All Items' : PRETTY_ITEM_TYPES[itemTypeChoice],
+                value: itemTypeChoice,
+            })
+        );
 
     return [
         {
-            type: 'STRING',
+            type: ApplicationCommandOptionType.String,
             name: SortCommandParams.SORT_EXPRESSION,
             description: `Eg. "Ice", "Damage", "All + Health", "INT - (DEX + STR)", etc. Supports +, -, *, / operators`,
         },
         {
-            type: 'STRING',
+            type: ApplicationCommandOptionType.String,
             name: SortCommandParams.ITEM_TYPE,
             description: 'The type of item to sort',
             choices: itemTypeChoiceList,
         },
         {
-            type: 'STRING',
+            type: ApplicationCommandOptionType.String,
             name: SortCommandParams.WEAPON_ELEMENT,
             description:
                 "Filter by weapon element. Only applicable if the selected item type is 'Weapon'",
         },
         {
-            type: 'INTEGER',
+            type: ApplicationCommandOptionType.Integer,
             name: SortCommandParams.MAX_LEVEL,
             description: `Maximum level of items to be shown in results`,
         },
         {
-            type: 'BOOLEAN',
+            type: ApplicationCommandOptionType.Boolean,
             name: SortCommandParams.ASCENDING,
             description:
                 'Whether to results should be shown in ascending order instead of descending order',
         },
         {
-            type: 'STRING',
+            type: ApplicationCommandOptionType.String,
             name: 'char-id',
             description: "Only show items that are in a character's inventory",
         },
@@ -93,58 +98,38 @@ export function getSortCommandOptions(): ApplicationCommandOptionData[] {
 }
 
 export function getSortCommandInputModal({ sortExpression }: { sortExpression?: string }) {
-    const modal: ModalOptions = {
-        customId: 'sort-filters',
-        title: 'Sort options and filters',
-        components: [
-            {
-                type: 'ACTION_ROW',
-                components: [
-                    {
-                        customId: 'sort-expression',
-                        type: 'TEXT_INPUT',
-                        label: 'Sort Expression (+,-,*,/ operators allowed)',
-                        required: true,
-                        minLength: 2,
-                        maxLength: 100,
-                        value: sortExpression,
-                        placeholder:
-                            'Eg. Ice, Damage,  All + Health, DEX, (INT + DEX + STR) / 3, etc.',
-                        style: 'SHORT',
-                    },
-                ],
-            },
-            {
-                type: 'ACTION_ROW',
-                components: [
-                    {
-                        customId: 'max-level',
-                        type: 'TEXT_INPUT',
-                        label: 'Max level of items to show',
-                        minLength: 1,
-                        maxLength: 2,
-                        value: '90',
-                        placeholder: 'Level between 0 and 90',
-                        style: 'SHORT',
-                    },
-                ],
-            },
-            {
-                type: 'ACTION_ROW',
-                components: [
-                    {
-                        customId: 'weapon-element',
-                        type: 'TEXT_INPUT',
-                        label: 'Only show weapons of this element',
-                        minLength: 1,
-                        maxLength: 20,
-                        placeholder: 'Weapon element to filter by',
-                        style: 'SHORT',
-                    },
-                ],
-            },
-        ],
-    };
+    const sortExpressionInput = new TextInputBuilder()
+        .setCustomId('sort-expression')
+        .setLabel('Sort Expression (+,-,*,/ operators allowed)')
+        .setRequired(true)
+        .setMinLength(2)
+        .setMaxLength(100)
+        .setPlaceholder('Eg. Ice, Damage,  All + Health, DEX, (INT + DEX + STR) / 3, etc.')
+        .setStyle(TextInputStyle.Short);
+    if (sortExpression) sortExpressionInput.setValue(sortExpression);
 
-    return modal;
+    const maxLevelInput = new TextInputBuilder()
+        .setCustomId('max-level')
+        .setLabel('Max level of items to show')
+        .setMinLength(1)
+        .setMaxLength(2)
+        .setValue('90')
+        .setPlaceholder('Level between 0 and 90')
+        .setStyle(TextInputStyle.Short);
+    const weaponElementInput = new TextInputBuilder()
+        .setCustomId('weapon-element')
+        .setLabel('Only show weapons of this element')
+        .setMinLength(1)
+        .setMaxLength(20)
+        .setPlaceholder('Weapon element to filter by')
+        .setStyle(TextInputStyle.Short);
+
+    return new ModalBuilder()
+        .setCustomId('sort-filters')
+        .setTitle('Sort options and filters')
+        .addComponents(
+            new ActionRowBuilder<TextInputBuilder>().addComponents(sortExpressionInput),
+            new ActionRowBuilder<TextInputBuilder>().addComponents(maxLevelInput),
+            new ActionRowBuilder<TextInputBuilder>().addComponents(weaponElementInput)
+        );
 }

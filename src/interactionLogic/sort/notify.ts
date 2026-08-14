@@ -1,4 +1,9 @@
-import { CommandInteraction, MessageComponentInteraction, Snowflake } from 'discord.js';
+import {
+    CommandInteraction,
+    MessageComponentInteraction,
+    MessageFlags,
+    Snowflake,
+} from 'discord.js';
 import fs from 'fs';
 import lockfile from 'proper-lockfile';
 import config from '../../config.js';
@@ -42,7 +47,7 @@ export async function notifyUserOfUpdatedSortBehavior(
                 'Eg. sorting by `Ice + Metal` will be equivalent to sorting by `Ice + All + Metal + All`.\n' +
                 "- If you'd like to disable this behavior and only look for specific resist, add `- All` to your sort expression.\n\n" +
                 `You shouldn't see this message again. If you do, blame <@${config.DEV_ID}>`,
-            ephemeral: true,
+            flags: MessageFlags.Ephemeral,
         });
     } catch (err) {
         console.error(`An error occurred while sending a notification message to a user:\n${err}`);

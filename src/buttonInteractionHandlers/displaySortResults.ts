@@ -3,6 +3,7 @@ import {
     InteractionReplyOptions,
     InteractionUpdateOptions,
     Message,
+    MessageFlags,
 } from 'discord.js';
 import { NonCommandInteractionData } from '../eventHandlerTypes.js';
 import { SORT_ACTIONS } from '../interactionLogic/sort/constants.js';
@@ -25,11 +26,16 @@ export const displaySortResultsButton: NonCommandInteractionData = {
                 itemType as ItemType
             );
 
-        if (interaction.message instanceof Message && interaction.message.flags?.has('EPHEMERAL')) {
+        if (
+            interaction.message instanceof Message &&
+            interaction.message.flags?.has(MessageFlags.Ephemeral)
+        ) {
             await interaction.update(sortedItemResponse);
         } else {
-            sortedItemResponse.ephemeral = true;
-            await interaction.reply(sortedItemResponse);
+            await interaction.reply({
+                ...sortedItemResponse,
+                flags: MessageFlags.Ephemeral,
+            });
         }
     },
 };

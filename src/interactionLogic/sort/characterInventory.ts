@@ -1,4 +1,4 @@
-import cheerio, { CheerioAPI } from 'cheerio';
+import { CheerioAPI, load } from 'cheerio';
 import { ValidationError } from '../../errors.js';
 import { EphemeralMap } from '../../utils/EphemeralMap.js';
 import { CharLevelAndItems } from './types.js';
@@ -33,7 +33,7 @@ export async function getCharLevelAndItems(
     }
 
     const body: string = await getCharPage(charID);
-    const $: CheerioAPI = cheerio.load(body);
+    const $: CheerioAPI = load(body);
 
     const playerInfoSection = $('.card:nth-child(1) .card-body');
     const levelMatch: RegExpMatchArray | null = playerInfoSection
