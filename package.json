@@ -30,5 +30,9 @@
         "@types/node": "^15.6.1",
         "@types/proper-lockfile": "^4.1.4",
         "prettier": "^2.3.1"
+    },
+    "optionalDependencies": {
+        "bufferutil": "^4.1.0",
+        "zlib-sync": "^0.1.10"
     }
 }
