@@ -1,9 +1,9 @@
 import {
     ApplicationCommandOptionChoiceData,
-    BaseMessageComponentOptions,
-    MessageButtonOptions,
-    MessageEmbedOptions,
-    MessageOptions,
+    APIButtonComponentWithCustomId,
+    APIEmbed,
+    BaseMessageOptions,
+    ComponentType,
     Snowflake,
 } from 'discord.js';
 import { elasticClient } from '../../dbConnection.js';
@@ -648,7 +648,7 @@ export async function getSearchResultMessagewithButtons({
     userIdForSimilarResults: Snowflake;
     maxLevel?: number;
     minLevel?: number;
-}): Promise<Pick<MessageOptions, 'components' | 'embeds'> | undefined> {
+}): Promise<Pick<BaseMessageOptions, 'components' | 'embeds'> | undefined> {
     const searchResultResponseBody = await fetchItemSearchResult({
         term,
         itemSearchCategory,
@@ -659,7 +659,7 @@ export async function getSearchResultMessagewithButtons({
     const formattedQueryResponse = formatQueryResponse(searchResultResponseBody);
     if (!formattedQueryResponse) return;
 
-    const messageButtons: (Required<BaseMessageComponentOptions> & MessageButtonOptions)[] = [];
+    const messageButtons: APIButtonComponentWithCustomId[] = [];
 
     const searchResultImageCount: number =
         searchResultResponseBody.hits.hits[0]._source.images?.length ?? 0;
@@ -685,7 +685,9 @@ export async function getSearchResultMessagewithButtons({
     messageButtons.push(...similarResultButtons);
 
     if (messageButtons.length) {
-        formattedQueryResponse.components = [{ type: 'ACTION_ROW', components: messageButtons }];
+        formattedQueryResponse.components = [
+            { type: ComponentType.ActionRow, components: messageButtons },
+        ];
     }
 
     return formattedQueryResponse;
@@ -703,7 +705,7 @@ export async function getSearchResultMessage({
     minLevel?: number;
 }): Promise<
     | {
-          message: Pick<MessageOptions, 'components' | 'embeds'>;
+          message: Pick<BaseMessageOptions, 'components' | 'embeds'>;
           hasMultipleImages: boolean;
       }
     | undefined
@@ -734,7 +736,7 @@ export async function getAllItemImages({
     itemSearchCategory: SearchableItemCategory;
     maxLevel?: number;
     minLevel?: number;
-}): Promise<MessageEmbedOptions[]> {
+}): Promise<APIEmbed[]> {
     const itemIndexes: string[] = getIndexNames(itemSearchCategory);
 
     const filterQuery = {

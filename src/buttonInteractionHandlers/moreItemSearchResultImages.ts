@@ -1,4 +1,4 @@
-import { ButtonInteraction, MessageEmbedOptions } from 'discord.js';
+import { APIEmbed, ButtonInteraction, MessageFlags } from 'discord.js';
 import { NonCommandInteractionData } from '../eventHandlerTypes.js';
 import { getAllItemImages } from '../interactionLogic/search/search.js';
 import {
@@ -15,7 +15,7 @@ export const moreItemSearchResultImagesButton: NonCommandInteractionData = {
         const maxLevel = maxLevelInput === '' ? undefined : Number(maxLevelInput);
         const minLevel = minLevelInput === '' ? undefined : Number(minLevelInput);
 
-        const moreSearchResultImagesEmbeds: MessageEmbedOptions[] = await getAllItemImages({
+        const moreSearchResultImagesEmbeds: APIEmbed[] = await getAllItemImages({
             itemName,
             itemSearchCategory: itemSearchCategory as SearchableItemCategory,
             maxLevel,
@@ -24,7 +24,7 @@ export const moreItemSearchResultImagesButton: NonCommandInteractionData = {
 
         await interaction.reply({
             embeds: moreSearchResultImagesEmbeds,
-            ephemeral: true,
+            flags: MessageFlags.Ephemeral,
         });
     },
 };

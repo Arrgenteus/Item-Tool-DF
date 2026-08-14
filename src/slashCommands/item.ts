@@ -1,7 +1,9 @@
 import {
     ApplicationCommandOptionData,
-    CommandInteraction,
+    ApplicationCommandOptionType,
+    ChatInputCommandInteraction,
     InteractionReplyOptions,
+    MessageFlags,
 } from 'discord.js';
 import { SlashCommandData } from '../eventHandlerTypes.js';
 import { getSearchResultMessagewithButtons } from '../interactionLogic/search/search.js';
@@ -19,7 +21,7 @@ function createSearchSlashCommand(
 
     const commandOptions: ApplicationCommandOptionData[] = [
         {
-            type: 'STRING',
+            type: ApplicationCommandOptionType.String,
             name: 'name',
             required: true,
             description: `The ${searchableItemCategory} name to search for.`,
@@ -29,12 +31,12 @@ function createSearchSlashCommand(
     if (searchableItemCategory !== 'cosmetic') {
         commandOptions.push(
             {
-                type: 'INTEGER',
+                type: ApplicationCommandOptionType.Integer,
                 name: 'max-level',
                 description: `The maximum ${searchableItemCategory} level to return in results. Is 90 by default.`,
             },
             {
-                type: 'INTEGER',
+                type: ApplicationCommandOptionType.Integer,
                 name: 'min-level',
                 description: `The minimum ${searchableItemCategory} level to return in results. Is 0 by default.`,
             }
@@ -51,7 +53,7 @@ function createSearchSlashCommand(
             options: commandOptions,
         },
 
-        run: async (interaction: CommandInteraction) => {
+        run: async (interaction: ChatInputCommandInteraction) => {
             const itemNameToSearchFor: string = interaction.options.getString('name', true);
             const maxLevel: number | undefined =
                 interaction.options.getInteger('max-level') ?? undefined;
@@ -72,7 +74,7 @@ function createSearchSlashCommand(
             } else {
                 await interaction.reply({
                     embeds: [{ description: `No ${itemSearchCategory} was found.` }],
-                    ephemeral: true,
+                    flags: MessageFlags.Ephemeral,
                 });
             }
         },

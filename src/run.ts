@@ -1,4 +1,4 @@
-import { Client as DiscordClient, Guild, Intents } from 'discord.js';
+import { Client as DiscordClient, Events, GatewayIntentBits, Guild } from 'discord.js';
 import config from './config.js';
 import { SlashCommandData } from './eventHandlerTypes.js';
 import interactionEventHandler from './events/interaction.js';
@@ -6,7 +6,13 @@ import messageCreateEventHandler from './events/messageCreate.js';
 import messageDeleteEventHandler from './events/messageDelete.js';
 import { slashCommandHandlerMap } from './interactionHandlerMap.js';
 
-const client = new DiscordClient({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES] });
+const client = new DiscordClient({
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent,
+    ],
+});
 
 const eventHandlers = [
     interactionEventHandler,
@@ -15,7 +21,7 @@ const eventHandlers = [
 ];
 for (const eventHandler of eventHandlers) client.on(eventHandler.eventName, eventHandler.run);
 
-client.on('ready', () => {
+client.once(Events.ClientReady, () => {
     console.log(`${client.user?.tag || 'Client'} is ready to respond to interactions.`);
 });
 

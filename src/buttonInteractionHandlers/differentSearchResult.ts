@@ -1,10 +1,11 @@
 import {
-    BaseMessageComponentOptions,
+    APIActionRowComponent,
+    APIComponentInMessageActionRow,
     ButtonInteraction,
     InteractionReplyOptions,
     InteractionUpdateOptions,
     Message,
-    MessageActionRowOptions,
+    MessageFlags,
 } from 'discord.js';
 import { NonCommandInteractionData } from '../eventHandlerTypes.js';
 import {
@@ -33,12 +34,12 @@ export const differentItemSearchResultButton: NonCommandInteractionData = {
         const maxLevel = maxLevelInput === '' ? undefined : Number(maxLevelInput);
         const minLevel = minLevelInput === '' ? undefined : Number(minLevelInput);
 
-        const noResultMessage: InteractionUpdateOptions & InteractionReplyOptions = {
+        const noResultMessage: InteractionReplyOptions = {
             embeds: [
                 { description: `No ${itemSearchCategory} was found. This is likely an error.` },
             ],
             components: [],
-            ephemeral: true,
+            flags: MessageFlags.Ephemeral,
         };
         const itemSearchResult:
             | {
@@ -61,13 +62,15 @@ export const differentItemSearchResultButton: NonCommandInteractionData = {
 
         if (
             userId === interaction.user.id ||
-            (interaction.message instanceof Message && interaction.message.flags?.has('EPHEMERAL'))
+            (interaction.message instanceof Message &&
+                interaction.message.flags?.has(MessageFlags.Ephemeral))
         ) {
             const currentSearchItemName: string = interaction.message.embeds[0].title!;
 
-            itemSearchResult.message.components = [
-                ...(interaction.message.components ?? []),
-            ] as (Required<BaseMessageComponentOptions> & MessageActionRowOptions)[];
+            const messageComponents = interaction.message.components.map((component) =>
+                component.toJSON()
+            ) as APIActionRowComponent<APIComponentInMessageActionRow>[];
+            itemSearchResult.message.components = messageComponents;
 
             if (itemSearchResult.hasMultipleImages) {
                 updateMoreImagesButtonInButtonList({
@@ -75,31 +78,35 @@ export const differentItemSearchResultButton: NonCommandInteractionData = {
                     itemSearchCategory: itemSearchCategory as SearchableItemCategory,
                     maxLevel,
                     minLevel,
-                    messageComponents: itemSearchResult.message.components,
+                    messageComponents,
                 });
             } else {
-                deleteMoreImagesButtonInButtonList(itemSearchResult.message.components);
+                deleteMoreImagesButtonInButtonList(messageComponents);
             }
 
             replaceSimilarResultWithCurrentResultInButtonList({
                 itemNameToReplace: otherResultName,
                 itemNameReplacement: currentSearchItemName,
-                messageComponents: itemSearchResult.message.components,
+                messageComponents,
             });
 
             await interaction.update(itemSearchResult.message);
         } else {
             if (itemSearchResult.hasMultipleImages) {
+                const messageComponents = (itemSearchResult.message.components ??
+                    []) as APIActionRowComponent<APIComponentInMessageActionRow>[];
                 updateMoreImagesButtonInButtonList({
                     itemName: otherResultName,
                     itemSearchCategory: itemSearchCategory as SearchableItemCategory,
                     maxLevel,
                     minLevel,
-                    messageComponents: itemSearchResult.message.components,
+                    messageComponents,
                 });
             }
-            itemSearchResult.message.ephemeral = true;
-            await interaction.reply(itemSearchResult.message);
+            await interaction.reply({
+                ...itemSearchResult.message,
+                flags: MessageFlags.Ephemeral,
+            });
         }
     },
 };

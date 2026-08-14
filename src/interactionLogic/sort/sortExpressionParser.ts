@@ -1,4 +1,4 @@
-import { Util } from 'discord.js';
+import { escapeMarkdown } from 'discord.js';
 import { InvalidExpressionError, ValueError } from '../../errors.js';
 import { capitalize, isResist } from '../../utils/misc.js';
 import { MongoSortExpression, SortExpressionData } from './types.js';
@@ -194,7 +194,7 @@ function tokenizeExpression(expression: string): (string | number)[] {
             tokenizedExpression.push(numberOperand);
         } else {
             throw new InvalidExpressionError(
-                `'${Util.escapeMarkdown(token)}' is an invalid sort expression character.`
+                `'${escapeMarkdown(token)}' is an invalid sort expression character.`
             );
         }
         indexPosition += 1;
@@ -425,7 +425,7 @@ export function parseSortExpression(
             let trimmedExpression: string = baseExpression.slice(0, 500);
             if (trimmedExpression.length > 25) {
                 if (baseExpression.length > 500) trimmedExpression += '...';
-                err.message += `\n\nYour expression: ${Util.escapeMarkdown(trimmedExpression)}`;
+                err.message += `\n\nYour expression: ${escapeMarkdown(trimmedExpression)}`;
             }
         }
         throw err;

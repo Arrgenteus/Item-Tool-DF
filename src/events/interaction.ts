@@ -1,9 +1,11 @@
 import {
     AutocompleteInteraction,
     ButtonInteraction,
-    CommandInteraction,
+    ChatInputCommandInteraction,
+    InteractionReplyOptions,
+    MessageFlags,
     ModalSubmitInteraction,
-    SelectMenuInteraction,
+    StringSelectMenuInteraction,
 } from 'discord.js';
 import config from '../config.js';
 import { ValidationError } from '../errors.js';
@@ -20,9 +22,9 @@ import {
 async function interactionErrorHandler(
     err: Error,
     interaction:
-        | CommandInteraction
+        | ChatInputCommandInteraction
         | ButtonInteraction
-        | SelectMenuInteraction
+        | StringSelectMenuInteraction
         | ModalSubmitInteraction,
     preferEphemeralErrorMessage: boolean
 ) {
@@ -41,27 +43,22 @@ async function interactionErrorHandler(
     }
 
     try {
+        const response: InteractionReplyOptions = preferEphemeralErrorMessage
+            ? { ...errMessage, flags: MessageFlags.Ephemeral }
+            : errMessage;
         if (interaction.replied) {
-            await interaction.followUp(
-                Object.assign(errMessage, {
-                    ephemeral: preferEphemeralErrorMessage,
-                })
-            );
+            await interaction.followUp(response);
         } else if (interaction.deferred) {
             await interaction.editReply(errMessage);
         } else {
-            await interaction.reply(
-                Object.assign(errMessage, {
-                    ephemeral: preferEphemeralErrorMessage,
-                })
-            );
+            await interaction.reply(response);
         }
     } catch (responseErr) {
         console.error('An error occurred while responding to an error:\n', responseErr);
     }
 }
 
-async function slashCommandHandler(interaction: CommandInteraction): Promise<void> {
+async function slashCommandHandler(interaction: ChatInputCommandInteraction): Promise<void> {
     const command = slashCommandHandlerMap.get(interaction.commandName);
     if (!command) return;
 
@@ -97,7 +94,7 @@ async function autocompleteHandler(interaction: AutocompleteInteraction): Promis
 }
 
 async function widgetInteractionHandler(
-    interaction: ButtonInteraction | SelectMenuInteraction | ModalSubmitInteraction
+    interaction: ButtonInteraction | StringSelectMenuInteraction | ModalSubmitInteraction
 ): Promise<void> {
     let separatorIndex: number = interaction.customId.indexOf(INTERACTION_ID_ARG_SEPARATOR);
     if (separatorIndex === -1) separatorIndex = interaction.customId.length;
@@ -105,7 +102,7 @@ async function widgetInteractionHandler(
 
     const handlers = {
         ButtonInteraction: buttonInteractionHandlerMap,
-        SelectMenuInteraction: selectMenuInteractionHandlerMap,
+        StringSelectMenuInteraction: selectMenuInteractionHandlerMap,
         ModalSubmitInteraction: modalSubmitHandlerMap,
     }[interaction.constructor.name];
     if (!handlers) return;
@@ -129,8 +126,8 @@ async function widgetInteractionHandler(
 
 const interactionEventHandler: ClientEventHandler = {
     eventName: 'interactionCreate',
-    async run(interaction: CommandInteraction | ButtonInteraction): Promise<void> {
-        if (interaction.isCommand()) await slashCommandHandler(interaction);
+    async run(interaction: ChatInputCommandInteraction | ButtonInteraction): Promise<void> {
+        if (interaction.isChatInputCommand()) await slashCommandHandler(interaction);
         else if (interaction.isAutocomplete()) await autocompleteHandler(interaction);
         else await widgetInteractionHandler(interaction);
     },

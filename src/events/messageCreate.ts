@@ -1,4 +1,4 @@
-import { Message, MessageOptions } from 'discord.js';
+import { BaseMessageOptions, ChannelType, Message } from 'discord.js';
 import config from '../config.js';
 import { ValidationError } from '../errors.js';
 import { ChatCommandData, ClientEventHandler } from '../eventHandlerTypes.js';
@@ -8,7 +8,7 @@ const messageCreateEventHandler: ClientEventHandler = {
     eventName: 'messageCreate',
     async run(message: Message): Promise<void> {
         if (
-            message.channel.type === 'DM' ||
+            message.channel.type === ChannelType.DM ||
             !message.content.startsWith(config.COMMAND_CHAR) ||
             message.author.bot
         )
@@ -23,7 +23,7 @@ const messageCreateEventHandler: ClientEventHandler = {
         try {
             await command.run(message, args, commandName);
         } catch (err) {
-            let errMessage: Pick<MessageOptions, 'content' | 'embeds'>;
+            let errMessage: Pick<BaseMessageOptions, 'content' | 'embeds'>;
             if (err instanceof ValidationError) {
                 errMessage = { embeds: [{ description: err.message }] };
             } else {
@@ -34,7 +34,7 @@ const messageCreateEventHandler: ClientEventHandler = {
                 console.error(err);
             }
             try {
-                await message.channel.send(errMessage);
+                if (message.channel.isSendable()) await message.channel.send(errMessage);
             } catch (responseErr) {
                 console.error('An error occurred while responding to an error:\n', responseErr);
             }

@@ -1,14 +1,14 @@
 import {
     ApplicationCommandData,
-    ApplicationCommandPermissionData,
+    ApplicationCommandPermissions,
     AutocompleteInteraction,
     ButtonInteraction,
     ClientEvents,
-    CommandInteraction,
+    ChatInputCommandInteraction,
     Message,
     ModalSubmitInteraction,
     PermissionResolvable,
-    SelectMenuInteraction,
+    StringSelectMenuInteraction,
 } from 'discord.js';
 
 export interface ClientEventHandler {
@@ -18,9 +18,9 @@ export interface ClientEventHandler {
 
 export interface SlashCommandData {
     readonly preferEphemeralErrorMessage?: boolean;
-    readonly permissions?: ApplicationCommandPermissionData[];
+    readonly permissions?: ApplicationCommandPermissions[];
     readonly structure: ApplicationCommandData;
-    run(interaction: CommandInteraction): Promise<void>;
+    run(interaction: ChatInputCommandInteraction): Promise<void>;
 }
 
 export interface ChatCommandData {
@@ -35,7 +35,7 @@ export interface NonCommandInteractionData {
     run(
         interaction:
             | ButtonInteraction
-            | SelectMenuInteraction
+            | StringSelectMenuInteraction
             | ModalSubmitInteraction
             | AutocompleteInteraction,
         args: string[],

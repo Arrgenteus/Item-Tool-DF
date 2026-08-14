@@ -1,4 +1,4 @@
-import { CommandInteraction } from 'discord.js';
+import { ChatInputCommandInteraction } from 'discord.js';
 import config from '../config.js';
 import { ValidationError } from '../errors.js';
 import { SlashCommandData } from '../eventHandlerTypes.js';
@@ -25,7 +25,7 @@ export const sortCommand: SlashCommandData = {
         options: getSortCommandOptions(),
     },
 
-    run: async (interaction: CommandInteraction) => {
+    run: async (interaction: ChatInputCommandInteraction) => {
         let inputSortExpression: string | undefined =
             interaction.options.getString(SortCommandParams.SORT_EXPRESSION) ?? undefined;
         let itemTypeInput: SortItemTypeOption =
@@ -66,7 +66,7 @@ export const sortCommand: SlashCommandData = {
 
         // Exclude rare tagged items unless enabled explicitly
         if (interaction.options.getBoolean(SortCommandParams.RARE_TAG) !== true) {
-            itemTagsToExclude.add('rare')
+            itemTagsToExclude.add('rare');
         }
 
         const sortResultFilters = {
