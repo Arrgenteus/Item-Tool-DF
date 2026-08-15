@@ -1,52 +1,55 @@
 import yaml from 'js-yaml';
 import fs from 'fs';
-import { Snowflake } from 'discord.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { z } from 'zod';
 
-export interface Config {
-    BOT_TOKEN: string;
-    DB_HOST: string;
-    DB_PORT: string;
-    DB_NAME: string;
-    DB_COLLECTION: string;
-    DB_AUTH_MECHANISM: string;
-    DB_USER: string;
-    DB_PASS: string;
-    DEV_ID?: Snowflake;
-    COMMAND_CHAR: string;
-    ELASTIC_URL: string;
-    ELASTIC_USER: string;
-    ELASTIC_PASS: string;
-    PET_INDEX_NAME: string;
-    ACCESSORY_INDEX_NAME: string;
-    WEAPON_INDEX_NAME: string;
-    LONG_RESULT_CHANNELS?: string[];
-}
+const nonEmptyString = z.string().min(1);
+const snowflake = z.string().regex(/^\d{17,20}$/);
+
+const configSchema = z.object({
+    ENVIRONMENT: z.enum(['dev', 'prod']).default('prod'),
+    BOT_TOKEN: nonEmptyString,
+    DB_HOST: nonEmptyString,
+    DB_PORT: nonEmptyString,
+    DB_NAME: nonEmptyString,
+    DB_COLLECTION: nonEmptyString,
+    DB_AUTH_MECHANISM: nonEmptyString,
+    DB_USER: nonEmptyString,
+    DB_PASS: nonEmptyString,
+    DEV_ID: snowflake.optional(),
+    COMMAND_CHAR: nonEmptyString,
+    ELASTIC_URL: z.url(),
+    ELASTIC_USER: nonEmptyString,
+    ELASTIC_PASS: nonEmptyString,
+    PET_INDEX_NAME: nonEmptyString,
+    ACCESSORY_INDEX_NAME: nonEmptyString,
+    WEAPON_INDEX_NAME: nonEmptyString,
+    LONG_RESULT_CHANNELS: z.array(snowflake).optional(),
+});
+
+export type Config = z.infer<typeof configSchema>;
 
 const dirname = fileURLToPath(new URL('.', import.meta.url));
 const CONFIG_DIR = path.resolve(dirname, '../config.yml');
-const config: Config = yaml.load(fs.readFileSync(CONFIG_DIR, 'utf8')) as Config;
+const configResult = configSchema.safeParse(yaml.load(fs.readFileSync(CONFIG_DIR, 'utf8')));
 
-const requiredConfigValues: (keyof Config)[] = [
-    'BOT_TOKEN',
-    'DB_HOST',
-    'DB_PORT',
-    'DB_NAME',
-    'DB_COLLECTION',
-    'DB_AUTH_MECHANISM',
-    'DB_USER',
-    'DB_PASS',
-    'COMMAND_CHAR',
-    'ELASTIC_URL',
-    'ELASTIC_USER',
-    'ELASTIC_PASS',
-    'PET_INDEX_NAME',
-    'ACCESSORY_INDEX_NAME',
-    'WEAPON_INDEX_NAME',
-];
-for (const value of requiredConfigValues) {
-    if (!(value in config)) throw new Error(`${value} must be defined in config.yml`);
+if (!configResult.success) {
+    const missingValues = configResult.error.issues
+        .filter((issue) => issue.code === 'invalid_type' && issue.input === undefined)
+        .map((issue) => issue.path.join('.'));
+
+    if (missingValues.length > 0) {
+        throw new Error(
+            missingValues
+                .map((value) => `${value} is missing and is a required config value`)
+                .join('\n')
+        );
+    }
+
+    throw configResult.error;
 }
+
+const config = configResult.data;
 
 export default config;

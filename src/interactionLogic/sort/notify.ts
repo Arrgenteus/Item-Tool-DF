@@ -6,6 +6,7 @@ import {
 } from 'discord.js';
 import fs from 'fs';
 import lockfile from 'proper-lockfile';
+import logger from '../../logger.js';
 import config from '../../config.js';
 import { SortExpressionData } from './types.js';
 
@@ -14,10 +15,8 @@ const SENT_NOTIF_FILE_PATH = 'dataStorage/sent-notifications.json';
 const sentNotificationMap: { [userId: Snowflake]: any } = await fs.promises
     .readFile(SENT_NOTIF_FILE_PATH, { encoding: 'utf-8', flag: 'a+' })
     .then((fileContents: string) => (fileContents === '' ? {} : JSON.parse(fileContents)))
-    .catch((error: Error) => {
-        console.error(
-            `An error occurred while loading the sent user notification map:\n${error.stack}`
-        );
+    .catch((err: Error) => {
+        logger.error({ err, path: SENT_NOTIF_FILE_PATH }, 'Failed to load sent notification map');
         return {};
     });
 
@@ -50,7 +49,10 @@ export async function notifyUserOfUpdatedSortBehavior(
             flags: MessageFlags.Ephemeral,
         });
     } catch (err) {
-        console.error(`An error occurred while sending a notification message to a user:\n${err}`);
+        logger.error(
+            { err, interaction },
+            'Failed to send sort behavior notification'
+        );
         return;
     }
 
@@ -60,9 +62,10 @@ export async function notifyUserOfUpdatedSortBehavior(
         const releaseFileLock: () => Promise<void> = await lockfile.lock(SENT_NOTIF_FILE_PATH);
         await fs.promises.writeFile(SENT_NOTIF_FILE_PATH, JSON.stringify(sentNotificationMap));
         await releaseFileLock();
-    } catch (err: any) {
-        console.error(
-            `An error occurred while writing the sent notification list to file:\n${err.stack}`
+    } catch (err) {
+        logger.error(
+            { err, path: SENT_NOTIF_FILE_PATH },
+            'Failed to write sent notification map'
         );
     }
 }

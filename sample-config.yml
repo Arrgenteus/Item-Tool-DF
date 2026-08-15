@@ -1,3 +1,6 @@
+# Use 'dev' for debug logging; defaults to 'prod' when omitted
+ENVIRONMENT: 'prod'
+
 # Visit https://discord.com/developers/applications for your bot token
 BOT_TOKEN: 'your bot token'
 

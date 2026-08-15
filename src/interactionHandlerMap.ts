@@ -1,4 +1,5 @@
 import { Collection } from 'discord.js';
+import logger from './logger.js';
 import {
     ChatCommandData,
     NonCommandInteractionData,
@@ -29,19 +30,28 @@ function loadInteractionNameToHandlerMapping(interactionHandlerObjects: {
 }
 
 export const autocompleteHandlerMap = loadInteractionNameToHandlerMapping(autocompleteHandlers);
-console.log('Autocomplete interaction handlers have been loaded');
+logger.info(
+    { handlerCount: autocompleteHandlerMap.size },
+    'Autocomplete interaction handlers loaded'
+);
 
 export const buttonInteractionHandlerMap =
     loadInteractionNameToHandlerMapping(buttonInteractionHandlers);
-console.log('Button interaction handlers have been loaded');
+logger.info(
+    { handlerCount: buttonInteractionHandlerMap.size },
+    'Button interaction handlers loaded'
+);
 
 export const modalSubmitHandlerMap = loadInteractionNameToHandlerMapping(modalSubmitHandlers);
-console.log('Modal interaction handlers have been loaded');
+logger.info({ handlerCount: modalSubmitHandlerMap.size }, 'Modal interaction handlers loaded');
 
 export const selectMenuInteractionHandlerMap = loadInteractionNameToHandlerMapping(
     selectMenuInteractionHandlers
 );
-console.log('Select menu interaction handlers have been loaded');
+logger.info(
+    { handlerCount: selectMenuInteractionHandlerMap.size },
+    'Select menu interaction handlers loaded'
+);
 
 export const slashCommandHandlerMap: Collection<string, SlashCommandData> = new Collection();
 export const chatCommandHandlerMap: Collection<string, ChatCommandData> = new Collection();
@@ -53,7 +63,7 @@ for (let commands of Object.values(slashCommandHandlers)) {
         slashCommandHandlerMap.set(command.structure.name, command);
     }
 }
-console.log('Slash commands have been loaded');
+logger.info({ commandCount: slashCommandHandlerMap.size }, 'Slash commands loaded');
 
 for (const command of Object.values(chatCommandHandlers)) {
     for (const commandName of command.names) {
@@ -63,4 +73,4 @@ for (const command of Object.values(chatCommandHandlers)) {
         chatCommandHandlerMap.set(commandName, command);
     }
 }
-console.log('Chat commands have been loaded');
+logger.info({ commandCount: chatCommandHandlerMap.size }, 'Chat commands loaded');

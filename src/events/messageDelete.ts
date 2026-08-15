@@ -1,4 +1,5 @@
 import { ChannelType, Message } from 'discord.js';
+import logger from '../logger.js';
 import { ClientEventHandler } from '../eventHandlerTypes.js';
 import { botResponseCache } from '../utils/store.js';
 
@@ -12,8 +13,11 @@ const messageDeleteEventHandler: ClientEventHandler = {
 
         try {
             await botResponseMessage.delete();
-        } catch (err: any) {
-            console.error(`Failed to delete bot message response:\n${err}`);
+        } catch (err) {
+            logger.error(
+                { err, message, followUpMessage: botResponseMessage },
+                'Failed to delete bot message response'
+            );
         }
     },
 };
