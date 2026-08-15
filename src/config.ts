@@ -15,6 +15,8 @@ const configSchema = z.object({
     DB_NAME: nonEmptyString,
     DB_COLLECTION: nonEmptyString,
     DB_AUTH_MECHANISM: nonEmptyString,
+    DB_REPLICA_SET: nonEmptyString.optional(),
+    DB_DIRECT_CONNECTION: z.boolean().default(false),
     DB_USER: nonEmptyString,
     DB_PASS: nonEmptyString,
     DEV_ID: snowflake.optional(),
