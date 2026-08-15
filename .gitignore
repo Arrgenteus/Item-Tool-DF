@@ -1,5 +1,3 @@
 node_modules/
 dist/
 config.yml
-dataStorage/*
-!dataStorage/README.md

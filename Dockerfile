@@ -9,6 +9,4 @@ RUN npm install
 
 COPY . /app
 
-RUN mkdir /app/dataStorage/
-
 CMD ["npm", "start", "register-slash"]
