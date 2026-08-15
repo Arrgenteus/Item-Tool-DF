@@ -13,6 +13,10 @@ DB_PORT: '27017'
 DB_NAME: 'DFPedia'
 DB_COLLECTION: 'weapons_and_accessories'
 DB_AUTH_MECHANISM: 'DEFAULT'
+# Required when connecting to a MongoDB replica set through a single-host port forward
+DB_REPLICA_SET: 'df-db-rs'
+# Enable when the driver should connect only to DB_HOST instead of discovering other members
+DB_DIRECT_CONNECTION: false
 DB_USER: 'username'
 DB_PASS: 'password'
 
