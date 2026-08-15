@@ -1,4 +1,5 @@
 import { BaseMessageOptions, ChannelType, Message } from 'discord.js';
+import logger from '../logger.js';
 import config from '../config.js';
 import { ValidationError } from '../errors.js';
 import { ChatCommandData, ClientEventHandler } from '../eventHandlerTypes.js';
@@ -31,12 +32,15 @@ const messageCreateEventHandler: ClientEventHandler = {
                     content: 'An error occurred. Please try again later.',
                 };
                 if (config.DEV_ID) errMessage.content += ` <@${config.DEV_ID}>`;
-                console.error(err);
+                logger.error({ err, commandName, message }, 'Chat command failed');
             }
             try {
                 if (message.channel.isSendable()) await message.channel.send(errMessage);
             } catch (responseErr) {
-                console.error('An error occurred while responding to an error:\n', responseErr);
+                logger.error(
+                    { err: responseErr, commandName, message },
+                    'Failed to send chat command error response'
+                );
             }
         }
     },

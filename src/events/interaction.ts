@@ -7,6 +7,7 @@ import {
     ModalSubmitInteraction,
     StringSelectMenuInteraction,
 } from 'discord.js';
+import logger from '../logger.js';
 import config from '../config.js';
 import { ValidationError } from '../errors.js';
 import { NonCommandInteractionData, ClientEventHandler } from '../eventHandlerTypes.js';
@@ -39,7 +40,7 @@ async function interactionErrorHandler(
             content: 'An error occurred. Please try again later.',
         };
         if (config.DEV_ID) errMessage.content += ` Let <@${config.DEV_ID}> know about this.`;
-        console.error(err);
+        logger.error({ err, interaction }, 'Interaction failed');
     }
 
     try {
@@ -54,7 +55,10 @@ async function interactionErrorHandler(
             await interaction.reply(response);
         }
     } catch (responseErr) {
-        console.error('An error occurred while responding to an error:\n', responseErr);
+        logger.error(
+            { err: responseErr, interaction },
+            'Failed to send interaction error response'
+        );
     }
 }
 
@@ -78,18 +82,14 @@ async function autocompleteHandler(interaction: AutocompleteInteraction): Promis
         interaction.commandName
     );
     if (!handler) {
-        console.warn(
-            `No autocomplete interaction handler available for command "${interaction.commandName}"`
-        );
+        logger.warn({ interaction }, 'No autocomplete interaction handler available');
         return;
     }
 
     try {
         await handler.run(interaction, [], interaction.commandName);
-    } catch (err: any) {
-        console.error(
-            `An error occurred while generating autocomplete response to command "${interaction.commandName}":\n${err.stack}`
-        );
+    } catch (err) {
+        logger.error({ err, interaction }, 'Failed to generate autocomplete response');
     }
 }
 

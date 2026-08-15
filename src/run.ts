@@ -1,4 +1,5 @@
 import { Client as DiscordClient, Events, GatewayIntentBits, Guild } from 'discord.js';
+import logger from './logger.js';
 import config from './config.js';
 import { SlashCommandData } from './eventHandlerTypes.js';
 import interactionEventHandler from './events/interaction.js';
@@ -22,22 +23,29 @@ const eventHandlers = [
 for (const eventHandler of eventHandlers) client.on(eventHandler.eventName, eventHandler.run);
 
 client.once(Events.ClientReady, () => {
-    console.log(`${client.user?.tag || 'Client'} is ready to respond to interactions.`);
+    logger.info({ clientTag: client.user?.tag }, 'Client is ready to respond to interactions');
 });
 
-console.log('Logging in...');
+logger.info('Logging in');
 client.login(config.BOT_TOKEN).then(async () => {
-    if (client.user?.tag) console.log(`Logged in as ${client.user.tag}. Getting ready...`);
-    else console.log('Logged in. Getting ready...');
+    logger.info({ clientTag: client.user?.tag }, 'Logged in; getting ready');
 
     const [commandArg] = process.argv.slice(2);
     if (commandArg === 'register-slash') {
+        const guilds = client.guilds.cache.map((guild: Guild) => ({
+            id: guild.id,
+            name: guild.name,
+        }));
         const slashCommandStructures = slashCommandHandlerMap.map(
             (command: SlashCommandData) => command.structure
         );
+        logger.info({ guildCount: guilds.length, guilds }, 'Registering slash commands...');
         await Promise.all(
             client.guilds.cache.map((guild: Guild) => guild.commands.set(slashCommandStructures))
         );
-        console.log('Slash commands have been registered');
+        logger.info(
+            { guildCount: guilds.length, guilds },
+            'Slash commands registered for all guilds'
+        );
     }
 });
